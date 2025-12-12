@@ -1,0 +1,9 @@
+# Ignorar screenshots e arquivos de debug
+output/*.png
+output/*.html
+output/*.csv
+
+# Manter apenas JSON e PDFs
+!output/editais.json
+!output/pdfs/
+

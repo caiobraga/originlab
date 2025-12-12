@@ -1,0 +1,100 @@
+{
+  "project_info": {
+    "title": "Origem.Lab",
+    "created": 1761702647.7728992,
+    "last_updated": 1761705578.4265819,
+    "total_slides": 11
+  },
+  "slides": {
+    "capa": "edited",
+    "problema": "edited",
+    "solucao": "edited",
+    "produto": "edited",
+    "mercado": "edited",
+    "expansao_global": "edit_pending",
+    "modelo_negocio": "edited",
+    "crescimento": "edited",
+    "tecnologia": "edited",
+    "time": "edited",
+    "cta": "edited"
+  },
+  "outline": [
+    {
+      "id": "capa",
+      "title": "Origem.Lab",
+      "summary": "Slide de abertura com título principal 'Origem.Lab', subtítulo 'Inteligência Artificial para Fomento e Subvenção' e slogan 'Transforme pesquisa e inovação em projetos financiados'",
+      "image_plan": "",
+      "slide_template_key": ""
+    },
+    {
+      "id": "problema",
+      "title": "O Problema",
+      "summary": "Desconexão entre quem precisa e quem oferece fomento desperdiça bilhões anualmente. Brasil investiu R$ 41,9 bi em P&D (2023), mas recursos ficam ociosos devido a dispersão de informação (+2.000 editais), complexidade burocrática, baixa assertividade e prestação de contas onerosa.",
+      "image_plan": "",
+      "slide_template_key": ""
+    },
+    {
+      "id": "solucao",
+      "title": "Nossa Solução",
+      "summary": "Origem.Lab automatiza toda a jornada de captação com IA: análise de perfil, busca inteligente, ranqueamento por aderência, painel personalizado, IA redatora, submissão guiada, monitoramento e prestação de contas. Única plataforma que cobre o ciclo completo.",
+      "image_plan": "Usar imagem /home/ubuntu/pitch-images/ai-network.jpg para ilustrar rede de IA conectando diferentes elementos",
+      "slide_template_key": ""
+    },
+    {
+      "id": "produto",
+      "title": "Produto",
+      "summary": "Dashboard dinâmico + IA generativa transformam meses de trabalho em minutos. Painel inteligente com editais ranqueados, probabilidade de aprovação, filtros e alertas. IA redatora gera propostas técnicas aderentes. Copiloto de submissão com checklist e validação.",
+      "image_plan": "Usar imagem /home/ubuntu/pitch-images/dashboard.jpg para mostrar interface do painel",
+      "slide_template_key": ""
+    },
+    {
+      "id": "mercado",
+      "title": "Mercado",
+      "summary": "Ecossistema de inovação brasileiro cresce 21,7% ao ano. R$ 20 bi/ano em P&D, +2.000 editais ativos, R$ 1,4 bi aprovados (BNDES/Finep 2025). Público: 20.000+ startups, milhares de pesquisadores, 49,1% empresas aumentando P&D, 363 incubadoras, universidades.",
+      "image_plan": "",
+      "slide_template_key": ""
+    },
+    {
+      "id": "expansao_global",
+      "title": "Expansão Global",
+      "summary": "Oportunidade de $200+ bilhões em fomento internacional. Brasileiros são elegíveis para programas na Europa (Horizon Europe, Newton Fund), América Latina (CORFO, Minciencias) e colaborações com EUA. Estratégia de expansão em 3 fases: LATAM (Ano 2), Europa (Ano 3), Mercados avançados (Ano 4+).",
+      "image_plan": "",
+      "slide_template_key": ""
+    },
+    {
+      "id": "modelo_negocio",
+      "title": "Modelo de Negócio",
+      "summary": "Monetização escalável: Free (R$ 0), Pro (R$ 49/mês), Empresas (R$ 199/mês), Institucional (sob consulta). Success Fee de 3% sobre projetos aprovados. Projeção Ano 2: R$ 5,4M ARR (R$ 3,4M assinaturas + R$ 2M success fee).",
+      "image_plan": "",
+      "slide_template_key": ""
+    },
+    {
+      "id": "crescimento",
+      "title": "Estratégia de Crescimento",
+      "summary": "Go-to-market via parcerias institucionais (universidades, hubs, Sebrae, FAPs), programa de indicação, campanhas segmentadas e conteúdo/SEO. Roadmap: MVP 2025 Q1-Q2, expansão Brasil Q3-Q4 (1k usuários), América Latina 2026, Europa 2027+.",
+      "image_plan": "",
+      "slide_template_key": ""
+    },
+    {
+      "id": "tecnologia",
+      "title": "Tecnologia",
+      "summary": "Stack escalável: web scraping 24/7, NLP para análise de editais, algoritmo proprietário de matching (50+ variáveis), IA generativa com fine-tuning de LLMs. Base histórica de 10.000+ editais. Vantagem: efeito de rede (mais usuários = melhor algoritmo).",
+      "image_plan": "",
+      "slide_template_key": ""
+    },
+    {
+      "id": "time",
+      "title": "Time",
+      "summary": "Equipe multidisciplinar: Danilo Nascimento (CEO, 10+ anos em inovação e captação), CTO especialista em ML/NLP, Head de Produto UX, Especialista em Fomento (15+ anos com agências). Advisors de FAPs, universidades e IA.",
+      "image_plan": "",
+      "slide_template_key": ""
+    },
+    {
+      "id": "cta",
+      "title": "Call to Action",
+      "summary": "Da Origem ao Sucesso. Rodada Seed R$ 2M (valuation pré-money R$ 8M). Uso: 40% tech, 30% go-to-market, 20% equipe, 10% operacional. Parcerias para universidades/hubs/FAPs. Early adopters: 6 meses grátis. Contato: origemlab.ai",
+      "image_plan": "",
+      "slide_template_key": ""
+    }
+  ]
+}

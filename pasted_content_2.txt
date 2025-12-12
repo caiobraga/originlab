@@ -1,0 +1,63 @@
+Pitch Deck — Origem.Lab: Inteligência em Fomento e Subvenção
+Slide 1 — Capa
+Título: Origem.Lab
+Subtítulo: Inteligência Artificial para conectar ideias a oportunidades de fomento.
+Slogan: Transforme pesquisa e inovação em projetos financiados.
+💡 Logo central + imagem conceitual (rede neural + ícones de ciência e empresas).
+Slide 2 — O Problema
+Empresas e pesquisadores não conseguem encontrar editais que se encaixem em seus perfis.
+O processo é burocrático, manual e disperso.
+Resultado: bilhões de reais em recursos não utilizados todos os anos.
+📊 Dado ilustrativo: mais de R$ 5 bi/ano de recursos de fomento ficam ociosos no Brasil.
+Slide 3 — Nossa Solução
+A Origem.Lab é uma plataforma que:
+Analisa o perfil do usuário (empresa ou pesquisador).
+Vasculha automaticamente a web e bases oficiais de fomento.
+Indica editais compatíveis com alta chance de sucesso.
+Automatiza submissão, acompanhamento e prestação de contas.
+🧠 IA que entende seu projeto e encontra as melhores oportunidades.
+Slide 4 — Como Funciona
+1️⃣ Usuário cria um perfil (área, CNPJ/CPF, objetivos).
+2️⃣ A IA faz a busca inteligente e ranqueia os editais.
+3️⃣ Painel mostra oportunidades com filtros e probabilidade de aprovação.
+4️⃣ O assistente de submissão gera e envia as propostas.
+⚙️ Tudo em um só lugar — do mapeamento à prestação de contas.
+Slide 5 — O Produto
+Painel inteligente: editais, status, alertas e métricas.
+IA redatora: cria propostas aderentes automaticamente.
+Copiloto de submissão: passo a passo guiado até o envio.
+Dashboard de performance: acompanha aprovações e valores captados.
+🎯 Demonstração visual do dashboard ou wireframe simples.
+Slide 6 — Mercado e Oportunidade
+Mercado de inovação e P&D no Brasil: R$ 20 bilhões/ano.
++2.000 editais ativos anualmente.
+Público-alvo:
+Empresas inovadoras e startups;
+Pesquisadores e grupos acadêmicos;
+Universidades, incubadoras e parques tecnológicos.
+🌎 Expansão prevista: América Latina e União Europeia.
+Slide 7 — Modelo de Negócio
+Plano	Público	Preço	Recursos
+Free	Iniciantes	R$ 0	3 editais/mês, alertas básicos
+Pro	Pesquisadores	R$ 49/mês	Painel completo + IA redatora
+Empresas	Startups e corporações	R$ 199/mês	Multiusuário + acompanhamento
+Institucional	Universidades e FAPs	Sob consulta	White label + relatórios
+💰 + success fee de 3% em projetos aprovados.
+Slide 8 — Estratégia de Crescimento
+Parcerias com universidades, hubs de inovação e SEBRAE.
+Programa de indicação e afiliados.
+Campanhas segmentadas por área (saúde, agritech, energia, IA).
+MVP nacional → expansão LATAM → versão global.
+🚀 Crescimento com base em comunidade e dados reais.
+Slide 9 — Time
+Danilo Nascimento – CEO / Estrategista de Inovação
+[Nome placeholder] – CTO / Eng. de IA
+[Nome placeholder] – Head de Produto e UX
+[Nome placeholder] – Especialista em Captação e Fomento
+🤝 Time multidisciplinar, com experiência em tecnologia, inovação e captação de recursos.
+Slide 10 — Call to Action
+Junte-se à Origem.Lab e transforme fomento em impacto.
+👉 [origemlab.ai] (link demonstrativo)
+📧 contato@origemlab.ai
+📍 Brasil | Inovação para o futuro.
+🔥 Encerrar com animação leve e o slogan: “Da Origem ao Sucesso.”

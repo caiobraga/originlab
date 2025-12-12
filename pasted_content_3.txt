@@ -1,0 +1,72 @@
+Prompt Formatado para Manus — Origem.Lab
+Objetivo geral:
+Desenvolver o conceito e os materiais de demonstração de uma plataforma chamada Origem.Lab, que conecta empresas e pesquisadores a editais de fomento, automatizando todo o processo — da busca à prestação de contas.
+🎯 Instruções para a Manus
+Você é uma IA estrategista e construtora de produtos digitais.
+Sua tarefa é criar um pacote completo de demonstração da Origem.Lab contendo:
+Descrição detalhada do produto e funcionalidades, com foco na dor real de mercado.
+Site modelo (landing page demonstrativa) com copywriting persuasivo e layout conceitual.
+Apresentação em formato de pitch deck (10 slides) para investidores e parceiros.
+💡 Contexto do problema
+Empresas e pesquisadores têm grande dificuldade em:
+Encontrar editais compatíveis com seu perfil.
+Entender requisitos técnicos e burocráticos.
+Elaborar propostas competitivas.
+Acompanhar status de submissão e prestação de contas.
+Esses gargalos fazem com que bilhões em fomento fiquem sem utilização todos os anos.
+🚀 Proposta da Origem.Lab
+A Origem.Lab resolve esse problema com uma IA que:
+Analisa o perfil do usuário (empresa ou pesquisador).
+Varrendo a web, encontra automaticamente editais adequados (Finep, FAPs, Sebrae, Embrapii, CNPq, União Europeia etc.).
+Mostra os resultados em um painel personalizado, com:
+grau de aderência,
+probabilidade de aprovação,
+valor e prazos,
+botão direto para iniciar a submissão.
+Automatiza toda a jornada:
+Redação da proposta;
+Envio guiado;
+Monitoramento de resultado;
+Prestação de contas automatizada.
+🧭 Recursos que a Manus deve gerar
+1. Descrição textual
+Nome do produto: Origem.Lab — Inteligência em Fomento e Subvenção.
+Público-alvo: pesquisadores, startups, universidades, e empresas de inovação.
+Diferenciais: automação completa, IA contextual, painel dinâmico, suporte contínuo.
+Tom de voz: acessível, confiável, inspirador.
+2. Site modelo (Landing Page)
+Seções obrigatórias:
+Header: slogan (“Transforme ideias em projetos financiados”).
+Hero: CTA “Descubra seus editais ideais”.
+Como funciona: passo a passo (perfil → análise → resultados → submissão).
+Demonstração interativa: exibição de painel e filtros.
+Planos de monetização:
+Free: 3 editais/mês.
+Pro: R$ 49/mês (acesso completo + IA de redação).
+Empresas: R$ 199/mês (múltiplos usuários + acompanhamento).
+Institucional: modelo white label sob demanda.
+Depoimentos (mock).
+Chamada para cadastro gratuito.
+🪄 O layout deve seguir estilo moderno, leve, com cores tecnológicas (azul, violeta, branco) e ícones vetoriais limpos.
+3. Pitch Deck (10 slides sugeridos)
+Problema: desconexão entre quem precisa e quem oferece fomento.
+Solução: Origem.Lab — IA de mapeamento e submissão.
+Mercado: tamanho do mercado de P&D e inovação no Brasil e LatAm.
+Produto: painel inteligente, busca automatizada, IA redatora.
+Tecnologia: machine learning + NLP para análise de editais.
+Modelo de negócios: freemium + assinatura + success fee.
+Go-to-Market: parceria com universidades e hubs de inovação.
+Time: Origem.Lab (exibir placeholders de equipe).
+Roadmap: MVP, pilotos, expansão.
+Call to Action: “Junte-se à Origem.Lab e transforme fomento em impacto.”
+🪙 Monetização sugerida
+Freemium: acesso básico.
+Pro mensal: R$ 49.
+Business mensal: R$ 199.
+Success Fee: 3% sobre projetos aprovados.
+Institucional/White Label: licença personalizada.
+🎨 Entrega esperada da Manus
+Texto completo da descrição.
+Mockup do site (HTML simples ou wireframe).
+Slides do pitch (texto estruturado).
+Sugestões de design visual e narrativa.
