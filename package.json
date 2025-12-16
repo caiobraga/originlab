@@ -16,9 +16,13 @@
     "db:sync": "tsx scripts/db/sync.ts",
     "db:fix-pdfs": "tsx scripts/db/fix-pdfs.ts",
     "db:rename-files": "tsx scripts/db/rename-files.ts",
-    "db:test-env": "tsx -e \"import './scripts/load-env'; console.log('SUPABASE_URL:', process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL); console.log('SERVICE_ROLE_KEY:', process.env.VITE_SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY ? 'Configurada' : 'Não configurada');\""
+    "db:test-env": "tsx -e \"import './scripts/load-env'; console.log('SUPABASE_URL:', process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL); console.log('SERVICE_ROLE_KEY:', process.env.VITE_SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY ? 'Configurada' : 'Não configurada');\"",
+    "api:process-edital-info": "tsx scripts/api/processEditalInfo.ts",
+    "api:update-edital-info": "tsx scripts/api/updateEditalInfo.ts",
+    "api:check-edital-data": "tsx scripts/api/checkEditalData.ts"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-aspect-ratio": "^1.1.7",

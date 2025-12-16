@@ -958,13 +958,38 @@ class SigfapesScraper {
       }
     });
 
-    // Filtrar apenas editais com identificação e título válido
+    // Função para verificar se é um anexo
+    const isAnexo = (titulo: string): boolean => {
+      if (!titulo) return false;
+      const tituloLower = titulo.toLowerCase().trim();
+      return tituloLower.startsWith('anexo') || 
+             /^anexo\s+[ivx]+/i.test(tituloLower) ||
+             /anexo\s+[ivx]+\s*[–-]/i.test(tituloLower) ||
+             (tituloLower.includes('formulário') && tituloLower.includes('anexo')) ||
+             (tituloLower.includes('formulario') && tituloLower.includes('anexo')) ||
+             tituloLower.includes('anexo i –') ||
+             tituloLower.includes('anexo ii') ||
+             tituloLower.includes('anexo iii') ||
+             tituloLower.includes('anexo iv') ||
+             tituloLower.includes('anexo v') ||
+             tituloLower.includes('anexo vi') ||
+             tituloLower.includes('anexo vii') ||
+             tituloLower.includes('anexo viii') ||
+             tituloLower.includes('anexo ix') ||
+             tituloLower.includes('anexo x');
+    };
+
+    // Filtrar apenas editais com identificação e título válido (excluindo anexos)
     // IMPORTANTE: Sempre reprocessar para garantir que temos TODOS os PDFs
     const validEditais = editais.filter(e => {
       if (!e.numero && !e.titulo) return false;
       // Verificar se tem título válido
       const titulo = e.titulo?.trim() || '';
       if (!titulo || titulo.length <= 3 || titulo === 'Sem título' || titulo === 'N/A') {
+        return false;
+      }
+      // Filtrar anexos (não são editais separados)
+      if (isAnexo(titulo)) {
         return false;
       }
       // SEMPRE processar - não pular editais já processados

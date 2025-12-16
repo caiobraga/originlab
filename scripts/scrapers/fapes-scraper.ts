@@ -1,41 +1,30 @@
 import { Scraper, Edital } from '../types';
-import puppeteer, { Browser, Page } from 'puppeteer';
+import { Browser, Page } from 'puppeteer';
 import * as fs from 'fs';
 import * as path from 'path';
-import libre from 'libreoffice-convert';
-import { promisify } from 'util';
-
-const libreConvert = promisify(libre.convert);
 
 export class FapesScraper implements Scraper {
   readonly name = 'fapes';
   private browser: Browser | null = null;
   private page: Page | null = null;
-  private readonly baseUrl = 'https://fapes.es.gov.br';
   private readonly editaisUrl = 'https://fapes.es.gov.br/Editais/Abertos';
-  private readonly outputDir = path.join(process.cwd(), 'scripts', 'output');
-  private readonly pdfsDir = path.join(this.outputDir, 'pdfs');
+  private readonly outputDir = path.join(process.cwd(), 'scripts', 'output', 'pdfs');
 
-  private async delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
+  private async init() {
+    if (this.browser) return;
 
-  async init() {
-    console.log('🚀 Iniciando navegador para FAPES...');
-    this.browser = await puppeteer.launch({
-      headless: false,
+    const puppeteer = await import('puppeteer');
+    this.browser = await puppeteer.default.launch({
+      headless: false, // Modo visível para debug
       args: ['--no-sandbox', '--disable-setuid-sandbox'],
-      defaultViewport: { width: 1920, height: 1080 }
+      defaultViewport: null, // Usar tamanho de tela completo
     });
     this.page = await this.browser.newPage();
-    
-    // Criar diretório de output se não existir
-    if (!fs.existsSync(this.outputDir)) {
-      fs.mkdirSync(this.outputDir, { recursive: true });
-    }
-    if (!fs.existsSync(this.pdfsDir)) {
-      fs.mkdirSync(this.pdfsDir, { recursive: true });
-    }
+    await this.page.setViewport({ width: 1920, height: 1080 });
+  }
+
+  private delay(ms: number) {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   async scrape(): Promise<Edital[]> {
@@ -45,27 +34,129 @@ export class FapesScraper implements Scraper {
       console.log(`📍 Acessando: ${this.editaisUrl}`);
       await this.page!.goto(this.editaisUrl, { waitUntil: 'networkidle2', timeout: 30000 });
       await this.delay(3000);
-
-      // Extrair editais da página
-      const editais = await this.page!.evaluate((baseUrl) => {
-        const editais: Array<Partial<Edital>> = [];
-        const seenUrls = new Set<string>();
+      
+      // Encontrar todos os painéis primeiro (sem expandir ainda)
+      const panelTitles = await this.page!.$$('.panel-title, [class*="panel-title"], [data-toggle="collapse"], a[href*="#collapse"]');
+      console.log(`🔍 Encontrados ${panelTitles.length} painéis para processar`);
+      
+      // Processar cada painel individualmente (um por vez, pois são accordions)
+      const allEditais: Edital[] = [];
+      
+      for (let i = 0; i < panelTitles.length; i++) {
+        console.log(`\n📄 Processando painel ${i + 1}/${panelTitles.length}...`);
         
-        // Procurar por tabelas na página
-        const tables = document.querySelectorAll('table');
-        
-        tables.forEach((table) => {
-          const rows = table.querySelectorAll('tbody tr, tr');
+        try {
+          // Clicar no painel para expandir
+          await panelTitles[i].scrollIntoView();
+          await this.delay(300);
+          await panelTitles[i].click({ delay: 100 });
+          console.log(`  ✅ Painel ${i + 1} clicado`);
           
-          rows.forEach((row) => {
-            const cells = row.querySelectorAll('td');
-            if (cells.length < 2) return;
-
-            // Coletar TODOS os links de PDF da linha primeiro
-            const allPdfLinks: Array<{link: HTMLAnchorElement, text: string, href: string}> = [];
-            const pdfLinks = row.querySelectorAll('a[href*=".pdf"], a[href*="/Media/"], a[href*="/Editais/"]') as NodeListOf<HTMLAnchorElement>;
+          // Aguardar o painel expandir
+          await this.delay(1500);
+          
+          // Extrair informações deste painel específico
+          const editalData = await this.page!.evaluate((baseUrl, panelIndex) => {
+            const edital: Partial<Edital> = {};
+            const debug: string[] = [];
             
-            pdfLinks.forEach((pdfLink) => {
+            // Encontrar o painel atual que está expandido
+            const expandedPanels = document.querySelectorAll('.collapse.show, .collapse.in, [class*="collapse"][class*="show"], [class*="collapse"][class*="in"]');
+            const currentPanel = expandedPanels[panelIndex] || expandedPanels[expandedPanels.length - 1];
+            
+            if (!currentPanel) {
+              debug.push(`  ⚠️ Painel ${panelIndex} não encontrado após expansão`);
+              return { edital: null, debug };
+            }
+            
+            // Encontrar o painel pai que contém o título
+            let panelContainer: Element | null = currentPanel;
+            let depth = 0;
+            while (panelContainer && depth < 10) {
+              const hasTitle = panelContainer.querySelector('.panel-title, [class*="panel-title"], h3, h4, h5');
+              if (hasTitle) {
+                break;
+              }
+              panelContainer = panelContainer.parentElement;
+              depth++;
+            }
+            
+            if (!panelContainer) {
+              panelContainer = currentPanel.parentElement || currentPanel;
+            }
+            
+            // Extrair título
+            const titleElement = panelContainer.querySelector('.panel-title, [class*="panel-title"], h3, h4, h5, strong, b');
+            let panelTitle = '';
+            if (titleElement) {
+              panelTitle = titleElement.textContent?.trim() || '';
+            }
+            panelTitle = panelTitle.replace(/\s+/g, ' ').trim();
+            
+            // Extrair número do edital
+            let numero = '';
+            const numeroMatch = panelTitle.match(/N[º°°]?\s*(\d+\/\d+)/i) || 
+                              panelTitle.match(/(\d+\/\d+)/);
+            if (numeroMatch) {
+              numero = numeroMatch[1];
+            }
+            
+            // Coletar TODOS os PDFs do painel expandido
+            const pdfUrls: string[] = [];
+            const pdfLinksArray: HTMLAnchorElement[] = [];
+            const seenHrefs = new Set<string>();
+            
+            // Estratégia 1: Procurar dentro do elemento collapse expandido
+            const links = currentPanel.querySelectorAll('a');
+            links.forEach(link => {
+              const anchor = link as HTMLAnchorElement;
+              const href = anchor.href || anchor.getAttribute('href') || '';
+              
+              // Verificar se é um link de PDF
+              if (href && (
+                href.includes('.pdf') || 
+                href.includes('/Media/') || 
+                href.includes('/Editais/') ||
+                href.toLowerCase().includes('download') ||
+                href.toLowerCase().includes('baixar')
+              )) {
+                // Normalizar href (remover fragmentos e query params para comparação)
+                const normalizedHref = href.split('#')[0].split('?')[0];
+                
+                if (!seenHrefs.has(normalizedHref) && !pdfLinksArray.includes(anchor)) {
+                  seenHrefs.add(normalizedHref);
+                  pdfLinksArray.push(anchor);
+                }
+              }
+            });
+            
+            // Estratégia 2: Procurar especificamente por links com .pdf na tabela
+            const panelTable = currentPanel.querySelector('table');
+            if (panelTable) {
+              const tableLinks = panelTable.querySelectorAll('a');
+              tableLinks.forEach(link => {
+                const anchor = link as HTMLAnchorElement;
+                const href = anchor.href || anchor.getAttribute('href') || '';
+                
+                if (href && (
+                  href.includes('.pdf') || 
+                  href.includes('/Media/') || 
+                  href.includes('/Editais/')
+                )) {
+                  const normalizedHref = href.split('#')[0].split('?')[0];
+                  
+                  if (!seenHrefs.has(normalizedHref) && !pdfLinksArray.includes(anchor)) {
+                    seenHrefs.add(normalizedHref);
+                    pdfLinksArray.push(anchor);
+                  }
+                }
+              });
+            }
+            
+            debug.push(`  Encontrados ${pdfLinksArray.length} link(s) de PDF no painel expandido`);
+            
+            // Processar cada link
+            pdfLinksArray.forEach((pdfLink) => {
               if (!pdfLink || !pdfLink.href) return;
               
               let linkHref = pdfLink.href;
@@ -74,511 +165,251 @@ export class FapesScraper implements Scraper {
               } else if (!linkHref.startsWith('http')) {
                 linkHref = baseUrl + '/' + linkHref;
               }
-
-              // Verificar se já processamos esta URL
-              if (seenUrls.has(linkHref)) return;
-              seenUrls.add(linkHref);
-
-              allPdfLinks.push({
-                link: pdfLink,
-                text: pdfLink.textContent?.trim() || '',
-                href: linkHref
-              });
+              
+              // Filtrar anexos (incluir na lista mas marcar)
+              const linkText = pdfLink.textContent?.trim() || '';
+              const linkTextLower = linkText.toLowerCase();
+              const isAnexo = linkTextLower.startsWith('anexo') || 
+                             /^anexo\s+[ivx]+/i.test(linkTextLower) ||
+                             (linkTextLower.includes('formulário') && linkTextLower.includes('anexo')) ||
+                             (linkTextLower.includes('formulario') && linkTextLower.includes('anexo'));
+              
+              // Incluir todos os PDFs, mesmo anexos
+              if (!pdfUrls.includes(linkHref)) {
+                pdfUrls.push(linkHref);
+              }
             });
-
-            // Se não há links, pular esta linha
-            if (allPdfLinks.length === 0) return;
-
-            // Encontrar o link principal (aquele que tem o título do edital, não apenas "Baixar")
-            let linkPrincipal = allPdfLinks.find(l => {
-              const text = l.text.toLowerCase();
-              return text.length > 10 && 
-                     !text.includes('baixar') && 
-                     !text.includes('download') &&
-                     (text.includes('edital') || text.includes('nº') || text.includes('numero'));
-            });
-
-            // Se não encontrou link principal, usar o primeiro que não seja apenas "Baixar"
-            if (!linkPrincipal) {
-              linkPrincipal = allPdfLinks.find(l => {
-                const text = l.text.toLowerCase();
-                return text.length > 5 && text !== 'baixar' && text !== 'download';
-              });
-            }
-
-            // Se ainda não encontrou, usar o primeiro link
-            if (!linkPrincipal) {
-              linkPrincipal = allPdfLinks[0];
-            }
-
-            // Extrair informações do link principal
-            const linkText = linkPrincipal.text;
-            let linkHref = linkPrincipal.href;
-
-            // Tentar extrair número do edital
-            let numero = '';
-            const numeroMatch = linkText.match(/N[º°°]?\s*(\d+\/\d+)/i) || 
-                              linkText.match(/(\d+\/\d+)/) ||
-                              linkHref.match(/(\d+\.\d+)/) ||
-                              linkHref.match(/(\d+\/\d+)/);
-            if (numeroMatch) {
-              numero = numeroMatch[1].replace(/\./g, '/');
-            }
-
-            // Extrair título - procurar em todas as células por texto que pareça título
-            let titulo = '';
             
-            // Primeiro, tentar usar o texto do link principal (se não for apenas "Baixar")
-            if (linkText.length > 10 && linkText.toLowerCase() !== 'baixar') {
-              titulo = linkText;
-            }
-
-            // Se não encontrou, procurar em outras células
-            if (!titulo || titulo.length < 5) {
-              cells.forEach((cell) => {
-                const cellLinks = cell.querySelectorAll('a');
-                cellLinks.forEach((cellLink) => {
-                  const cellText = cellLink.textContent?.trim() || '';
-                  if (cellText.length > 10 && cellText.length < 200 && 
-                      !cellText.toLowerCase().includes('baixar') &&
-                      !cellText.toLowerCase().includes('download') &&
-                      !cellText.toLowerCase().includes('pdf')) {
-                    if (!titulo || titulo.length < cellText.length) {
-                      titulo = cellText;
+            // Extrair descrição
+            let descricao = '';
+            const table = currentPanel.querySelector('table');
+            if (table) {
+              const rows = table.querySelectorAll('tbody tr, tr');
+              rows.forEach((row) => {
+                const cells = row.querySelectorAll('td');
+                cells.forEach((cell) => {
+                  const text = cell.textContent?.trim() || '';
+                  if (text.length > 30 && text.length < 500 && 
+                      !text.includes('pdf') && 
+                      !text.toLowerCase().includes('baixar') &&
+                      !text.toLowerCase().includes('download') &&
+                      !text.match(/^\d{2}\/\d{2}\/\d{4}$/) &&
+                      !text.match(/^\d+\s*(kB|MB|GB)$/i) &&
+                      text !== panelTitle) {
+                    if (!descricao || descricao.length < text.length) {
+                      descricao = text;
                     }
                   }
                 });
-                
-                // Se não encontrou em links, pegar texto da célula
-                if ((!titulo || titulo.length < 5) && cellLinks.length === 0) {
-                  const cellText = cell.textContent?.trim() || '';
-                  if (cellText.length > 10 && cellText.length < 200 &&
-                      !cellText.toLowerCase().includes('baixar') &&
-                      !cellText.toLowerCase().includes('download') &&
-                      !cellText.toLowerCase().includes('pdf') &&
-                      !cellText.match(/^\d{2}\/\d{2}\/\d{4}$/) && // Não é data
-                      !cellText.match(/^\d+\s*(kB|MB|GB)$/i)) { // Não é tamanho
-                    if (!titulo || titulo.length < cellText.length) {
-                      titulo = cellText;
-                    }
-                  }
-                }
               });
             }
-
-            // Extrair descrição (pode estar em outra célula)
-            let descricao = '';
-            cells.forEach((cell) => {
-              const text = cell.textContent?.trim() || '';
-              if (text.length > 30 && text.length < 500 && 
-                  !text.includes('pdf') && 
-                  !text.toLowerCase().includes('baixar') &&
-                  !text.toLowerCase().includes('download') &&
-                  !text.match(/^\d{2}\/\d{2}\/\d{4}$/) &&
-                  !text.match(/^\d+\s*(kB|MB|GB)$/i) &&
-                  text !== titulo) {
-                if (!descricao || descricao.length < text.length) {
-                  descricao = text;
-                }
-              }
-            });
-
-            // Extrair data (procurar padrão de data)
+            
+            // Extrair data
             let dataEncerramento = '';
-            cells.forEach((cell) => {
-              const text = cell.textContent?.trim() || '';
-              const dateMatch = text.match(/(\d{2}\/\d{2}\/\d{4})/);
-              if (dateMatch) {
-                dataEncerramento = dateMatch[1];
-              }
-            });
-
-            // Se não encontrou título válido, tentar extrair do nome do arquivo ou número
-            if (!titulo || titulo.length < 5 || titulo.toLowerCase() === 'baixar' || titulo.toLowerCase() === 'download') {
-              // Tentar extrair do nome do arquivo do link principal
-              const fileNameMatch = linkHref.match(/([^\/]+\.pdf)/i);
-              if (fileNameMatch) {
-                try {
-                  let fileName = decodeURIComponent(fileNameMatch[1]).replace(/\.pdf$/i, '');
-                  // Limpar caracteres especiais e normalizar
-                  fileName = fileName.replace(/%20/g, ' ')
-                                     .replace(/%C3%A7/g, 'ç')
-                                     .replace(/%C3%A1/g, 'á')
-                                     .replace(/%C3%A9/g, 'é')
-                                     .replace(/%C3%AD/g, 'í')
-                                     .replace(/%C3%B3/g, 'ó')
-                                     .replace(/%C3%BA/g, 'ú')
-                                     .replace(/%C3%A3/g, 'ã')
-                                     .replace(/%C3%B5/g, 'õ')
-                                     .replace(/%C3%81/g, 'Á')
-                                     .replace(/%C3%89/g, 'É')
-                                     .replace(/%C3%8D/g, 'Í')
-                                     .replace(/%C3%93/g, 'Ó')
-                                     .replace(/%C3%9A/g, 'Ú')
-                                     .replace(/%C3%83/g, 'Ã')
-                                     .replace(/%C3%95/g, 'Õ')
-                                     .replace(/%C3%A0/g, 'à')
-                                     .replace(/%C3%A8/g, 'è')
-                                     .replace(/%C3%AC/g, 'ì')
-                                     .replace(/%C3%B2/g, 'ò')
-                                     .replace(/%C3%B9/g, 'ù')
-                                     .replace(/%C2%BA/g, 'º')
-                                     .replace(/%C2%AA/g, 'ª')
-                                     .replace(/_/g, ' ')
-                                     .replace(/\s+/g, ' ')
-                                     .trim();
-                  
-                  // Remover prefixos comuns
-                  fileName = fileName.replace(/^edital\s+fapes\s*/i, '')
-                                    .replace(/^edital\s*/i, '');
-                  
-                  if (fileName.length > 10 && fileName.toLowerCase() !== 'baixar') {
-                    titulo = fileName;
-                  }
-                } catch (e) {
-                  // Se falhar ao decodificar, tentar usar o nome bruto
-                  const rawFileName = fileNameMatch[1].replace(/\.pdf$/i, '').replace(/_/g, ' ');
-                  if (rawFileName.length > 10) {
-                    titulo = rawFileName;
-                  }
+            const dateMatches = currentPanel.textContent?.match(/(\d{2}\/\d{2}\/\d{4})/g);
+            if (dateMatches && dateMatches.length > 0) {
+              dataEncerramento = dateMatches[dateMatches.length - 1];
+            }
+            
+            // Validar título
+            if (!panelTitle || panelTitle.length < 5) {
+              if (pdfLinksArray.length > 0) {
+                const firstLink = pdfLinksArray[0];
+                const firstLinkText = firstLink.textContent?.trim() || '';
+                if (firstLinkText.length > 10 && !firstLinkText.toLowerCase().includes('baixar')) {
+                  panelTitle = firstLinkText;
                 }
               }
               
-              // Se ainda não tem título válido, usar número
-              if (!titulo || titulo.length < 5 || titulo.toLowerCase() === 'baixar' || titulo.toLowerCase() === 'download') {
+              if (!panelTitle || panelTitle.length < 5) {
                 if (numero) {
-                  titulo = `Edital FAPES Nº ${numero}`;
+                  panelTitle = `Edital FAPES Nº ${numero}`;
                 } else {
-                  // Tentar extrair número do nome do arquivo
-                  const numeroFromFile = linkHref.match(/(\d+\.\d+)/) || linkHref.match(/(\d+\/\d+)/);
-                  if (numeroFromFile) {
-                    numero = numeroFromFile[1].replace(/\./g, '/');
-                    titulo = `Edital FAPES Nº ${numero}`;
-                  }
+                  return { edital: null, debug };
                 }
               }
             }
-
-            // VALIDAÇÃO FINAL: Não criar edital se o título ainda for inválido
-            const tituloLower = titulo.toLowerCase().trim();
-            const titulosInvalidos = ['baixar', 'download', 'edital fapes'];
-            const isTituloInvalido = !titulo || 
-                titulo.length < 5 || 
-                titulosInvalidos.includes(tituloLower) ||
-                (tituloLower.startsWith('edital fapes nº') && !numero);
             
-            if (isTituloInvalido) {
-              // Pular esta linha - não temos informações suficientes para criar um edital válido
-              // Não logar aqui pois seria muito verboso - apenas pular silenciosamente
-              return;
+            // Verificar se é anexo
+            const tituloLower = panelTitle.toLowerCase().trim();
+            const isAnexo = tituloLower.startsWith('anexo') || 
+                           /^anexo\s+[ivx]+/i.test(tituloLower) ||
+                           (tituloLower.includes('formulário') && tituloLower.includes('anexo')) ||
+                           (tituloLower.includes('formulario') && tituloLower.includes('anexo'));
+            
+            if (isAnexo || pdfUrls.length === 0) {
+              return { edital: null, debug };
             }
-
-            // Coletar todas as URLs de PDF da linha (incluindo links "Baixar")
-            const pdfUrls: string[] = [];
-            allPdfLinks.forEach((pdfLink) => {
-              pdfUrls.push(pdfLink.href);
-            });
-
-            // Criar um único edital com todos os PDFs
-            editais.push({
-              numero: numero || undefined,
-              titulo: titulo,
-              descricao: descricao || undefined,
-              dataEncerramento: dataEncerramento || undefined,
-              status: 'Ativo',
-              orgao: 'FAPES',
-              fonte: 'fapes',
-              link: linkHref, // Link principal
-              pdfUrl: linkHref, // Link principal (compatibilidade)
-              pdfUrls: pdfUrls, // Todos os PDFs da linha
-              pdfPaths: [], // Inicializar array vazio - será preenchido durante download
-            });
-          });
-        });
-
-        // Se não encontrou em tabelas, procurar em outros elementos
-        if (editais.length === 0) {
-          const allLinks = document.querySelectorAll('a[href*=".pdf"], a[href*="/Media/"], a[href*="/Editais/"]');
+            
+            // Encontrar link principal
+            let linkPrincipal = pdfUrls[0];
+            for (const url of pdfUrls) {
+              const urlLower = url.toLowerCase();
+              if (!urlLower.includes('anexo') && !urlLower.includes('formulario') && !urlLower.includes('formulário')) {
+                linkPrincipal = url;
+                break;
+              }
+            }
+            
+            edital.numero = numero || undefined;
+            edital.titulo = panelTitle;
+            edital.descricao = descricao || undefined;
+            edital.dataEncerramento = dataEncerramento || undefined;
+            edital.status = 'Ativo';
+            edital.orgao = 'FAPES';
+            edital.fonte = 'fapes';
+            edital.link = linkPrincipal;
+            edital.pdfUrl = linkPrincipal;
+            edital.pdfUrls = pdfUrls;
+            edital.pdfPaths = [];
+            
+            return { edital, debug };
+          }, 'https://fapes.es.gov.br', i);
           
-          allLinks.forEach((link) => {
-            const anchor = link as HTMLAnchorElement;
-            const href = anchor.href;
-            const text = anchor.textContent?.trim() || '';
-            
-            // Pular links que são apenas "Baixar" ou "Download"
-            if (text.toLowerCase() === 'baixar' || text.toLowerCase() === 'download') {
-              return;
-            }
-            
-            if (href.includes('.pdf') || href.includes('/Media/')) {
-              let pdfUrl = href;
-              if (pdfUrl.startsWith('/')) {
-                pdfUrl = baseUrl + pdfUrl;
-              } else if (!pdfUrl.startsWith('http')) {
-                pdfUrl = baseUrl + '/' + pdfUrl;
-              }
-
-              // Extrair número do edital
-              let numero = '';
-              const numeroMatch = text.match(/N[º°]?\s*(\d+\/\d+)/i) || 
-                                text.match(/(\d+\/\d+)/) ||
-                                href.match(/(\d+\.\d+)/);
-              if (numeroMatch) {
-                numero = numeroMatch[1].replace(/\./g, '/');
-              }
-
-              // Tentar extrair título do nome do arquivo se o texto não for válido
-              let titulo = text;
-              if (!titulo || titulo.length < 5 || titulo.toLowerCase() === 'baixar') {
-                const fileNameMatch = pdfUrl.match(/([^\/]+\.pdf)/i);
-                if (fileNameMatch) {
-                  titulo = decodeURIComponent(fileNameMatch[1]).replace(/\.pdf$/i, '');
-                  titulo = titulo.replace(/%20/g, ' ').replace(/%C3%A7/g, 'ç').replace(/%C3%A1/g, 'á');
-                }
-                
-                if (!titulo || titulo.length < 5) {
-                  if (numero) {
-                    titulo = `Edital FAPES Nº ${numero}`;
-                  } else {
-                    return; // Pular se não conseguimos encontrar título válido
+          if (editalData.edital) {
+            // Baixar PDFs e salvar localmente
+            const edital = editalData.edital;
+            if (edital.pdfUrls && edital.pdfUrls.length > 0) {
+              console.log(`  📥 Baixando ${edital.pdfUrls.length} PDF(s)...`);
+              const pdfPaths: string[] = [];
+              
+              for (let pdfIdx = 0; pdfIdx < edital.pdfUrls.length; pdfIdx++) {
+                const pdfUrl = edital.pdfUrls[pdfIdx];
+                try {
+                  // Validar URL
+                  let urlPath: string;
+                  try {
+                    urlPath = new URL(pdfUrl).pathname;
+                  } catch {
+                    // Se não for URL válida, pular
+                    console.log(`    ⚠️ URL inválida, pulando: ${pdfUrl.substring(0, 50)}...`);
+                    continue;
                   }
+                  
+                  // Incluir TODOS os PDFs do edital (incluindo anexos)
+                  // Os anexos fazem parte do edital e devem ser baixados
+                  
+                  // Baixar arquivo usando Puppeteer (mantém cookies/sessão)
+                  const fileData = await this.page!.evaluate(async (url) => {
+                    const response = await fetch(url, {
+                      credentials: 'include',
+                      headers: {
+                        'Accept': 'application/pdf,application/octet-stream,*/*',
+                      }
+                    });
+                    if (!response.ok) {
+                      throw new Error(`HTTP ${response.status}`);
+                    }
+                    
+                    const contentType = response.headers.get('content-type') || '';
+                    const arrayBuffer = await response.arrayBuffer();
+                    const uint8Array = new Uint8Array(arrayBuffer);
+                    
+                    // Verificar magic number do PDF
+                    const isPdf = uint8Array.length >= 4 && 
+                                  uint8Array[0] === 0x25 && 
+                                  uint8Array[1] === 0x50 && 
+                                  uint8Array[2] === 0x44 && 
+                                  uint8Array[3] === 0x46;
+                    
+                    return {
+                      data: Array.from(uint8Array),
+                      contentType: contentType,
+                      isPdf: isPdf,
+                      size: uint8Array.length
+                    };
+                  }, pdfUrl);
+                  
+                  // Validar se é realmente um PDF
+                  if (!fileData.isPdf && !fileData.contentType.includes('pdf')) {
+                    console.log(`    ⚠️ Arquivo não é PDF (tipo: ${fileData.contentType}), pulando...`);
+                    continue;
+                  }
+                  
+                  // Criar diretório de output se não existir
+                  if (!fs.existsSync(this.outputDir)) {
+                    fs.mkdirSync(this.outputDir, { recursive: true });
+                  }
+                  
+                  // Gerar nome do arquivo (decodificar URL)
+                  let fileName = decodeURIComponent(path.basename(urlPath));
+                  
+                  // Se não tem extensão ou não é .pdf, adicionar .pdf
+                  if (!fileName.includes('.') || !fileName.toLowerCase().endsWith('.pdf')) {
+                    // Remover extensão incorreta se houver
+                    fileName = fileName.replace(/\.[^.]+$/, '');
+                    fileName = `${fileName}.pdf`;
+                  }
+                  
+                  // Sanitizar nome do arquivo (manter apenas caracteres seguros)
+                  fileName = fileName
+                    .replace(/[^a-zA-Z0-9._-]/g, '_')
+                    .replace(/_{2,}/g, '_')
+                    .substring(0, 200); // Limitar tamanho
+                  
+                  // Criar caminho completo (sem subdiretórios, tudo no diretório pdfs)
+                  const timestamp = Date.now();
+                  const safeNumero = (edital.numero || 'unknown').replace(/[^a-zA-Z0-9]/g, '_');
+                  const pdfPath = path.join(this.outputDir, `${this.name}_${safeNumero}_${pdfIdx + 1}_${timestamp}.pdf`);
+                  
+                  // Garantir que o diretório do arquivo existe (caso tenha subdiretórios no nome)
+                  const pdfDir = path.dirname(pdfPath);
+                  if (!fs.existsSync(pdfDir)) {
+                    fs.mkdirSync(pdfDir, { recursive: true });
+                  }
+                  
+                  // Salvar arquivo
+                  fs.writeFileSync(pdfPath, Buffer.from(fileData.data));
+                  pdfPaths.push(pdfPath);
+                  
+                  console.log(`    ✅ PDF ${pdfIdx + 1}/${edital.pdfUrls.length} baixado: ${fileName} (${(fileData.size / 1024).toFixed(2)} KB)`);
+                  
+                  // Pequeno delay entre downloads
+                  await this.delay(500);
+                } catch (error) {
+                  console.warn(`    ⚠️ Erro ao baixar PDF ${pdfIdx + 1}: ${error}`);
                 }
               }
-
-              // Validação final
-              const tituloLower = titulo.toLowerCase().trim();
-              if (tituloLower === 'baixar' || tituloLower === 'download' || tituloLower === 'edital fapes') {
-                return; // Pular links inválidos
-              }
-
-              editais.push({
-                numero: numero || undefined,
-                titulo: titulo,
-                status: 'Ativo',
-                orgao: 'FAPES',
-                fonte: 'fapes',
-                link: pdfUrl,
-                pdfUrl: pdfUrl,
-                pdfUrls: [pdfUrl],
-                pdfPaths: [], // Inicializar array vazio - será preenchido durante download
-              });
+              
+              edital.pdfPaths = pdfPaths;
             }
-          });
+            
+            allEditais.push(edital as Edital);
+            console.log(`  ✅ Edital extraído: ${edital.titulo?.substring(0, 60)}... (${edital.pdfUrls?.length || 0} PDFs)`);
+          } else {
+            if (editalData.debug && editalData.debug.length > 0) {
+              editalData.debug.forEach(msg => console.log(`  ${msg}`));
+            }
+          }
+          
+        } catch (error) {
+          console.log(`  ⚠️ Erro ao processar painel ${i + 1}: ${error}`);
         }
-
-        return editais;
-      }, this.baseUrl);
-
-      console.log(`📊 Encontrados ${editais.length} edital(is) na página`);
-
-      // Baixar PDFs
-      await this.downloadPdfs(editais);
-
-      // Verificar se os PDFs foram baixados corretamente
-      const editaisComPdfs = editais.filter(e => e.pdfPaths && e.pdfPaths.length > 0);
-      console.log(`📁 Editais com PDFs baixados: ${editaisComPdfs.length}/${editais.length}`);
-
-      // Adicionar timestamp de processamento
-      const editaisProcessados = editais.map(edital => ({
-        ...edital,
-        processadoEm: new Date().toISOString(),
-        // Garantir que pdfPaths está presente mesmo se vazio
-        pdfPaths: edital.pdfPaths || [],
-      }));
-
-      return editaisProcessados;
+      }
+      
+      console.log(`\n✅ Total de ${allEditais.length} edital(is) extraído(s)`);
+      
+      // Manter navegador aberto por mais tempo para visualização (apenas em modo não-headless)
+      if (this.browser && !this.browser.process()?.killed) {
+        console.log('⏳ Mantendo navegador aberto por 10 segundos para visualização...');
+        await this.delay(10000);
+      }
+      
+      return allEditais;
     } catch (error) {
-      console.error('❌ Erro ao fazer scraping do FAPES:', error);
+      console.error('Erro ao fazer scraping:', error);
       throw error;
     }
   }
 
-  async downloadPdfs(editais: Edital[]) {
-    if (!this.page) throw new Error('Página não inicializada');
-
-    console.log(`\n📥 Iniciando download de arquivos para ${editais.length} edital(is)...`);
-
-    for (let i = 0; i < editais.length; i++) {
-      const edital = editais[i];
-      
-      // Coletar todas as URLs de PDF (usar pdfUrls se disponível, senão usar pdfUrl)
-      const pdfUrlsToDownload: string[] = [];
-      if (edital.pdfUrls && edital.pdfUrls.length > 0) {
-        pdfUrlsToDownload.push(...edital.pdfUrls);
-      } else if (edital.pdfUrl) {
-        pdfUrlsToDownload.push(edital.pdfUrl);
-      }
-
-      if (pdfUrlsToDownload.length === 0) {
-        console.log(`  ⚠️ Edital ${i + 1}/${editais.length} não tem URLs de PDF, pulando...`);
-        continue;
-      }
-
-      console.log(`\n📄 Processando edital ${i + 1}/${editais.length}: ${edital.titulo || edital.numero || 'Sem título'}`);
-      console.log(`  📎 Total de arquivos para baixar: ${pdfUrlsToDownload.length}`);
-
-      // Inicializar arrays se não existirem
-      if (!edital.pdfPaths) {
-        edital.pdfPaths = [];
-      }
-
-      // Baixar cada PDF do edital
-      for (let pdfIdx = 0; pdfIdx < pdfUrlsToDownload.length; pdfIdx++) {
-        const pdfUrl = pdfUrlsToDownload[pdfIdx];
-
-        try {
-          console.log(`  📥 Baixando arquivo ${pdfIdx + 1}/${pdfUrlsToDownload.length}`);
-          console.log(`  🌐 URL: ${pdfUrl}`);
-
-          // Baixar arquivo usando fetch via evaluate
-          const fileData = await this.page.evaluate(async (url) => {
-            try {
-              const response = await fetch(url, {
-                method: 'GET',
-                credentials: 'include',
-                headers: {
-                  'Accept': 'application/pdf,application/octet-stream,*/*',
-                }
-              });
-              
-              if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-              }
-              
-              const arrayBuffer = await response.arrayBuffer();
-              const uint8Array = new Uint8Array(arrayBuffer);
-              
-              return { data: Array.from(uint8Array) };
-            } catch (error: any) {
-              return { error: error.message };
-            }
-          }, pdfUrl);
-
-          if ('error' in fileData) {
-            console.error(`  ❌ Erro ao baixar arquivo: ${fileData.error}`);
-            continue;
-          }
-
-          // Converter array de bytes para Buffer
-          const buffer = Buffer.from(fileData.data.map((b: any) => typeof b === 'number' ? b & 0xFF : parseInt(b) & 0xFF));
-
-          if (!buffer || buffer.length === 0) {
-            console.error(`  ❌ Buffer vazio ou inválido`);
-            continue;
-          }
-
-          // Detectar tipo de arquivo pelo magic number
-          let fileExtension = '.pdf';
-          let needsConversion = false;
-
-          if (buffer.length >= 4) {
-            // ZIP-based formats (Office documents): PK\x03\x04
-            if (buffer[0] === 0x50 && buffer[1] === 0x4B && buffer[2] === 0x03 && buffer[3] === 0x04) {
-              const lowerUrl = pdfUrl.toLowerCase();
-              if (lowerUrl.includes('.xlsx') || lowerUrl.includes('excel') || lowerUrl.includes('planilha')) {
-                fileExtension = '.xlsx';
-              } else if (lowerUrl.includes('.pptx') || lowerUrl.includes('powerpoint') || lowerUrl.includes('apresentacao')) {
-                fileExtension = '.pptx';
-              } else if (lowerUrl.includes('.odt')) {
-                fileExtension = '.odt';
-              } else {
-                // Assumir DOCX
-                fileExtension = '.docx';
-                needsConversion = true;
-              }
-            }
-            // PDF: %PDF
-            else if (buffer[0] === 0x25 && buffer[1] === 0x50 && buffer[2] === 0x44 && buffer[3] === 0x46) {
-              fileExtension = '.pdf';
-            }
-            // DOC antigo: D0 CF 11 E0
-            else if (buffer[0] === 0xD0 && buffer[1] === 0xCF && buffer[2] === 0x11 && buffer[3] === 0xE0) {
-              fileExtension = '.doc';
-              needsConversion = true;
-            }
-            // Verificar pela URL
-            else {
-              const lowerUrl = pdfUrl.toLowerCase();
-              if (lowerUrl.includes('.docx')) {
-                fileExtension = '.docx';
-                needsConversion = true;
-              } else if (lowerUrl.includes('.doc')) {
-                fileExtension = '.doc';
-                needsConversion = true;
-              } else if (lowerUrl.includes('.pdf')) {
-                fileExtension = '.pdf';
-              }
-            }
-          }
-
-          // Converter DOCX/DOC para PDF se necessário
-          let finalBuffer = buffer;
-          let finalExtension = fileExtension;
-
-          const isDocxFile = fileExtension === '.docx' || 
-                            (buffer.length >= 4 && buffer[0] === 0x50 && buffer[1] === 0x4B && buffer[2] === 0x03 && buffer[3] === 0x04 && 
-                             !pdfUrl.toLowerCase().includes('.xlsx') && 
-                             !pdfUrl.toLowerCase().includes('.pptx') && 
-                             !pdfUrl.toLowerCase().includes('.odt'));
-
-          if (isDocxFile || fileExtension === '.doc') {
-            const fileType = isDocxFile ? 'DOCX' : 'DOC';
-            console.log(`  🔄 Convertendo ${fileType} para PDF...`);
-            try {
-              const pdfBuffer = await libreConvert(buffer, '.pdf', undefined) as Buffer;
-              finalBuffer = pdfBuffer;
-              finalExtension = '.pdf';
-              console.log(`  ✅ ${fileType} convertido para PDF (${(pdfBuffer.length / 1024).toFixed(2)} KB)`);
-            } catch (convertError) {
-              console.error(`  ⚠️ Erro ao converter ${fileType} para PDF: ${convertError}`);
-              console.log(`  ℹ️ Mantendo arquivo como ${fileType}`);
-            }
-          }
-
-          // Gerar nome do arquivo (incluir índice se houver múltiplos arquivos)
-          const safeNumero = (edital.numero || `edital_${i + 1}`).replace(/[\/\\:]/g, '_');
-          const safeTitulo = (edital.titulo || 'edital').replace(/[^a-z0-9]/gi, '_').toLowerCase().substring(0, 40);
-          const fileSuffix = pdfUrlsToDownload.length > 1 ? `_${pdfIdx + 1}` : '';
-          const filename = `fapes_${safeNumero}_${safeTitulo}${fileSuffix}_${Date.now()}${finalExtension}`;
-          const filepath = path.join(this.pdfsDir, filename);
-
-          // Salvar arquivo
-          fs.writeFileSync(filepath, finalBuffer);
-          
-          // Garantir que pdfPaths existe antes de adicionar
-          if (!edital.pdfPaths) {
-            edital.pdfPaths = [];
-          }
-          
-          // Adicionar caminho do arquivo ao edital
-          edital.pdfPaths.push(filepath);
-          
-          // Definir pdfPath principal se ainda não foi definido
-          if (!edital.pdfPath) {
-            edital.pdfPath = filepath;
-          }
-
-          console.log(`  ✅ Arquivo salvo: ${filename} (${(finalBuffer.length / 1024).toFixed(2)} KB, tipo: ${finalExtension})`);
-          console.log(`  📁 Caminho adicionado ao edital: ${filepath}`);
-
-          // Aguardar entre downloads
-          await this.delay(1000);
-        } catch (error) {
-          console.error(`  ❌ Erro ao baixar arquivo ${pdfIdx + 1}: ${error}`);
-        }
-      }
-    }
-
-    console.log(`\n✅ Download concluído!`);
-    console.log(`📁 Arquivos salvos em: ${this.pdfsDir}`);
-  }
-
   async cleanup(): Promise<void> {
+    if (this.page) {
+      await this.page.close();
+      this.page = null;
+    }
     if (this.browser) {
       await this.browser.close();
       this.browser = null;
-      this.page = null;
     }
   }
 }
-

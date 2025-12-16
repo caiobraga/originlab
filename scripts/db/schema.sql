@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS edital_pdfs (
   url_original TEXT, -- URL original do PDF (se disponível)
   tamanho_bytes BIGINT,
   tipo_mime TEXT DEFAULT 'application/pdf',
+  file_id TEXT, -- ID do arquivo no Supabase Storage (usado pelo n8n para buscar documentos)
   
   -- Metadados
   criado_em TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -56,6 +57,7 @@ CREATE TABLE IF NOT EXISTS edital_pdfs (
 );
 
 CREATE INDEX IF NOT EXISTS idx_edital_pdfs_edital_id ON edital_pdfs(edital_id);
+CREATE INDEX IF NOT EXISTS idx_edital_pdfs_file_id ON edital_pdfs(file_id) WHERE file_id IS NOT NULL;
 
 -- Função para atualizar updated_at automaticamente
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -76,6 +78,8 @@ CREATE TRIGGER update_editais_updated_at
 -- Comentários nas tabelas
 COMMENT ON TABLE editais IS 'Armazena informações sobre editais extraídos de diversas fontes';
 COMMENT ON TABLE edital_pdfs IS 'Armazena referências aos PDFs dos editais armazenados no Supabase Storage';
+
+
 
 
 

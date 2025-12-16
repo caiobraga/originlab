@@ -7,6 +7,8 @@ import * as path from 'path';
 import { Edital } from '../types';
 import { uploadPdfsToStorage } from './storage';
 
+const STORAGE_BUCKET = 'edital-pdfs';
+
 interface DatabaseEdital {
   id?: string;
   numero?: string;
@@ -59,19 +61,54 @@ export async function syncEditaisToDatabase(): Promise<void> {
   const content = fs.readFileSync(jsonFile, 'utf-8');
   const allEditais: Edital[] = JSON.parse(content);
 
-  // Filtrar editais sem título válido
+  // Função para verificar se é um anexo (não é um edital separado)
+  const isAnexo = (titulo: string): boolean => {
+    if (!titulo) return false;
+    const tituloLower = titulo.toLowerCase().trim();
+    return tituloLower.startsWith('anexo') || 
+           /^anexo\s+[ivx]+/i.test(tituloLower) ||
+           /anexo\s+[ivx]+\s*[–-]/i.test(tituloLower) ||
+           (tituloLower.includes('formulário') && tituloLower.includes('anexo')) ||
+           (tituloLower.includes('formulario') && tituloLower.includes('anexo')) ||
+           tituloLower.includes('anexo i –') ||
+           tituloLower.includes('anexo ii') ||
+           tituloLower.includes('anexo iii') ||
+           tituloLower.includes('anexo iv') ||
+           tituloLower.includes('anexo v') ||
+           tituloLower.includes('anexo vi') ||
+           tituloLower.includes('anexo vii') ||
+           tituloLower.includes('anexo viii') ||
+           tituloLower.includes('anexo ix') ||
+           tituloLower.includes('anexo x');
+  };
+
+  // Filtrar editais sem título válido e anexos
   const editais = allEditais.filter(edital => {
     const titulo = edital.titulo?.trim();
-    return titulo && 
-           titulo.length > 3 && 
-           titulo !== 'Sem título' && 
-           titulo !== 'N/A' &&
-           !titulo.match(/^N\/A\s*-\s*Sem título$/i);
+    if (!titulo || 
+        titulo.length <= 3 || 
+        titulo === 'Sem título' || 
+        titulo === 'N/A' ||
+        titulo.match(/^N\/A\s*-\s*Sem título$/i)) {
+      return false;
+    }
+    
+    // Filtrar anexos
+    if (isAnexo(titulo)) {
+      return false;
+    }
+    
+    return true;
   });
 
   const filteredCount = allEditais.length - editais.length;
+  const anexosFiltrados = allEditais.filter(e => isAnexo(e.titulo?.trim() || '')).length;
+  
   if (filteredCount > 0) {
-    console.log(`⚠️ ${filteredCount} edital(is) sem título válido foram filtrados`);
+    console.log(`⚠️ ${filteredCount} edital(is) filtrados (sem título válido ou anexos)`);
+    if (anexosFiltrados > 0) {
+      console.log(`   📎 ${anexosFiltrados} anexo(s) filtrado(s) (não são editais separados)`);
+    }
   }
 
   console.log(`\n🔄 Sincronizando ${editais.length} edital(is) com o banco de dados...\n`);
@@ -87,6 +124,12 @@ export async function syncEditaisToDatabase(): Promise<void> {
       const titulo = edital.titulo?.trim();
       if (!titulo || titulo.length <= 3 || titulo === 'Sem título' || titulo === 'N/A') {
         console.warn(`⚠️ Pulando edital ${edital.numero || 'N/A'} - título inválido: "${titulo}"`);
+        continue;
+      }
+      
+      // Verificar se é anexo e pular
+      if (isAnexo(titulo)) {
+        console.warn(`⚠️ Pulando anexo (não é edital separado): "${titulo}"`);
         continue;
       }
 
@@ -129,8 +172,13 @@ export async function syncEditaisToDatabase(): Promise<void> {
       }
 
       // Upload de PDFs para o storage
+      // Se temos pdfPaths (arquivos locais), usar upload normal
       if (edital.pdfPaths && edital.pdfPaths.length > 0 && insertedEdital) {
         await uploadPdfsToStorage(supabase, insertedEdital.id, edital);
+      } 
+      // Se temos apenas pdfUrls (URLs remotas), baixar e salvar diretamente
+      else if (edital.pdfUrls && edital.pdfUrls.length > 0 && insertedEdital) {
+        await uploadPdfsFromUrls(supabase, insertedEdital.id, edital);
       }
 
       successCount++;
@@ -162,6 +210,124 @@ export async function syncEditaisToDatabase(): Promise<void> {
     errors.forEach(({ edital, error }) => {
       console.log(`   - ${edital}: ${error}`);
     });
+  }
+}
+
+/**
+ * Faz upload de PDFs diretamente das URLs (sem baixar localmente primeiro)
+ */
+async function uploadPdfsFromUrls(
+  supabase: SupabaseClient,
+  editalId: string,
+  edital: Edital
+): Promise<void> {
+  if (!edital.pdfUrls || edital.pdfUrls.length === 0) {
+    return;
+  }
+
+  console.log(`  📥 Processando ${edital.pdfUrls.length} PDF(s) das URLs...`);
+
+  for (let i = 0; i < edital.pdfUrls.length; i++) {
+    const pdfUrl = edital.pdfUrls[i];
+    
+    try {
+      // Baixar o PDF da URL
+      const response = await fetch(pdfUrl);
+      if (!response.ok) {
+        console.warn(`  ⚠️ Erro ao baixar PDF ${i + 1}: HTTP ${response.status}`);
+        continue;
+      }
+
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+
+      // Extrair nome do arquivo da URL
+      const urlPath = new URL(pdfUrl).pathname;
+      let fileName = path.basename(urlPath);
+      
+      // Se não tem extensão, adicionar .pdf
+      if (!fileName.includes('.')) {
+        fileName = `${fileName}.pdf`;
+      }
+
+      // Criar caminho no storage: fonte/numero/nome_arquivo
+      const storagePath = `${edital.fonte || 'unknown'}/${edital.numero || 'unknown'}/${fileName}`;
+
+      // Detectar tipo MIME
+      let contentType = 'application/pdf';
+      const ext = path.extname(fileName).toLowerCase();
+      if (ext === '.docx') {
+        contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      } else if (ext === '.doc') {
+        contentType = 'application/msword';
+      } else if (ext === '.xlsx') {
+        contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      }
+
+      // Verificar se já existe no banco
+      const { data: existingPdf } = await supabase
+        .from('edital_pdfs')
+        .select('id')
+        .eq('caminho_storage', storagePath)
+        .maybeSingle();
+
+      if (existingPdf) {
+        console.log(`  ℹ️ PDF já existe no banco: ${fileName}`);
+        continue;
+      }
+
+      // Fazer upload para o storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from(STORAGE_BUCKET)
+        .upload(storagePath, buffer, {
+          contentType: contentType,
+          upsert: true,
+        });
+
+      if (uploadError) {
+        console.warn(`  ⚠️ Erro ao fazer upload de ${fileName}:`, uploadError.message);
+        continue;
+      }
+
+      // Obter file_id do arquivo no storage
+      let fileId: string | null = null;
+      if (uploadData?.path) {
+        const { data: fileData } = await supabase.storage
+          .from(STORAGE_BUCKET)
+          .list(path.dirname(uploadData.path), {
+            search: path.basename(uploadData.path),
+          });
+        if (fileData && fileData.length > 0 && fileData[0].id) {
+          fileId = fileData[0].id;
+        }
+      }
+
+      // Salvar registro na tabela edital_pdfs
+      const { error: dbError } = await supabase
+        .from('edital_pdfs')
+        .upsert({
+          edital_id: editalId,
+          nome_arquivo: fileName,
+          caminho_storage: storagePath,
+          url_original: pdfUrl,
+          tamanho_bytes: buffer.length,
+          tipo_mime: contentType,
+          file_id: fileId,
+        }, {
+          onConflict: 'caminho_storage',
+          ignoreDuplicates: false,
+        });
+
+      if (dbError) {
+        console.warn(`  ⚠️ Erro ao salvar registro do PDF ${fileName}:`, dbError.message);
+      } else {
+        console.log(`  ✅ PDF salvo: ${fileName} (${(buffer.length / 1024).toFixed(2)} KB)`);
+      }
+
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.warn(`  ⚠️ Erro ao processar PDF ${i + 1} (${pdfUrl}):`, errorMsg);
+    }
   }
 }
 

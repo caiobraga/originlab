@@ -17,6 +17,10 @@ export interface DatabaseEdital {
   processado_em: string | null;
   criado_em: string;
   atualizado_em: string | null;
+  valor_projeto?: string | null;
+  prazo_inscricao?: string | null; // Pode ser string ou JSON string com array
+  localizacao?: string | null;
+  vagas?: string | null;
 }
 
 export interface EditalWithScores extends DatabaseEdital {

@@ -5,8 +5,9 @@ import fs from "node:fs";
 import path from "path";
 import { defineConfig } from "vite";
 import { vitePluginManusRuntime } from "vite-plugin-manus-runtime";
+import { apiPlugin } from "./vite-plugin-api";
 
-const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime()];
+const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), apiPlugin()];
 
 export default defineConfig({
   plugins,

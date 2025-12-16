@@ -7,7 +7,7 @@ import { Scraper } from '../types';
 
 // Lista de todos os scrapers
 export const scrapers: Scraper[] = [
-  new SigfapesScraper(),
+  // new SigfapesScraper(), // Removido temporariamente - usar apenas FAPES
   new FapesScraper(),
   // Adicionar outros scrapers aqui no futuro:
   // new FapespScraper(),

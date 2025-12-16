@@ -57,3 +57,6 @@ export interface Scraper {
 
 
 
+
+
+

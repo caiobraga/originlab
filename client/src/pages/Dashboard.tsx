@@ -16,6 +16,7 @@ import {
   getPaisFromEdital,
   getStatusFromEdital,
 } from "@/lib/editaisApi";
+import { formatValorProjeto, formatPrazoInscricao } from "@/lib/editalFormatters";
 
 interface EditalDisplay extends EditalWithScores {
   prazo: string;
@@ -247,15 +248,29 @@ export default function Dashboard() {
                   )}
 
                   <div className="flex items-center gap-6 text-sm">
-                    {edital.valor && (
-                      <div className="flex items-center gap-2">
-                        <DollarSign className="w-4 h-4 text-gray-400" />
-                        <span className="font-semibold text-gray-900">{edital.valor}</span>
-                      </div>
-                    )}
+                    {(() => {
+                      const valorFormatado = formatValorProjeto(edital.valor_projeto || edital.valor);
+                      if (valorFormatado.display !== 'Não informado') {
+                        return (
+                          <div className="flex items-center gap-2">
+                            <DollarSign className="w-4 h-4 text-gray-400" />
+                            <span className="font-semibold text-gray-900">{valorFormatado.display}</span>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
                     <div className="flex items-center gap-2">
                       <Calendar className="w-4 h-4 text-gray-400" />
-                      <span className="text-gray-600">Prazo: {edital.prazo}</span>
+                      <span className="text-gray-600">
+                        {(() => {
+                          const prazoFormatado = formatPrazoInscricao(edital.prazo_inscricao);
+                          if (prazoFormatado.display !== 'Não informado') {
+                            return `Prazo: ${prazoFormatado.display}`;
+                          }
+                          return `Prazo: ${edital.prazo}`;
+                        })()}
+                      </span>
                     </div>
                     {edital.area && (
                       <div className="flex items-center gap-2">

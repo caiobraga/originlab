@@ -16,15 +16,17 @@ export async function fetchEditalPdfIds(editalId: string): Promise<string[]> {
   try {
     const { data, error } = await supabase
       .from("edital_pdfs")
-      .select("id")
-      .eq("edital_id", editalId);
+      .select("file_id, id")
+      .eq("edital_id", editalId)
+      .not("file_id", "is", null); // Apenas PDFs que têm file_id
 
     if (error) {
       console.error("Erro ao buscar PDFs do edital:", error);
       throw error;
     }
 
-    return data?.map((pdf) => pdf.id) || [];
+    // Retornar file_id se disponível, caso contrário usar id como fallback
+    return data?.map((pdf) => pdf.file_id || pdf.id).filter((id): id is string => id !== null) || [];
   } catch (error) {
     console.error("Erro ao buscar PDFs do edital:", error);
     return [];

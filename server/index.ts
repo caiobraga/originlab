@@ -2,6 +2,7 @@ import express from "express";
 import { createServer } from "http";
 import path from "path";
 import { fileURLToPath } from "url";
+import extractEditalInfoRouter from "./api/extract-edital-info.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -9,6 +10,9 @@ const __dirname = path.dirname(__filename);
 async function startServer() {
   const app = express();
   const server = createServer(app);
+
+  // API routes (before static files)
+  app.use("/api", extractEditalInfoRouter);
 
   // Serve static files from dist/public in production
   const staticPath =
@@ -27,6 +31,7 @@ async function startServer() {
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
+    console.log(`API endpoint: http://localhost:${port}/api/extract-edital-info`);
   });
 }
 

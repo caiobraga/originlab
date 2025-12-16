@@ -84,15 +84,63 @@ export class ScraperOrchestrator {
   }
 
   /**
+   * Verifica se um título é um anexo (não é um edital separado)
+   */
+  private isAnexo(titulo: string): boolean {
+    if (!titulo) return false;
+    const tituloLower = titulo.toLowerCase().trim();
+    return tituloLower.startsWith('anexo') || 
+           /^anexo\s+[ivx]+/i.test(tituloLower) ||
+           /anexo\s+[ivx]+\s*[–-]/i.test(tituloLower) ||
+           (tituloLower.includes('formulário') && tituloLower.includes('anexo')) ||
+           (tituloLower.includes('formulario') && tituloLower.includes('anexo')) ||
+           tituloLower.includes('anexo i –') ||
+           tituloLower.includes('anexo ii') ||
+           tituloLower.includes('anexo iii') ||
+           tituloLower.includes('anexo iv') ||
+           tituloLower.includes('anexo v') ||
+           tituloLower.includes('anexo vi') ||
+           tituloLower.includes('anexo vii') ||
+           tituloLower.includes('anexo viii') ||
+           tituloLower.includes('anexo ix') ||
+           tituloLower.includes('anexo x');
+  }
+
+  /**
+   * Gera uma chave única para identificar um edital (evita duplicatas)
+   */
+  private getEditalKey(edital: Edital): string | null {
+    // Priorizar número + fonte (mais confiável)
+    if (edital.numero && edital.fonte) {
+      return `${edital.fonte}:${edital.numero}`;
+    }
+    // Fallback: título + fonte
+    if (edital.titulo && edital.fonte) {
+      const tituloNormalizado = edital.titulo.trim().toLowerCase().substring(0, 100);
+      return `${edital.fonte}:${tituloNormalizado}`;
+    }
+    return null;
+  }
+
+  /**
    * Valida se um edital tem título válido
    */
   private isValidEdital(edital: Edital): boolean {
     const titulo = edital.titulo?.trim();
-    return !!titulo && 
-           titulo.length > 3 && 
-           titulo !== 'Sem título' && 
-           titulo !== 'N/A' &&
-           !titulo.match(/^N\/A\s*-\s*Sem título$/i);
+    if (!titulo || 
+        titulo.length <= 3 || 
+        titulo === 'Sem título' || 
+        titulo === 'N/A' ||
+        titulo.match(/^N\/A\s*-\s*Sem título$/i)) {
+      return false;
+    }
+    
+    // Filtrar anexos
+    if (this.isAnexo(titulo)) {
+      return false;
+    }
+    
+    return true;
   }
 
   /**
@@ -101,27 +149,19 @@ export class ScraperOrchestrator {
   private consolidateEditais(newEditais: Edital[]): Edital[] {
     // Filtrar editais sem título válido antes de consolidar
     const validNewEditais = newEditais.filter(edital => this.isValidEdital(edital));
-    const filteredCount = newEditais.length - validNewEditais.length;
     
-    if (filteredCount > 0) {
-      console.log(`⚠️ ${filteredCount} edital(is) sem título válido foram filtrados durante consolidação`);
-    }
-
-    // Carregar editais existentes
+    // Carregar editais existentes para verificar duplicatas
     let existingEditais: Edital[] = [];
-    
     if (fs.existsSync(this.jsonFile)) {
       try {
-        const content = fs.readFileSync(this.jsonFile, 'utf-8');
-        const loaded = JSON.parse(content);
-        // Filtrar também os existentes
-        existingEditais = Array.isArray(loaded) ? loaded.filter((e: Edital) => this.isValidEdital(e)) : [];
-      } catch (error) {
-        console.warn('⚠️ Erro ao ler editais existentes, criando novo arquivo');
+        const existingData = fs.readFileSync(this.jsonFile, 'utf-8');
+        existingEditais = JSON.parse(existingData);
+      } catch (e) {
+        console.log('⚠️ Erro ao ler editais existentes, criando novo arquivo');
       }
     }
-
-    // Criar mapa de editais existentes (chave: numero + fonte)
+    
+    // Criar mapa de editais existentes (chave: numero+fonte ou titulo+fonte)
     const existingMap = new Map<string, Edital>();
     existingEditais.forEach(edital => {
       const key = this.getEditalKey(edital);
@@ -129,52 +169,73 @@ export class ScraperOrchestrator {
         existingMap.set(key, edital);
       }
     });
-
-    // Adicionar novos editais ou atualizar existentes
+    
+    // Filtrar duplicatas dos novos editais
+    const uniqueNewEditais: Edital[] = [];
+    const duplicates: string[] = [];
+    
     validNewEditais.forEach(edital => {
       const key = this.getEditalKey(edital);
-      if (key) {
-        // Se já existe, mesclar informações (priorizar dados mais recentes)
-        const existing = existingMap.get(key);
-        if (existing) {
-          // Mesclar PDFs (evitar duplicatas)
-          const mergedPdfUrls = new Set([
-            ...(existing.pdfUrls || []),
-            ...(edital.pdfUrls || [])
-          ]);
-          const mergedPdfPaths = new Set([
-            ...(existing.pdfPaths || []),
-            ...(edital.pdfPaths || [])
-          ]);
-
-          existingMap.set(key, {
-            ...existing,
-            ...edital, // Atualizar com dados mais recentes
-            pdfUrls: Array.from(mergedPdfUrls),
-            pdfPaths: Array.from(mergedPdfPaths),
-            processadoEm: edital.processadoEm || existing.processadoEm,
-          });
-        } else {
+      if (key && existingMap.has(key)) {
+        duplicates.push(`${edital.numero || edital.titulo} (${edital.fonte})`);
+      } else {
+        uniqueNewEditais.push(edital);
+        if (key) {
           existingMap.set(key, edital);
         }
-      } else {
-        // Se não tem chave, adicionar com timestamp como chave temporária
-        existingMap.set(`${Date.now()}-${Math.random()}`, edital);
       }
     });
-
-    return Array.from(existingMap.values());
-  }
-
-  /**
-   * Gera chave única para um edital (numero + fonte)
-   */
-  private getEditalKey(edital: Edital): string | null {
-    if (edital.numero && edital.fonte) {
-      return `${edital.fonte}:${edital.numero}`;
+    
+    if (duplicates.length > 0) {
+      console.log(`\n⚠️ ${duplicates.length} edital(is) duplicado(s) ignorado(s):`);
+      duplicates.forEach(dup => console.log(`   - ${dup}`));
     }
-    return null;
+    
+    // Combinar editais existentes com novos únicos
+    const allEditais = [...existingEditais, ...uniqueNewEditais];
+    
+    // Remover duplicatas finais (caso haja duplicatas dentro dos existentes)
+    const finalEditais: Edital[] = [];
+    const finalMap = new Map<string, Edital>();
+    
+    allEditais.forEach(edital => {
+      const key = this.getEditalKey(edital);
+      if (key) {
+        if (!finalMap.has(key)) {
+          finalMap.set(key, edital);
+          finalEditais.push(edital);
+        } else {
+          // Se já existe, manter o mais recente (com mais PDFs ou mais recente)
+          const existing = finalMap.get(key)!;
+          const existingPdfCount = existing.pdfUrls?.length || existing.pdfPaths?.length || 0;
+          const newPdfCount = edital.pdfUrls?.length || edital.pdfPaths?.length || 0;
+          
+          if (newPdfCount > existingPdfCount || 
+              (edital.processadoEm && existing.processadoEm && 
+               edital.processadoEm > existing.processadoEm)) {
+            // Substituir pelo mais recente
+            const index = finalEditais.indexOf(existing);
+            if (index >= 0) {
+              finalEditais[index] = edital;
+              finalMap.set(key, edital);
+            }
+          }
+        }
+      } else {
+        // Se não tem chave única, adicionar mesmo assim (será filtrado depois)
+        finalEditais.push(edital);
+      }
+    });
+    
+    const filteredCount = newEditais.length - validNewEditais.length;
+    
+    if (filteredCount > 0) {
+      console.log(`⚠️ ${filteredCount} edital(is) sem título válido foram filtrados durante consolidação`);
+    }
+    
+    return finalEditais;
   }
+
 
   /**
    * Salva editais em JSON
