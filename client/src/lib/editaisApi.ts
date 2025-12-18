@@ -1,5 +1,10 @@
 import { supabase } from "./supabase";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { getUserProfile, UserProfile } from "./userProfile";
+import { fetchLattesData, LattesData } from "./externalAPIs";
+import { fetchCNPJData, CNPJData } from "./externalAPIs";
+import { fetchCPFData, CPFData } from "./externalAPIs";
+import { User } from "@supabase/supabase-js";
 
 export interface DatabaseEdital {
   id: string;
@@ -21,11 +26,16 @@ export interface DatabaseEdital {
   prazo_inscricao?: string | null; // Pode ser string ou JSON string com array
   localizacao?: string | null;
   vagas?: string | null;
+  is_researcher?: boolean | null;
+  is_company?: boolean | null;
+  sobre_programa?: string | null;
+  criterios_elegibilidade?: string | null;
 }
 
 export interface EditalWithScores extends DatabaseEdital {
   match: number; // % de match com o perfil do usuário
   probabilidade: number; // Probabilidade de aprovação (%)
+  justificativa?: string | null; // Justificativa detalhada do match
 }
 
 /**
@@ -51,81 +61,174 @@ export async function fetchEditaisFromSupabase(): Promise<DatabaseEdital[]> {
 }
 
 /**
- * API Mockada para calcular probabilidade de aprovação e % de match
- * TODO: Substituir por chamada real à API quando disponível
+ * Busca score existente no banco de dados
  */
-export async function calculateEditalScores(
-  edital: DatabaseEdital,
-  userId?: string
-): Promise<{ match: number; probabilidade: number }> {
-  // Simular delay de API
-  await new Promise((resolve) => setTimeout(resolve, 100));
+async function fetchEditalScore(
+  editalId: string,
+  userId: string
+): Promise<{ match: number; probabilidade: number; justificativa: string | null } | null> {
+  try {
+    const { data, error } = await supabase
+      .from("edital_scores")
+      .select("match_percent, probabilidade_percent, justificativa")
+      .eq("edital_id", editalId)
+      .eq("user_id", userId)
+      .single();
 
-  // Por enquanto, retorna valores mockados baseados em características do edital
-  // Em produção, isso viria de uma API real que analisa:
-  // - Perfil do usuário (CPF, CNPJ, Lattes)
-  // - Histórico de aprovações
-  // - Requisitos do edital
-  // - Similaridade com editais anteriores aprovados
+    if (error || !data) {
+      return null;
+    }
 
-  // Calcular match baseado em características básicas
-  let match = 50; // Base
-  let probabilidade = 40; // Base
+    return {
+      match: data.match_percent,
+      probabilidade: data.probabilidade_percent,
+      justificativa: data.justificativa || null,
+    };
+  } catch (error) {
+    console.error("Erro ao buscar score:", error);
+    return null;
+  }
+}
 
-  // Ajustar match baseado em área (se disponível)
-  if (edital.area) {
-    match += 10;
+/**
+ * Busca dados do usuário para envio à API
+ */
+async function fetchUserDataForScoring(
+  user: User | null,
+  profile: UserProfile | null
+): Promise<{
+  lattesData?: LattesData;
+  cnpjData?: CNPJData;
+  cpfData?: CPFData;
+  userType?: string;
+}> {
+  const userData: any = {};
+
+  if (!user || !profile) {
+    return userData;
   }
 
-  // Ajustar match baseado em descrição (quanto mais completa, melhor)
-  if (edital.descricao && edital.descricao.length > 100) {
-    match += 5;
-  }
+  userData.userType = profile.userType;
 
-  // Ajustar probabilidade baseado em status
-  if (edital.status?.toLowerCase().includes("ativo")) {
-    probabilidade += 15;
-  }
-
-  // Ajustar probabilidade baseado em prazo (mais tempo = maior probabilidade)
-  if (edital.data_encerramento) {
-    const hoje = new Date();
-    const encerramento = new Date(edital.data_encerramento);
-    const diasRestantes = Math.ceil(
-      (encerramento.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24)
-    );
-
-    if (diasRestantes > 30) {
-      probabilidade += 10;
-    } else if (diasRestantes > 15) {
-      probabilidade += 5;
+  // Buscar dados do Lattes se disponível
+  if (profile.lattesId) {
+    try {
+      const lattesData = await fetchLattesData(profile.lattesId);
+      if (lattesData) {
+        userData.lattesData = lattesData;
+      }
+    } catch (error) {
+      console.warn("Erro ao buscar dados do Lattes:", error);
     }
   }
 
-  // Adicionar variação aleatória para simular análise real
-  const randomVariation = () => Math.random() * 20 - 10; // -10 a +10
-  match = Math.min(100, Math.max(0, match + randomVariation()));
-  probabilidade = Math.min(100, Math.max(0, probabilidade + randomVariation()));
+  // Buscar dados do CNPJ se disponível
+  if (profile.cnpj) {
+    try {
+      const cnpjData = await fetchCNPJData(profile.cnpj);
+      if (cnpjData) {
+        userData.cnpjData = cnpjData;
+      }
+    } catch (error) {
+      console.warn("Erro ao buscar dados do CNPJ:", error);
+    }
+  }
 
-  // Arredondar para inteiros
-  match = Math.round(match);
-  probabilidade = Math.round(probabilidade);
+  // Buscar dados do CPF se disponível
+  if (profile.cpf) {
+    try {
+      const cpfData = await fetchCPFData(profile.cpf);
+      if (cpfData) {
+        userData.cpfData = cpfData;
+      }
+    } catch (error) {
+      console.warn("Erro ao buscar dados do CPF:", error);
+    }
+  }
 
-  return { match, probabilidade };
+  return userData;
+}
+
+/**
+ * Calcula probabilidade de aprovação e % de match usando API
+ */
+export async function calculateEditalScores(
+  edital: DatabaseEdital,
+  userId?: string,
+  user?: User | null,
+  profile?: UserProfile | null
+): Promise<{ match: number; probabilidade: number; justificativa?: string | null }> {
+  // Se não tiver userId, usar cálculo mockado como fallback
+  if (!userId || !user) {
+    console.warn("UserId não fornecido, usando cálculo mockado");
+    // Retornar valores mockados básicos
+    return {
+      match: 50,
+      probabilidade: 40,
+      justificativa: null,
+    };
+  }
+
+  // Verificar se já existe score no banco
+  const existingScore = await fetchEditalScore(edital.id, userId);
+  if (existingScore) {
+    console.log(`✅ Score já existe para edital ${edital.id} e usuário ${userId}`);
+    return existingScore;
+  }
+
+  // Buscar dados do usuário
+  const userProfile = profile || await getUserProfile(user);
+  const userData = await fetchUserDataForScoring(user, userProfile);
+
+  // Fazer requisição para API
+  try {
+    const response = await fetch("/api/calculate-edital-scores", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        edital_id: edital.id,
+        user_id: userId,
+        user_data: userData,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Erro na API: ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    return {
+      match: result.match || 50,
+      probabilidade: result.probabilidade || 40,
+      justificativa: result.justificativa || null,
+    };
+  } catch (error) {
+    console.error("Erro ao calcular scores:", error);
+    // Fallback para valores padrão em caso de erro
+    return {
+      match: 50,
+      probabilidade: 40,
+      justificativa: null,
+    };
+  }
 }
 
 /**
  * Busca editais do Supabase e adiciona scores (match e probabilidade)
  */
 export async function fetchEditaisWithScores(
-  userId?: string
+  userId?: string,
+  user?: User | null,
+  profile?: UserProfile | null
 ): Promise<EditalWithScores[]> {
   const editais = await fetchEditaisFromSupabase();
 
   // Calcular scores para cada edital
   const editaisComScores = await Promise.all(
     editais.map(async (edital) => {
-      const scores = await calculateEditalScores(edital, userId);
+      const scores = await calculateEditalScores(edital, userId, user, profile);
       return {
         ...edital,
         ...scores,

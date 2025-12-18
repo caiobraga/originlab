@@ -16,6 +16,10 @@ interface EditalInfo {
   prazo_inscricao?: string | null;
   localizacao?: string | null;
   vagas?: string | null;
+  is_researcher?: boolean | null;
+  is_company?: boolean | null;
+  sobre_programa?: string | null;
+  criterios_elegibilidade?: string | null;
 }
 
 interface ProcessedInfo {
@@ -23,6 +27,10 @@ interface ProcessedInfo {
   prazo_inscricao?: string | string[]; // Pode ser string única ou array de prazos
   localizacao?: string;
   vagas?: string;
+  is_researcher?: boolean;
+  is_company?: boolean;
+  sobre_programa?: string;
+  criterios_elegibilidade?: string;
 }
 
 /**
@@ -168,6 +176,42 @@ function isValidJsonFormat(jsonData: any, field: string): boolean {
     return false; // Não aceitar string simples ou outros formatos
   }
   
+  // Para is_researcher, aceitar objeto JSON com chave "is_researcher": {"is_researcher": true/false/null}
+  if (field === 'is_researcher') {
+    if (typeof jsonData === 'object' && jsonData !== null && !Array.isArray(jsonData)) {
+      // Deve ter a chave "is_researcher" com valor boolean ou null
+      return jsonData.is_researcher !== undefined && (typeof jsonData.is_researcher === 'boolean' || jsonData.is_researcher === null);
+    }
+    return false;
+  }
+  
+  // Para is_company, aceitar objeto JSON com chave "is_company": {"is_company": true/false/null}
+  if (field === 'is_company') {
+    if (typeof jsonData === 'object' && jsonData !== null && !Array.isArray(jsonData)) {
+      // Deve ter a chave "is_company" com valor boolean ou null
+      return jsonData.is_company !== undefined && (typeof jsonData.is_company === 'boolean' || jsonData.is_company === null);
+    }
+    return false;
+  }
+  
+  // Para sobre_programa, aceitar objeto JSON com chave "sobre_programa": {"sobre_programa": "texto"}
+  if (field === 'sobre_programa') {
+    if (typeof jsonData === 'object' && jsonData !== null && !Array.isArray(jsonData)) {
+      // Deve ter a chave "sobre_programa" com valor string (ou null)
+      return jsonData.sobre_programa !== undefined && (typeof jsonData.sobre_programa === 'string' || jsonData.sobre_programa === null);
+    }
+    return false;
+  }
+  
+  // Para criterios_elegibilidade, aceitar objeto JSON com chave "criterios_elegibilidade": {"criterios_elegibilidade": "texto"}
+  if (field === 'criterios_elegibilidade') {
+    if (typeof jsonData === 'object' && jsonData !== null && !Array.isArray(jsonData)) {
+      // Deve ter a chave "criterios_elegibilidade" com valor string (ou null)
+      return jsonData.criterios_elegibilidade !== undefined && (typeof jsonData.criterios_elegibilidade === 'string' || jsonData.criterios_elegibilidade === null);
+    }
+    return false;
+  }
+  
   return false; // Por padrão, rejeitar formatos não especificados
 }
 
@@ -221,9 +265,9 @@ function normalizeResponse(value: string, field: string): string {
  * Faz uma requisição ao webhook para extrair uma informação específica
  */
 async function extractInfoFromWebhook(
-  field: 'valor_projeto' | 'prazo_inscricao' | 'localizacao' | 'vagas',
+  field: 'valor_projeto' | 'prazo_inscricao' | 'localizacao' | 'vagas' | 'is_researcher' | 'is_company' | 'sobre_programa' | 'criterios_elegibilidade',
   fileIds: string[]
-): Promise<string | string[] | null> {
+): Promise<string | string[] | boolean | null> {
   try {
     // Mapear campos para perguntas em português (melhoradas e mais específicas)
     const fieldQuestions: Record<string, string> = {
@@ -231,6 +275,10 @@ async function extractInfoFromWebhook(
       prazo_inscricao: "Quais são os prazos de inscrição ou submissão deste edital? Se houver múltiplos prazos (ex: diferentes chamadas, modalidades ou fases), liste TODOS os prazos encontrados. Para cada prazo, inclua: data inicial, data final, horário (se houver) e descrição da modalidade/chamada. Retorne em formato JSON: {\"prazos\": [{\"chamada\": \"nome da chamada\", \"inicio\": \"data inicial\", \"fim\": \"data final\", \"horario\": \"horário\"}, ...]} ou se for único: {\"prazo\": \"prazo encontrado\"}",
       localizacao: "Do edital, qual localização preciso estar para participar desse edital? Ou posso participar de qualquer lugar do Brasil? Procure por informações sobre requisitos de localização, residência, ou área geográfica necessária para participar. IMPORTANTE: Você DEVE retornar SEMPRE em formato JSON válido, nunca em texto livre. Se o edital aceita participantes de qualquer lugar do Brasil (sem restrição geográfica), retorne: {\"localizacao\": \"Brasil\"} ou {\"localizacao\": \"Nacional\"}. Se houver restrição geográfica específica (ex: apenas Espírito Santo, apenas São Paulo, apenas região Sudeste), retorne: {\"localizacao\": \"Espírito Santo\"} ou {\"localizacao\": \"São Paulo\"} ou {\"localizacao\": \"Região Sudeste\"} com o estado, cidade ou região específica encontrada. Procure também por termos como 'localização', 'residência', 'área de atuação', 'abrangência', 'região', 'estado', 'município', 'nacional', 'brasileiro'. Se não encontrar nenhuma informação sobre restrição geográfica, retorne: {\"localizacao\": \"Brasil\"} (assumindo que não há restrição). Se não encontrar nenhuma informação no documento, retorne: {\"localizacao\": null}. LEMBRE-SE: Retorne APENAS o JSON, sem texto adicional antes ou depois.",
       vagas: "Qual é o número máximo de participantes, projetos ou propostas que este edital aceita para inscrição? Procure ESPECIFICAMENTE por valores numéricos inteiros (números como 10, 20, 50, 100, 200, etc) que estejam próximos ou ao lado das palavras: 'vagas', 'propostas', 'projetos', 'inscrições', 'beneficiados', 'beneficiários', 'selecionados', 'aprovados', 'contratados', 'quantidade', 'total de', 'número de', 'máximo de', 'limite de', 'até', 'serão selecionados', 'serão aprovados', 'serão contratados', 'projetos aprovados', 'propostas aprovadas', 'número de projetos', 'quantidade de projetos', 'total de projetos', 'número de beneficiários', 'quantidade de beneficiários'. REGRAS CRÍTICAS: 1) Busque apenas números inteiros (10, 20, 50, 100) que NÃO sejam parte do nome/número do edital (ignore 'Edital 21/2024', 'Nº 10', datas '2024', '2025'). 2) Os números devem representar quantidade de vagas/propostas/projetos/beneficiados/selecionados, NÃO valores monetários ou datas. 3) Procure por padrões como: 'X vagas', 'X propostas', 'até X projetos', 'máximo de X', 'limite de X', 'X beneficiados', 'serão selecionados X', 'serão aprovados X', 'total de X projetos', 'quantidade de X', 'número de X', onde X é um número inteiro. 4) CÁLCULO BASEADO EM VALORES: Se encontrar valores financeiros totais e valores por projeto/beneficiário, calcule o número de vagas. Exemplo: se há R$ 1.000.000 total e cada projeto recebe R$ 50.000, então há 20 vagas. Procure por tabelas de 'recursos disponíveis', 'distribuição de recursos', 'valores por projeto', 'valores por beneficiário'. 5) PROCURE EM SEÇÕES ESPECÍFICAS: 'Objetivo', 'Recursos', 'Seleção', 'Aprovação', 'Quantidade de Projetos', 'Número de Vagas', 'Distribuição de Recursos', 'Critérios de Seleção', 'Resultado Esperado'. 6) Se encontrar 'cada proponente pode apresentar apenas uma proposta', isso é limite por proponente, NÃO o total de vagas - continue procurando pelo número total de vagas/projetos aprovados. 7) Ignore números de identificação do edital, datas, valores monetários ou contextos não relacionados. FORMATO DE RESPOSTA OBRIGATÓRIO: Você DEVE retornar APENAS JSON válido, SEM texto adicional. Se encontrar um número, retorne: {\"vagas\": \"X\"} onde X é o número encontrado. Se não encontrar nenhum número específico, retorne: {\"vagas\": null}. NUNCA retorne texto livre como 'Não foi possível encontrar' - sempre retorne JSON válido.",
+      is_researcher: "Este edital é direcionado para pesquisadores, estudantes de iniciação científica, ou pessoas físicas que desenvolvem pesquisa científica? Procure por informações sobre quem pode se candidatar, incluindo termos como: 'pesquisadores', 'pesquisador', 'pesquisa', 'cientista', 'doutor', 'doutorado', 'pós-doutorado', 'pesquisador associado', 'pesquisador principal', 'investigador', 'investigação científica', 'projeto de pesquisa', 'pesquisador individual', 'bolsista pesquisador', 'iniciação científica', 'IC', 'bolsista de iniciação científica', 'estudante de iniciação científica', 'pesquisa acadêmica', 'pesquisa científica', 'pesquisador acadêmico', 'docente pesquisador', 'pesquisador júnior', 'pesquisador sênior', 'bolsa de pesquisa', 'auxílio pesquisa', 'bolsa científica', 'bolsista científico'. IMPORTANTE: Se o edital mencionar que é direcionado para pesquisadores, estudantes de iniciação científica, ou qualquer tipo de pessoa física que desenvolve pesquisa científica (independente de ser empresa ou não), retorne {\"is_researcher\": true}. Retorne {\"is_researcher\": false} se for exclusivamente para empresas sem foco em pesquisa, ou {\"is_researcher\": null} se não houver informação clara. LEMBRE-SE: Retorne APENAS o JSON, sem texto adicional.",
+      is_company: "Este edital é aberto ao público geral, empresas (com ou sem CNPJ), pessoas físicas com atividade empresarial, ou organizações? Procure por informações sobre quem pode se candidatar, incluindo termos como: 'empresa', 'empresas', 'empresário', 'empresários', 'microempresa', 'pequena empresa', 'média empresa', 'grande empresa', 'ME', 'EPP', 'MPE', 'startup', 'startups', 'empresa de base tecnológica', 'EBT', 'empresa privada', 'CNPJ', 'PJ', 'pessoa jurídica', 'empresarial', 'setor privado', 'empresa nacional', 'empresa estrangeira', 'pessoa física', 'autônomo', 'MEI', 'microempreendedor individual', 'aberto ao público', 'público em geral', 'qualquer interessado', 'pessoa física ou jurídica', 'empresas e pessoas físicas', 'organizações', 'ONG', 'organização não governamental', 'associação', 'cooperativa', 'sociedade', 'empreendedor', 'empreendedores', 'negócio', 'negócios', 'comércio', 'prestação de serviços', 'qualquer pessoa', 'todos podem participar', 'sem restrição'. IMPORTANTE: Retorne {\"is_company\": true} se o edital for direcionado para empresas, pessoas físicas com atividade empresarial, autônomos, MEI, ou se for aberto ao público geral (com ou sem necessidade de CNPJ). Retorne {\"is_company\": false} se for exclusivamente para pesquisadores acadêmicos sem envolvimento empresarial, ou {\"is_company\": null} se não houver informação clara. LEMBRE-SE: Retorne APENAS o JSON, sem texto adicional.",
+      sobre_programa: "Quais são as informações sobre o programa deste edital? Procure por seções como 'Sobre o Programa', 'Sobre o Edital', 'Objetivo do Programa', 'Descrição do Programa', 'Apresentação', 'Introdução', 'Contexto', 'Justificativa', 'Objetivos Gerais', 'Objetivos Específicos', 'Público-alvo', 'Área de Atuação'. Extraia um resumo completo e informativo sobre o programa, incluindo seus objetivos, público-alvo, área de atuação e contexto. IMPORTANTE: Retorne em formato JSON: {\"sobre_programa\": \"texto completo extraído sobre o programa\"}. Se não encontrar informações, retorne: {\"sobre_programa\": null}. LEMBRE-SE: Retorne APENAS o JSON, sem texto adicional antes ou depois.",
+      criterios_elegibilidade: "Quais são os CRITÉRIOS DE ELEGIBILIDADE deste edital? Procure ESPECIFICAMENTE pela seção 'Critérios de Elegibilidade', 'Critérios de Habilitação', 'Requisitos para Participação', 'Condições de Elegibilidade', 'Condições de Habilitação', 'Requisitos de Elegibilidade', 'Critérios de Participação', 'Condições para Participação'. Extraia TODOS os critérios, requisitos e condições necessários para participar do edital. IMPORTANTE: Retorne em formato JSON: {\"criterios_elegibilidade\": \"texto completo com todos os critérios de elegibilidade encontrados\"}. Se não encontrar a seção de critérios de elegibilidade, retorne: {\"criterios_elegibilidade\": null}. LEMBRE-SE: Retorne APENAS o JSON, sem texto adicional antes ou depois.",
     };
 
     // Formato esperado pelo n8n: o body HTTP é acessado como $json.body
@@ -435,12 +483,66 @@ async function extractInfoFromWebhook(
           }
         }
         
+        // Para is_researcher, verificar primeiro se o JSON já tem a estrutura correta
+        if (field === 'is_researcher' && jsonData.is_researcher !== undefined) {
+          if (jsonData.is_researcher === null) {
+            console.log(`  ℹ️ ${field}: null (não encontrado)`);
+            return null;
+          }
+          if (typeof jsonData.is_researcher === 'boolean') {
+            console.log(`  ✅ Extraído ${field} do JSON: ${jsonData.is_researcher}`);
+            return jsonData.is_researcher;
+          }
+        }
+        
+        // Para is_company, verificar primeiro se o JSON já tem a estrutura correta
+        if (field === 'is_company' && jsonData.is_company !== undefined) {
+          if (jsonData.is_company === null) {
+            console.log(`  ℹ️ ${field}: null (não encontrado)`);
+            return null;
+          }
+          if (typeof jsonData.is_company === 'boolean') {
+            console.log(`  ✅ Extraído ${field} do JSON: ${jsonData.is_company}`);
+            return jsonData.is_company;
+          }
+        }
+        
+        // Para sobre_programa, verificar primeiro se o JSON já tem a estrutura correta
+        if (field === 'sobre_programa' && jsonData.sobre_programa !== undefined) {
+          if (jsonData.sobre_programa === null) {
+            console.log(`  ℹ️ ${field}: null (não encontrado)`);
+            return null;
+          }
+          const sobreValue = String(jsonData.sobre_programa).trim();
+          if (sobreValue.length > 0 && !isNotFoundMessage(sobreValue)) {
+            console.log(`  ✅ Extraído ${field} do JSON: ${sobreValue.substring(0, 100)}...`);
+            return sobreValue;
+          }
+        }
+        
+        // Para criterios_elegibilidade, verificar primeiro se o JSON já tem a estrutura correta
+        if (field === 'criterios_elegibilidade' && jsonData.criterios_elegibilidade !== undefined) {
+          if (jsonData.criterios_elegibilidade === null) {
+            console.log(`  ℹ️ ${field}: null (não encontrado)`);
+            return null;
+          }
+          const criteriosValue = String(jsonData.criterios_elegibilidade).trim();
+          if (criteriosValue.length > 0 && !isNotFoundMessage(criteriosValue)) {
+            console.log(`  ✅ Extraído ${field} do JSON: ${criteriosValue.substring(0, 100)}...`);
+            return criteriosValue;
+          }
+        }
+        
         // Tentar extrair o valor do campo específico
         const fieldKeys: Record<string, string[]> = {
           valor_projeto: ['valor', 'valor_projeto', 'value', 'output', 'result'],
           prazo_inscricao: ['prazo', 'prazos', 'prazo_inscricao', 'deadline', 'output', 'result'],
           localizacao: ['localizacao', 'localização', 'location', 'regiao', 'região', 'output', 'result'],
           vagas: ['vagas', 'vagas_disponiveis', 'projects', 'numero_vagas', 'output', 'result'],
+          is_researcher: ['is_researcher', 'isResearcher', 'pesquisador', 'researcher', 'output', 'result'],
+          is_company: ['is_company', 'isCompany', 'empresa', 'company', 'output', 'result'],
+          sobre_programa: ['sobre_programa', 'sobrePrograma', 'sobre_programa', 'about_program', 'output', 'result'],
+          criterios_elegibilidade: ['criterios_elegibilidade', 'criteriosElegibilidade', 'critérios_elegibilidade', 'elegibilidade', 'output', 'result'],
         };
 
         const keysToTry = fieldKeys[field] || ['output', 'result', 'value', field];
@@ -525,6 +627,90 @@ async function extractInfoFromWebhook(
               continue; // Tentar próxima chave
             }
             
+            // Para is_researcher, deve ter chave "is_researcher" com valor boolean
+            if (field === 'is_researcher') {
+              if (typeof extractedValue === 'boolean') {
+                console.log(`  ✅ Extraído ${field} do JSON: ${extractedValue}`);
+                return extractedValue;
+              }
+              if (typeof extractedValue === 'object' && extractedValue !== null && typeof extractedValue.is_researcher === 'boolean') {
+                console.log(`  ✅ Extraído ${field} do JSON: ${extractedValue.is_researcher}`);
+                return extractedValue.is_researcher;
+              }
+              if (extractedValue === null) {
+                console.log(`  ℹ️ ${field}: null (não encontrado)`);
+                return null;
+              }
+              console.warn(`  ⚠️ JSON não contém "is_researcher" válido`);
+              continue;
+            }
+            
+            // Para is_company, deve ter chave "is_company" com valor boolean
+            if (field === 'is_company') {
+              if (typeof extractedValue === 'boolean') {
+                console.log(`  ✅ Extraído ${field} do JSON: ${extractedValue}`);
+                return extractedValue;
+              }
+              if (typeof extractedValue === 'object' && extractedValue !== null && typeof extractedValue.is_company === 'boolean') {
+                console.log(`  ✅ Extraído ${field} do JSON: ${extractedValue.is_company}`);
+                return extractedValue.is_company;
+              }
+              if (extractedValue === null) {
+                console.log(`  ℹ️ ${field}: null (não encontrado)`);
+                return null;
+              }
+              console.warn(`  ⚠️ JSON não contém "is_company" válido`);
+              continue;
+            }
+            
+            // Para sobre_programa, deve ter chave "sobre_programa" com valor string
+            if (field === 'sobre_programa') {
+              if (typeof extractedValue === 'string' && extractedValue.trim().length > 0) {
+                const value = extractedValue.trim();
+                if (!isNotFoundMessage(value)) {
+                  console.log(`  ✅ Extraído ${field} do JSON: ${value.substring(0, 100)}...`);
+                  return value;
+                }
+              }
+              if (typeof extractedValue === 'object' && extractedValue !== null && typeof extractedValue.sobre_programa === 'string') {
+                const value = extractedValue.sobre_programa.trim();
+                if (value.length > 0 && !isNotFoundMessage(value)) {
+                  console.log(`  ✅ Extraído ${field} do JSON: ${value.substring(0, 100)}...`);
+                  return value;
+                }
+              }
+              if (extractedValue === null) {
+                console.log(`  ℹ️ ${field}: null (não encontrado)`);
+                return null;
+              }
+              console.warn(`  ⚠️ JSON não contém "sobre_programa" válido`);
+              continue;
+            }
+            
+            // Para criterios_elegibilidade, deve ter chave "criterios_elegibilidade" com valor string
+            if (field === 'criterios_elegibilidade') {
+              if (typeof extractedValue === 'string' && extractedValue.trim().length > 0) {
+                const value = extractedValue.trim();
+                if (!isNotFoundMessage(value)) {
+                  console.log(`  ✅ Extraído ${field} do JSON: ${value.substring(0, 100)}...`);
+                  return value;
+                }
+              }
+              if (typeof extractedValue === 'object' && extractedValue !== null && typeof extractedValue.criterios_elegibilidade === 'string') {
+                const value = extractedValue.criterios_elegibilidade.trim();
+                if (value.length > 0 && !isNotFoundMessage(value)) {
+                  console.log(`  ✅ Extraído ${field} do JSON: ${value.substring(0, 100)}...`);
+                  return value;
+                }
+              }
+              if (extractedValue === null) {
+                console.log(`  ℹ️ ${field}: null (não encontrado)`);
+                return null;
+              }
+              console.warn(`  ⚠️ JSON não contém "criterios_elegibilidade" válido`);
+              continue;
+            }
+            
             // Se chegou aqui, o formato não é válido para este campo
             console.warn(`  ⚠️ Formato inválido para ${field}, tentando próxima chave...`);
             continue;
@@ -532,8 +718,8 @@ async function extractInfoFromWebhook(
         }
 
         // Se não encontrou nas chaves específicas, verificar se o JSON tem a estrutura esperada
-        // Para localizacao e vagas, tentar extrair de "output" se contiver JSON válido
-        if (field === 'localizacao' || field === 'vagas') {
+        // Para localizacao, vagas e novos campos, tentar extrair de "output" se contiver JSON válido
+        if (field === 'localizacao' || field === 'vagas' || field === 'is_researcher' || field === 'is_company' || field === 'sobre_programa' || field === 'criterios_elegibilidade') {
           // Tentar extrair de "output" se for uma string JSON
           if (jsonData.output && typeof jsonData.output === 'string') {
             try {
@@ -550,6 +736,40 @@ async function extractInfoFromWebhook(
                 if (!isNotFoundMessage(vagasValue)) {
                   console.log(`  ✅ Extraído ${field} de output JSON: ${vagasValue}`);
                   return vagasValue;
+                }
+              }
+              if (field === 'is_researcher' && outputJson.is_researcher !== undefined) {
+                if (typeof outputJson.is_researcher === 'boolean') {
+                  console.log(`  ✅ Extraído ${field} de output JSON: ${outputJson.is_researcher}`);
+                  return outputJson.is_researcher;
+                }
+                if (outputJson.is_researcher === null) {
+                  console.log(`  ℹ️ ${field}: null (não encontrado)`);
+                  return null;
+                }
+              }
+              if (field === 'is_company' && outputJson.is_company !== undefined) {
+                if (typeof outputJson.is_company === 'boolean') {
+                  console.log(`  ✅ Extraído ${field} de output JSON: ${outputJson.is_company}`);
+                  return outputJson.is_company;
+                }
+                if (outputJson.is_company === null) {
+                  console.log(`  ℹ️ ${field}: null (não encontrado)`);
+                  return null;
+                }
+              }
+              if (field === 'sobre_programa' && outputJson.sobre_programa) {
+                const value = String(outputJson.sobre_programa).trim();
+                if (value.length > 0 && !isNotFoundMessage(value)) {
+                  console.log(`  ✅ Extraído ${field} de output JSON: ${value.substring(0, 100)}...`);
+                  return value;
+                }
+              }
+              if (field === 'criterios_elegibilidade' && outputJson.criterios_elegibilidade) {
+                const value = String(outputJson.criterios_elegibilidade).trim();
+                if (value.length > 0 && !isNotFoundMessage(value)) {
+                  console.log(`  ✅ Extraído ${field} de output JSON: ${value.substring(0, 100)}...`);
+                  return value;
                 }
               }
             } catch (e) {
@@ -609,6 +829,32 @@ async function extractInfoFromWebhook(
                       return vagasValue;
                     }
                   }
+                  if (field === 'is_researcher' && outputJson.is_researcher !== undefined) {
+                    if (typeof outputJson.is_researcher === 'boolean') {
+                      console.log(`  ✅ Extraído ${field} do output: ${outputJson.is_researcher}`);
+                      return outputJson.is_researcher;
+                    }
+                  }
+                  if (field === 'is_company' && outputJson.is_company !== undefined) {
+                    if (typeof outputJson.is_company === 'boolean') {
+                      console.log(`  ✅ Extraído ${field} do output: ${outputJson.is_company}`);
+                      return outputJson.is_company;
+                    }
+                  }
+                  if (field === 'sobre_programa' && outputJson.sobre_programa) {
+                    const value = String(outputJson.sobre_programa).trim();
+                    if (value.length > 0 && !isNotFoundMessage(value)) {
+                      console.log(`  ✅ Extraído ${field} do output: ${value.substring(0, 100)}...`);
+                      return value;
+                    }
+                  }
+                  if (field === 'criterios_elegibilidade' && outputJson.criterios_elegibilidade) {
+                    const value = String(outputJson.criterios_elegibilidade).trim();
+                    if (value.length > 0 && !isNotFoundMessage(value)) {
+                      console.log(`  ✅ Extraído ${field} do output: ${value.substring(0, 100)}...`);
+                      return value;
+                    }
+                  }
                   if (field === 'valor_projeto') {
                     console.log(`  ✅ Extraído ${field} do output`);
                     return JSON.stringify(outputJson);
@@ -662,15 +908,24 @@ export async function processEditalInfo(
   const needsPrazoInscricao = !edital.prazo_inscricao || edital.prazo_inscricao === 'Não informado';
   const needsLocalizacao = !edital.localizacao || edital.localizacao === 'Não informado';
   const needsVagas = !edital.vagas || edital.vagas === 'Não informado';
+  const needsIsResearcher = edital.is_researcher === null || edital.is_researcher === undefined;
+  const needsIsCompany = edital.is_company === null || edital.is_company === undefined;
+  const needsSobrePrograma = !edital.sobre_programa || edital.sobre_programa === 'Não informado';
+  const needsCriteriosElegibilidade = !edital.criterios_elegibilidade || edital.criterios_elegibilidade === 'Não informado';
   
   let valor_projeto: string | string[] | null = null;
   let prazo_inscricao: string | string[] | null = null;
   let localizacao: string | string[] | null = null;
   let vagas: string | string[] | null = null;
+  let is_researcher: boolean | null = null;
+  let is_company: boolean | null = null;
+  let sobre_programa: string | null = null;
+  let criterios_elegibilidade: string | null = null;
   
   // Extrair apenas os campos que precisam ser atualizados
   if (needsValorProjeto) {
-    valor_projeto = await extractInfoFromWebhook('valor_projeto', pdfIds);
+    const result = await extractInfoFromWebhook('valor_projeto', pdfIds);
+    valor_projeto = (typeof result === 'string' || Array.isArray(result)) ? result : null;
     await new Promise(resolve => setTimeout(resolve, 2000));
   } else {
     valor_projeto = edital.valor_projeto || null;
@@ -678,7 +933,8 @@ export async function processEditalInfo(
   }
   
   if (needsPrazoInscricao) {
-    prazo_inscricao = await extractInfoFromWebhook('prazo_inscricao', pdfIds);
+    const result = await extractInfoFromWebhook('prazo_inscricao', pdfIds);
+    prazo_inscricao = (typeof result === 'string' || Array.isArray(result)) ? result : null;
     await new Promise(resolve => setTimeout(resolve, 2000));
   } else {
     prazo_inscricao = edital.prazo_inscricao || null;
@@ -686,7 +942,8 @@ export async function processEditalInfo(
   }
   
   if (needsLocalizacao) {
-    localizacao = await extractInfoFromWebhook('localizacao', pdfIds);
+    const result = await extractInfoFromWebhook('localizacao', pdfIds);
+    localizacao = (typeof result === 'string' || Array.isArray(result)) ? result : null;
     await new Promise(resolve => setTimeout(resolve, 2000));
   } else {
     localizacao = edital.localizacao || null;
@@ -694,10 +951,63 @@ export async function processEditalInfo(
   }
   
   if (needsVagas) {
-    vagas = await extractInfoFromWebhook('vagas', pdfIds);
+    const result = await extractInfoFromWebhook('vagas', pdfIds);
+    vagas = (typeof result === 'string' || Array.isArray(result)) ? result : null;
+    await new Promise(resolve => setTimeout(resolve, 2000));
   } else {
     vagas = edital.vagas || null;
     console.log(`  ⏭️  Vagas já possui valor válido, mantendo valor existente`);
+  }
+  
+  if (needsIsResearcher) {
+    const result = await extractInfoFromWebhook('is_researcher', pdfIds);
+    if (typeof result === 'boolean') {
+      is_researcher = result;
+    } else {
+      is_researcher = null;
+    }
+    await new Promise(resolve => setTimeout(resolve, 2000));
+  } else {
+    is_researcher = edital.is_researcher ?? null;
+    console.log(`  ⏭️  Is Researcher já possui valor válido, mantendo valor existente`);
+  }
+  
+  if (needsIsCompany) {
+    const result = await extractInfoFromWebhook('is_company', pdfIds);
+    if (typeof result === 'boolean') {
+      is_company = result;
+    } else {
+      is_company = null;
+    }
+    await new Promise(resolve => setTimeout(resolve, 2000));
+  } else {
+    is_company = edital.is_company ?? null;
+    console.log(`  ⏭️  Is Company já possui valor válido, mantendo valor existente`);
+  }
+  
+  if (needsSobrePrograma) {
+    const result = await extractInfoFromWebhook('sobre_programa', pdfIds);
+    if (typeof result === 'string') {
+      sobre_programa = result;
+    } else {
+      sobre_programa = null;
+    }
+    await new Promise(resolve => setTimeout(resolve, 2000));
+  } else {
+    sobre_programa = edital.sobre_programa || null;
+    console.log(`  ⏭️  Sobre Programa já possui valor válido, mantendo valor existente`);
+  }
+  
+  if (needsCriteriosElegibilidade) {
+    const result = await extractInfoFromWebhook('criterios_elegibilidade', pdfIds);
+    if (typeof result === 'string') {
+      criterios_elegibilidade = result;
+    } else {
+      criterios_elegibilidade = null;
+    }
+  } else {
+    criterios_elegibilidade = edital.criterios_elegibilidade || null;
+    console.log(`  ⏭️  Critérios de Elegibilidade já possui valor válido, mantendo valor existente`);
   }
 
   const processedInfo: ProcessedInfo = {};
@@ -764,6 +1074,16 @@ export async function processEditalInfo(
       return 'Não informado';
     }
     
+    // Para sobre_programa e criterios_elegibilidade, aceitar strings simples
+    if (field === 'sobre_programa' || field === 'criterios_elegibilidade') {
+      if (stringValue.length > 0 && !isNotFoundMessage(stringValue)) {
+        console.log(`  ✅ ${fieldName}: ${stringValue.substring(0, 100)}...`);
+        return stringValue;
+      }
+      console.warn(`  ⚠️ ${fieldName}: valor inválido ou não encontrado (usando default)`);
+      return 'Não informado';
+    }
+    
     // Se não é JSON, usar default (todos os campos devem estar em formato JSON)
     console.warn(`  ⚠️ ${fieldName}: resposta não está em formato JSON (usando default)`);
     return 'Não informado';
@@ -773,6 +1093,42 @@ export async function processEditalInfo(
   processedInfo.prazo_inscricao = processField(prazo_inscricao, 'prazo_inscricao', 'Prazo de Inscrição');
   processedInfo.localizacao = processField(localizacao, 'localizacao', 'Localização');
   processedInfo.vagas = processField(vagas, 'vagas', 'Vagas');
+  
+  // Processar campos booleanos
+  if (is_researcher !== null && is_researcher !== undefined) {
+    processedInfo.is_researcher = is_researcher;
+    console.log(`  ✅ Is Researcher: ${is_researcher}`);
+  } else {
+    console.log(`  ⚠️ Is Researcher: não encontrado (usando null)`);
+  }
+  
+  if (is_company !== null && is_company !== undefined) {
+    processedInfo.is_company = is_company;
+    console.log(`  ✅ Is Company: ${is_company}`);
+  } else {
+    console.log(`  ⚠️ Is Company: não encontrado (usando null)`);
+  }
+  
+  // Processar campos de texto
+  processedInfo.sobre_programa = sobre_programa && sobre_programa.trim().length > 0 && !isNotFoundMessage(sobre_programa)
+    ? sobre_programa
+    : (needsSobrePrograma ? 'Não informado' : undefined);
+  
+  if (processedInfo.sobre_programa) {
+    console.log(`  ✅ Sobre Programa: ${processedInfo.sobre_programa.substring(0, 100)}...`);
+  } else if (needsSobrePrograma) {
+    console.log(`  ⚠️ Sobre Programa: não encontrado (usando default)`);
+  }
+  
+  processedInfo.criterios_elegibilidade = criterios_elegibilidade && criterios_elegibilidade.trim().length > 0 && !isNotFoundMessage(criterios_elegibilidade)
+    ? criterios_elegibilidade
+    : (needsCriteriosElegibilidade ? 'Não informado' : undefined);
+  
+  if (processedInfo.criterios_elegibilidade) {
+    console.log(`  ✅ Critérios de Elegibilidade: ${processedInfo.criterios_elegibilidade.substring(0, 100)}...`);
+  } else if (needsCriteriosElegibilidade) {
+    console.log(`  ⚠️ Critérios de Elegibilidade: não encontrado (usando default)`);
+  }
 
   return processedInfo;
 }
@@ -813,7 +1169,7 @@ export async function fetchEditaisToProcess(
 ): Promise<EditalInfo[]> {
   let query = supabase
     .from('editais')
-    .select('id, numero, titulo, valor_projeto, prazo_inscricao, localizacao, vagas, informacoes_processadas_em')
+    .select('id, numero, titulo, valor_projeto, prazo_inscricao, localizacao, vagas, is_researcher, is_company, sobre_programa, criterios_elegibilidade, informacoes_processadas_em')
     .order('criado_em', { ascending: false });
 
   // Se includeNotInformed, buscar TODOS os editais (incluindo processados)
@@ -851,7 +1207,11 @@ export async function fetchEditaisToProcess(
         (edital.valor_projeto === 'Não informado') ||
         (edital.prazo_inscricao === 'Não informado') ||
         (edital.localizacao === 'Não informado') ||
-        (edital.vagas === 'Não informado');
+        (edital.vagas === 'Não informado') ||
+        (edital.sobre_programa === 'Não informado') ||
+        (edital.criterios_elegibilidade === 'Não informado') ||
+        (edital.is_researcher === null || edital.is_researcher === undefined) ||
+        (edital.is_company === null || edital.is_company === undefined);
       
       return hasNotInformed;
     });

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import {
   fetchEditaisWithScores,
   EditalWithScores,
@@ -33,15 +34,18 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+  const { profile, loading: profileLoading } = useUserProfile();
 
   useEffect(() => {
-    loadEditais();
-  }, [user]);
+    if (!profileLoading) {
+      loadEditais();
+    }
+  }, [user, profile, profileLoading]);
 
   const loadEditais = async () => {
     try {
       setLoading(true);
-      const editaisComScores = await fetchEditaisWithScores(user?.id);
+      const editaisComScores = await fetchEditaisWithScores(user?.id, user, profile);
 
       // Transformar para formato de exibição
       const editaisFormatados: EditalDisplay[] = editaisComScores.map((edital) => {
@@ -71,8 +75,31 @@ export default function Dashboard() {
     setLocation(`/edital/${editalId}`);
   };
 
-  // Filtrar editais
+  // Filtrar editais baseado no perfil do usuário e outros filtros
   const editaisFiltrados = editais.filter((edital) => {
+    // Filtro baseado no perfil do usuário (is_researcher ou is_company)
+    if (profile && !profileLoading) {
+      const userType = profile.userType;
+      
+      // Se o usuário é pesquisador, mostrar apenas editais onde is_researcher === true
+      if (userType === "pesquisador") {
+        // Se is_researcher é false ou null, não mostrar
+        // Se is_researcher é true ou undefined (ainda não processado), mostrar
+        if (edital.is_researcher === false) {
+          return false;
+        }
+      }
+      
+      // Se o usuário é pessoa-empresa, mostrar apenas editais onde is_company === true
+      if (userType === "pessoa-empresa") {
+        // Se is_company é false ou null, não mostrar
+        // Se is_company é true ou undefined (ainda não processado), mostrar
+        if (edital.is_company === false) {
+          return false;
+        }
+      }
+    }
+
     // Filtro de busca
     const matchBusca =
       edital.titulo.toLowerCase().includes(busca.toLowerCase()) ||
@@ -213,6 +240,24 @@ export default function Dashboard() {
               </select>
             </div>
           </div>
+          {profile && !profileLoading && (
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <Target className="w-4 h-4 text-blue-600" />
+                <span>
+                  Mostrando editais para{" "}
+                  <span className="font-semibold text-gray-900">
+                    {profile.userType === "pesquisador" ? "pesquisadores" : "empresas e público geral"}
+                  </span>
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                {profile.userType === "pesquisador"
+                  ? "Editais direcionados para pesquisadores e iniciação científica são exibidos primeiro."
+                  : "Editais abertos para empresas, MEI, autônomos e público geral são exibidos primeiro."}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Editais List */}
