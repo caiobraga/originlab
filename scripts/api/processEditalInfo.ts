@@ -20,6 +20,7 @@ interface EditalInfo {
   is_company?: boolean | null;
   sobre_programa?: string | null;
   criterios_elegibilidade?: string | null;
+  timeline_estimada?: any | null;
 }
 
 interface ProcessedInfo {
@@ -31,6 +32,7 @@ interface ProcessedInfo {
   is_company?: boolean;
   sobre_programa?: string;
   criterios_elegibilidade?: string;
+  timeline_estimada?: any;
 }
 
 /**
@@ -212,6 +214,15 @@ function isValidJsonFormat(jsonData: any, field: string): boolean {
     return false;
   }
   
+  // Para timeline_estimada, aceitar objeto JSON com chave "timeline_estimada": {"timeline_estimada": {"fases": [...]}}
+  if (field === 'timeline_estimada') {
+    if (typeof jsonData === 'object' && jsonData !== null && !Array.isArray(jsonData)) {
+      // Deve ter a chave "timeline_estimada" com valor objeto (ou null)
+      return jsonData.timeline_estimada !== undefined && (typeof jsonData.timeline_estimada === 'object' || jsonData.timeline_estimada === null);
+    }
+    return false;
+  }
+  
   return false; // Por padrão, rejeitar formatos não especificados
 }
 
@@ -265,9 +276,9 @@ function normalizeResponse(value: string, field: string): string {
  * Faz uma requisição ao webhook para extrair uma informação específica
  */
 async function extractInfoFromWebhook(
-  field: 'valor_projeto' | 'prazo_inscricao' | 'localizacao' | 'vagas' | 'is_researcher' | 'is_company' | 'sobre_programa' | 'criterios_elegibilidade',
+  field: 'valor_projeto' | 'prazo_inscricao' | 'localizacao' | 'vagas' | 'is_researcher' | 'is_company' | 'sobre_programa' | 'criterios_elegibilidade' | 'timeline_estimada',
   fileIds: string[]
-): Promise<string | string[] | boolean | null> {
+): Promise<string | string[] | boolean | any | null> {
   try {
     // Mapear campos para perguntas em português (melhoradas e mais específicas)
     const fieldQuestions: Record<string, string> = {
@@ -279,6 +290,7 @@ async function extractInfoFromWebhook(
       is_company: "Este edital é aberto ao público geral, empresas (com ou sem CNPJ), pessoas físicas com atividade empresarial, ou organizações? Procure por informações sobre quem pode se candidatar, incluindo termos como: 'empresa', 'empresas', 'empresário', 'empresários', 'microempresa', 'pequena empresa', 'média empresa', 'grande empresa', 'ME', 'EPP', 'MPE', 'startup', 'startups', 'empresa de base tecnológica', 'EBT', 'empresa privada', 'CNPJ', 'PJ', 'pessoa jurídica', 'empresarial', 'setor privado', 'empresa nacional', 'empresa estrangeira', 'pessoa física', 'autônomo', 'MEI', 'microempreendedor individual', 'aberto ao público', 'público em geral', 'qualquer interessado', 'pessoa física ou jurídica', 'empresas e pessoas físicas', 'organizações', 'ONG', 'organização não governamental', 'associação', 'cooperativa', 'sociedade', 'empreendedor', 'empreendedores', 'negócio', 'negócios', 'comércio', 'prestação de serviços', 'qualquer pessoa', 'todos podem participar', 'sem restrição'. IMPORTANTE: Retorne {\"is_company\": true} se o edital for direcionado para empresas, pessoas físicas com atividade empresarial, autônomos, MEI, ou se for aberto ao público geral (com ou sem necessidade de CNPJ). Retorne {\"is_company\": false} se for exclusivamente para pesquisadores acadêmicos sem envolvimento empresarial, ou {\"is_company\": null} se não houver informação clara. LEMBRE-SE: Retorne APENAS o JSON, sem texto adicional.",
       sobre_programa: "Quais são as informações sobre o programa deste edital? Procure por seções como 'Sobre o Programa', 'Sobre o Edital', 'Objetivo do Programa', 'Descrição do Programa', 'Apresentação', 'Introdução', 'Contexto', 'Justificativa', 'Objetivos Gerais', 'Objetivos Específicos', 'Público-alvo', 'Área de Atuação'. Extraia um resumo completo e informativo sobre o programa, incluindo seus objetivos, público-alvo, área de atuação e contexto. IMPORTANTE: Retorne em formato JSON: {\"sobre_programa\": \"texto completo extraído sobre o programa\"}. Se não encontrar informações, retorne: {\"sobre_programa\": null}. LEMBRE-SE: Retorne APENAS o JSON, sem texto adicional antes ou depois.",
       criterios_elegibilidade: "Quais são os CRITÉRIOS DE ELEGIBILIDADE deste edital? Procure ESPECIFICAMENTE pela seção 'Critérios de Elegibilidade', 'Critérios de Habilitação', 'Requisitos para Participação', 'Condições de Elegibilidade', 'Condições de Habilitação', 'Requisitos de Elegibilidade', 'Critérios de Participação', 'Condições para Participação'. Extraia TODOS os critérios, requisitos e condições necessários para participar do edital. IMPORTANTE: Retorne em formato JSON: {\"criterios_elegibilidade\": \"texto completo com todos os critérios de elegibilidade encontrados\"}. Se não encontrar a seção de critérios de elegibilidade, retorne: {\"criterios_elegibilidade\": null}. LEMBRE-SE: Retorne APENAS o JSON, sem texto adicional antes ou depois.",
+      timeline_estimada: "IMPORTANTE: Você recebeu os arquivos do edital através dos file_ids fornecidos. Analise o conteúdo desses arquivos para responder esta pergunta. Quais são as fases e cronograma deste edital? Procure por seções como 'Cronograma', 'Timeline', 'Calendário', 'Fases do Edital', 'Etapas', 'Fases de Execução', 'Cronograma de Atividades', 'Calendário de Execução', 'Linha do Tempo'. Para cada fase encontrada, extraia: nome da fase, prazo (em dias ou datas), status (aberto/fechado/pendente), data de início (se disponível), data de fim (se disponível). IMPORTANTE: Retorne em formato JSON: {\"timeline_estimada\": {\"fases\": [{\"nome\": \"Inscrição\", \"prazo\": \"30 dias\", \"status\": \"aberto\", \"data_inicio\": \"2024-01-01\", \"data_fim\": \"2024-01-31\"}, {\"nome\": \"Fase 1\", \"prazo\": \"60 dias\", \"status\": \"pendente\"}, ...]}}. Se não encontrar informações sobre cronograma/fases, retorne: {\"timeline_estimada\": null}. LEMBRE-SE: Retorne APENAS o JSON, sem texto adicional antes ou depois.",
     };
 
     // Formato esperado pelo n8n: o body HTTP é acessado como $json.body
@@ -288,18 +300,20 @@ async function extractInfoFromWebhook(
       file_ids: fileIds,
     };
     
+    // Verificar se file_ids está vazio
+    if (!fileIds || fileIds.length === 0) {
+      console.error(`  ❌ ERRO: Nenhum file_id disponível para ${field}! Não é possível extrair informações sem os arquivos.`);
+      return null;
+    }
+    
     // Log para debug
     console.log(`  📝 Mensagem: ${fieldQuestions[field].substring(0, 80)}...`);
     console.log(`  📁 File IDs: ${fileIds.length} arquivo(s)`);
-    if (fileIds.length > 0) {
-      console.log(`  📋 IDs: ${fileIds.slice(0, 3).join(', ')}${fileIds.length > 3 ? '...' : ''}`);
-    } else {
-      console.warn(`  ⚠️ ATENÇÃO: Nenhum file_id sendo enviado para ${field}!`);
-    }
+    console.log(`  📋 IDs completos sendo enviados:`, fileIds);
     const apiUrl = USE_LOCAL_API ? LOCAL_API_URL : WEBHOOK_URL;
     console.log(`  📤 Enviando requisição para extrair: ${field}`);
     console.log(`  🔗 URL: ${apiUrl} ${USE_LOCAL_API ? '(API Local)' : '(n8n)'}`);
-    console.log(`  📦 Request body: ${JSON.stringify(requestBody).substring(0, 200)}...`);
+    console.log(`  📦 Request body completo:`, JSON.stringify(requestBody, null, 2));
 
     // Adicionar delay entre requisições para evitar rate limiting
     // Com limites de 7 RPM (gemini-2.5-flash), precisamos de ~8.5s entre requisições
@@ -376,16 +390,40 @@ async function extractInfoFromWebhook(
       if (Array.isArray(parsedResponse) && parsedResponse.length > 0) {
         const firstItem = parsedResponse[0];
         if (firstItem.output) {
-          // Se output é uma string JSON, tentar parsear
-          if (typeof firstItem.output === 'string' && firstItem.output.trim().startsWith('{')) {
-            try {
-              const innerJson = JSON.parse(firstItem.output);
-              // Se parseou com sucesso, usar o JSON interno
-              parsedResponse = innerJson;
-              responseText = JSON.stringify(innerJson);
-            } catch (e) {
-              // Se não conseguir parsear, usar o texto original
-              responseText = firstItem.output;
+          // Se output é uma string, verificar se contém markdown code blocks
+          if (typeof firstItem.output === 'string') {
+            let outputContent = firstItem.output;
+            
+            // Extrair JSON de markdown code blocks se presente
+            if (outputContent.includes('```')) {
+              const codeBlockMatch = outputContent.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+              if (codeBlockMatch && codeBlockMatch[1]) {
+                outputContent = codeBlockMatch[1];
+              } else {
+                // Tentar com regex mais permissivo
+                const codeBlockPermissive = outputContent.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+                if (codeBlockPermissive && codeBlockPermissive[1]) {
+                  const extracted = codeBlockPermissive[1].trim();
+                  if (extracted.startsWith('{')) {
+                    outputContent = extracted;
+                  }
+                }
+              }
+            }
+            
+            // Se output (processado) é uma string JSON, tentar parsear
+            if (outputContent.trim().startsWith('{')) {
+              try {
+                const innerJson = JSON.parse(outputContent);
+                // Se parseou com sucesso, usar o JSON interno
+                parsedResponse = innerJson;
+                responseText = JSON.stringify(innerJson);
+              } catch (e) {
+                // Se não conseguir parsear, usar o texto original processado
+                responseText = outputContent;
+              }
+            } else {
+              responseText = outputContent;
             }
           } else {
             responseText = String(firstItem.output);
@@ -405,17 +443,37 @@ async function extractInfoFromWebhook(
     let jsonMatch: RegExpMatchArray | null = null;
     
     // 1. Tentar extrair de markdown code blocks primeiro (mais comum no n8n)
-    // Usar regex não-guloso para capturar todo o JSON dentro do code block
-    const codeBlockMatch = responseText.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
-    if (codeBlockMatch) {
-      jsonMatch = [codeBlockMatch[1]];
-    } else {
-      // Tentar com regex mais permissivo para code blocks multilinha
-      const multilineCodeBlock = responseText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-      if (multilineCodeBlock) {
-        const codeContent = multilineCodeBlock[1].trim();
-        if (codeContent.startsWith('{')) {
-          jsonMatch = [codeContent];
+    // Primeiro, tentar encontrar code blocks com ```json ou apenas ```
+    // Usar abordagem mais robusta para capturar JSON completo
+    const codeBlockStart = responseText.indexOf('```');
+    if (codeBlockStart !== -1) {
+      const codeBlockEnd = responseText.lastIndexOf('```');
+      if (codeBlockEnd !== -1 && codeBlockEnd > codeBlockStart) {
+        // Extrair conteúdo entre os code blocks
+        const codeContent = responseText.substring(codeBlockStart + 3, codeBlockEnd).trim();
+        // Remover "json" se presente
+        const jsonContent = codeContent.replace(/^json\s*/i, '').trim();
+        if (jsonContent.startsWith('{')) {
+          jsonMatch = [jsonContent];
+        }
+      }
+    }
+    
+    // Se não encontrou com a abordagem acima, tentar regex
+    if (!jsonMatch) {
+      const codeBlockPatterns = [
+        /```json\s*(\{[\s\S]*?\})\s*```/,  // ```json {...} ```
+        /```\s*(\{[\s\S]*?\})\s*```/,      // ``` {...} ```
+      ];
+      
+      for (const pattern of codeBlockPatterns) {
+        const match = responseText.match(pattern);
+        if (match && match[1]) {
+          const codeContent = match[1].trim();
+          if (codeContent.startsWith('{')) {
+            jsonMatch = [codeContent];
+            break;
+          }
         }
       }
     }
@@ -451,9 +509,30 @@ async function extractInfoFromWebhook(
         // Se o JSON parseado tem uma chave "output" que é string JSON, tentar parsear novamente
         if (typeof jsonData === 'object' && jsonData !== null && jsonData.output && typeof jsonData.output === 'string') {
           try {
-            const innerJson = JSON.parse(jsonData.output);
+            let outputContent = jsonData.output;
+            
+            // Se o output contém markdown code blocks, extrair o JSON de dentro
+            if (outputContent.includes('```')) {
+              // Método robusto: encontrar primeiro { e último } dentro do code block
+              const firstBrace = outputContent.indexOf('{');
+              const lastBrace = outputContent.lastIndexOf('}');
+              if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+                outputContent = outputContent.substring(firstBrace, lastBrace + 1).trim();
+                console.log(`  🔍 JSON extraído do code block (${outputContent.length} chars)`);
+              } else {
+                // Fallback: tentar regex
+                const codeBlockMatch = outputContent.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+                if (codeBlockMatch && codeBlockMatch[1]) {
+                  outputContent = codeBlockMatch[1].trim();
+                }
+              }
+            }
+            
+            const innerJson = JSON.parse(outputContent);
+            console.log(`  ✅ JSON parseado do output com sucesso`);
             jsonData = innerJson;
           } catch (e) {
+            console.warn(`  ⚠️ Erro ao parsear output como JSON: ${e}`);
             // Se não conseguir parsear, usar o JSON original
           }
         }
@@ -533,6 +612,20 @@ async function extractInfoFromWebhook(
           }
         }
         
+        // Para timeline_estimada, verificar primeiro se o JSON já tem a estrutura correta
+        if (field === 'timeline_estimada' && jsonData.timeline_estimada !== undefined) {
+          const timeline = jsonData.timeline_estimada;
+          if (timeline === null) {
+            console.log(`  ℹ️ ${field}: null (não encontrado)`);
+            return null;
+          }
+          if (typeof timeline === 'object' && timeline !== null) {
+            const fasesCount = timeline.fases && Array.isArray(timeline.fases) ? timeline.fases.length : 0;
+            console.log(`  ✅ Extraído ${field} do JSON: objeto timeline com ${fasesCount} fase(s)`);
+            return JSON.stringify(timeline);
+          }
+        }
+        
         // Tentar extrair o valor do campo específico
         const fieldKeys: Record<string, string[]> = {
           valor_projeto: ['valor', 'valor_projeto', 'value', 'output', 'result'],
@@ -543,6 +636,7 @@ async function extractInfoFromWebhook(
           is_company: ['is_company', 'isCompany', 'empresa', 'company', 'output', 'result'],
           sobre_programa: ['sobre_programa', 'sobrePrograma', 'sobre_programa', 'about_program', 'output', 'result'],
           criterios_elegibilidade: ['criterios_elegibilidade', 'criteriosElegibilidade', 'critérios_elegibilidade', 'elegibilidade', 'output', 'result'],
+          timeline_estimada: ['timeline_estimada', 'timelineEstimada', 'timeline', 'cronograma', 'fases', 'output', 'result'],
         };
 
         const keysToTry = fieldKeys[field] || ['output', 'result', 'value', field];
@@ -711,6 +805,35 @@ async function extractInfoFromWebhook(
               continue;
             }
             
+            // Para timeline_estimada, deve ter chave "timeline_estimada" com valor objeto
+            if (field === 'timeline_estimada') {
+              if (typeof extractedValue === 'object' && extractedValue !== null) {
+                // Se extractedValue já é o objeto timeline_estimada completo
+                if (extractedValue.timeline_estimada !== undefined) {
+                  const timeline = extractedValue.timeline_estimada;
+                  if (timeline === null) {
+                    console.log(`  ℹ️ ${field}: null (não encontrado)`);
+                    return null;
+                  }
+                  if (typeof timeline === 'object' && timeline !== null) {
+                    console.log(`  ✅ Extraído ${field} do JSON: objeto com fases`);
+                    return JSON.stringify(timeline);
+                  }
+                }
+                // Se extractedValue é o objeto timeline_estimada diretamente (sem chave wrapper)
+                if (extractedValue.fases && Array.isArray(extractedValue.fases)) {
+                  console.log(`  ✅ Extraído ${field} do JSON: objeto com fases`);
+                  return JSON.stringify(extractedValue);
+                }
+              }
+              if (extractedValue === null) {
+                console.log(`  ℹ️ ${field}: null (não encontrado)`);
+                return null;
+              }
+              console.warn(`  ⚠️ JSON não contém "timeline_estimada" válido`);
+              continue;
+            }
+            
             // Se chegou aqui, o formato não é válido para este campo
             console.warn(`  ⚠️ Formato inválido para ${field}, tentando próxima chave...`);
             continue;
@@ -719,7 +842,7 @@ async function extractInfoFromWebhook(
 
         // Se não encontrou nas chaves específicas, verificar se o JSON tem a estrutura esperada
         // Para localizacao, vagas e novos campos, tentar extrair de "output" se contiver JSON válido
-        if (field === 'localizacao' || field === 'vagas' || field === 'is_researcher' || field === 'is_company' || field === 'sobre_programa' || field === 'criterios_elegibilidade') {
+        if (field === 'localizacao' || field === 'vagas' || field === 'is_researcher' || field === 'is_company' || field === 'sobre_programa' || field === 'criterios_elegibilidade' || field === 'timeline_estimada') {
           // Tentar extrair de "output" se for uma string JSON
           if (jsonData.output && typeof jsonData.output === 'string') {
             try {
@@ -770,6 +893,24 @@ async function extractInfoFromWebhook(
                 if (value.length > 0 && !isNotFoundMessage(value)) {
                   console.log(`  ✅ Extraído ${field} de output JSON: ${value.substring(0, 100)}...`);
                   return value;
+                }
+              }
+              if (field === 'timeline_estimada' && outputJson.timeline_estimada !== undefined) {
+                const timeline = outputJson.timeline_estimada;
+                if (timeline === null) {
+                  console.log(`  ℹ️ ${field}: null (não encontrado)`);
+                  return null;
+                }
+                if (typeof timeline === 'object' && timeline !== null) {
+                  // Validar se tem estrutura de fases
+                  if (timeline.fases && Array.isArray(timeline.fases)) {
+                    console.log(`  ✅ Extraído ${field} de output JSON: objeto com ${timeline.fases.length} fase(s)`);
+                    return JSON.stringify(timeline);
+                  } else if (typeof timeline === 'object') {
+                    // Aceitar objeto mesmo sem fases explícitas
+                    console.log(`  ✅ Extraído ${field} de output JSON: objeto timeline`);
+                    return JSON.stringify(timeline);
+                  }
                 }
               }
             } catch (e) {
@@ -912,6 +1053,7 @@ export async function processEditalInfo(
   const needsIsCompany = edital.is_company === null || edital.is_company === undefined;
   const needsSobrePrograma = !edital.sobre_programa || edital.sobre_programa === 'Não informado';
   const needsCriteriosElegibilidade = !edital.criterios_elegibilidade || edital.criterios_elegibilidade === 'Não informado';
+  const needsTimelineEstimada = !edital.timeline_estimada || edital.timeline_estimada === null;
   
   let valor_projeto: string | string[] | null = null;
   let prazo_inscricao: string | string[] | null = null;
@@ -921,6 +1063,7 @@ export async function processEditalInfo(
   let is_company: boolean | null = null;
   let sobre_programa: string | null = null;
   let criterios_elegibilidade: string | null = null;
+  let timeline_estimada: any | null = null;
   
   // Extrair apenas os campos que precisam ser atualizados
   if (needsValorProjeto) {
@@ -1008,6 +1151,36 @@ export async function processEditalInfo(
   } else {
     criterios_elegibilidade = edital.criterios_elegibilidade || null;
     console.log(`  ⏭️  Critérios de Elegibilidade já possui valor válido, mantendo valor existente`);
+  }
+  
+  // Extrair timeline_estimada
+  if (needsTimelineEstimada) {
+    const result = await extractInfoFromWebhook('timeline_estimada', pdfIds);
+    if (typeof result === 'string' && result.trim().length > 0) {
+      try {
+        // Parsear a string JSON retornada
+        const parsedTimeline = JSON.parse(result);
+        timeline_estimada = (typeof parsedTimeline === 'object' && parsedTimeline !== null) ? parsedTimeline : null;
+        if (timeline_estimada) {
+          console.log(`  ✅ Timeline Estimada extraída com sucesso`);
+        } else {
+          console.log(`  ℹ️ Timeline Estimada: null (não encontrado)`);
+        }
+      } catch (e) {
+        console.warn(`  ⚠️ Erro ao parsear timeline_estimada: ${e}`);
+        timeline_estimada = null;
+      }
+    } else if (typeof result === 'object' && result !== null) {
+      // Se já veio como objeto (caso raro)
+      timeline_estimada = result;
+    } else {
+      timeline_estimada = null;
+      console.log(`  ℹ️ Timeline Estimada: null (não encontrado)`);
+    }
+    await new Promise(resolve => setTimeout(resolve, 2000));
+  } else {
+    timeline_estimada = edital.timeline_estimada || null;
+    console.log(`  ⏭️  Timeline Estimada já possui valor válido, mantendo valor existente`);
   }
 
   const processedInfo: ProcessedInfo = {};
@@ -1126,8 +1299,20 @@ export async function processEditalInfo(
   
   if (processedInfo.criterios_elegibilidade) {
     console.log(`  ✅ Critérios de Elegibilidade: ${processedInfo.criterios_elegibilidade.substring(0, 100)}...`);
-  } else if (needsCriteriosElegibilidade) {
-    console.log(`  ⚠️ Critérios de Elegibilidade: não encontrado (usando default)`);
+  }
+  
+  // Processar timeline_estimada
+  processedInfo.timeline_estimada = timeline_estimada && typeof timeline_estimada === 'object' && timeline_estimada !== null
+    ? timeline_estimada
+    : undefined;
+  
+  if (processedInfo.timeline_estimada) {
+    const fasesCount = processedInfo.timeline_estimada.fases && Array.isArray(processedInfo.timeline_estimada.fases) 
+      ? processedInfo.timeline_estimada.fases.length 
+      : 0;
+    console.log(`  ✅ Timeline Estimada: ${fasesCount} fase(s) encontrada(s)`);
+  } else if (needsTimelineEstimada) {
+    console.log(`  ⚠️ Timeline Estimada: não encontrada (usando null)`);
   }
 
   return processedInfo;
@@ -1169,7 +1354,7 @@ export async function fetchEditaisToProcess(
 ): Promise<EditalInfo[]> {
   let query = supabase
     .from('editais')
-    .select('id, numero, titulo, valor_projeto, prazo_inscricao, localizacao, vagas, is_researcher, is_company, sobre_programa, criterios_elegibilidade, informacoes_processadas_em')
+    .select('id, numero, titulo, valor_projeto, prazo_inscricao, localizacao, vagas, is_researcher, is_company, sobre_programa, criterios_elegibilidade, timeline_estimada, informacoes_processadas_em')
     .order('criado_em', { ascending: false });
 
   // Se includeNotInformed, buscar TODOS os editais (incluindo processados)
@@ -1210,6 +1395,7 @@ export async function fetchEditaisToProcess(
         (edital.vagas === 'Não informado') ||
         (edital.sobre_programa === 'Não informado') ||
         (edital.criterios_elegibilidade === 'Não informado') ||
+        (edital.timeline_estimada === null || edital.timeline_estimada === undefined) ||
         (edital.is_researcher === null || edital.is_researcher === undefined) ||
         (edital.is_company === null || edital.is_company === undefined);
       

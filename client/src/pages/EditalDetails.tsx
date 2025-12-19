@@ -3,7 +3,7 @@ import { Link, useParams } from "wouter";
 import { 
   ArrowLeft, CheckCircle2, AlertCircle, Loader2,
   Calendar, DollarSign, MapPin, Users, FileText, Sparkles,
-  Shield, Clock, TrendingUp, Download, Send, Info
+  Shield, Clock, Download, Send, Info
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +36,7 @@ export default function EditalDetails() {
   const [loadingPdfs, setLoadingPdfs] = useState(true);
   const [scores, setScores] = useState<{ match: number; probabilidade: number; justificativa?: string | null } | null>(null);
   const [loadingScores, setLoadingScores] = useState(false);
+  const [linkCopiado, setLinkCopiado] = useState(false);
   const { user } = useAuth();
   const { profile } = useUserProfile();
 
@@ -167,6 +168,59 @@ export default function EditalDetails() {
 
 
 
+  // Função para compartilhar edital
+  const handleCompartilhar = async () => {
+    const urlCompleta = window.location.href;
+    const tituloEdital = edital?.titulo || "Edital";
+    const textoCompartilhamento = `Confira este edital: ${tituloEdital}`;
+
+    // Tentar usar Web Share API (mobile)
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: tituloEdital,
+          text: textoCompartilhamento,
+          url: urlCompleta,
+        });
+        toast.success("Compartilhado com sucesso!");
+        return;
+      } catch (error: any) {
+        // Se o usuário cancelar, não fazer nada
+        if (error.name === "AbortError") {
+          return;
+        }
+        // Se der erro, continuar com fallback
+      }
+    }
+
+    // Fallback: copiar link para área de transferência
+    try {
+      await navigator.clipboard.writeText(urlCompleta);
+      setLinkCopiado(true);
+      toast.success("Link copiado para a área de transferência!");
+      setTimeout(() => setLinkCopiado(false), 2000);
+    } catch (error) {
+      console.error("Erro ao copiar link:", error);
+      toast.error("Erro ao copiar link. Tente novamente.");
+    }
+  };
+
+  // Função para compartilhar no WhatsApp
+  const handleCompartilharWhatsApp = () => {
+    const urlCompleta = window.location.href;
+    const tituloEdital = edital?.titulo || "Edital";
+    const texto = `Confira este edital: ${tituloEdital}\n\n${urlCompleta}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, "_blank");
+  };
+
+  // Função para compartilhar por Email
+  const handleCompartilharEmail = () => {
+    const urlCompleta = window.location.href;
+    const tituloEdital = edital?.titulo || "Edital";
+    const assunto = `Edital: ${tituloEdital}`;
+    const corpo = `Olá!\n\nEncontrei este edital que pode ser do seu interesse:\n\n${tituloEdital}\n\n${urlCompleta}`;
+    window.open(`mailto:?subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpo)}`, "_blank");
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -200,10 +254,6 @@ export default function EditalDetails() {
               <p className="text-sm text-gray-600">
                 {edital?.orgao || ""} {edital?.numero ? `- Edital ${edital.numero}` : ""}
               </p>
-            </div>
-            <div className="flex gap-2">
-              <Badge className="bg-green-500">85% Match</Badge>
-              <Badge className="bg-blue-500">76% Aprovação</Badge>
             </div>
           </div>
         </div>
@@ -490,105 +540,148 @@ export default function EditalDetails() {
                   <Sparkles className="w-4 h-4 mr-2" />
                   Gerar proposta com IA
                 </Button>
-                <Button variant="outline" className="w-full">
-                  <Send className="w-4 h-4 mr-2" />
-                  Compartilhar
-                </Button>
+                <div className="space-y-2">
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={handleCompartilhar}
+                  >
+                    <Send className={`w-4 h-4 mr-2 ${linkCopiado ? "text-green-600" : ""}`} />
+                    {linkCopiado ? "Link copiado!" : "Compartilhar"}
+                  </Button>
+                  {linkCopiado && (
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 text-green-600 border-green-200 hover:bg-green-50"
+                        onClick={handleCompartilharWhatsApp}
+                      >
+                        WhatsApp
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 text-blue-600 border-blue-200 hover:bg-blue-50"
+                        onClick={handleCompartilharEmail}
+                      >
+                        Email
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
             {/* Timeline */}
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-              <h3 className="font-bold text-gray-900 mb-4">Timeline Estimada</h3>
-              <div className="space-y-4">
-                <div className="flex gap-3">
-                  <div className="flex flex-col items-center">
-                    <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center">
-                      <CheckCircle2 className="w-4 h-4 text-white" />
-                    </div>
-                    <div className="w-0.5 h-full bg-gray-300 my-1" />
-                  </div>
-                  <div className="flex-1 pb-4">
-                    <div className="font-medium text-sm">Inscrição</div>
-                    <div className="text-xs text-gray-600">30 dias</div>
-                    <Badge variant="default" className="mt-1">Aberto</Badge>
-                  </div>
-                </div>
-
-                <div className="flex gap-3">
-                  <div className="flex flex-col items-center">
-                    <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center">
-                      <div className="w-3 h-3 bg-white rounded-full" />
-                    </div>
-                    <div className="w-0.5 h-full bg-gray-300 my-1" />
-                  </div>
-                  <div className="flex-1 pb-4">
-                    <div className="font-medium text-sm">Fase 1: Ideias</div>
-                    <div className="text-xs text-gray-600">60 dias</div>
-                  </div>
-                </div>
-
-                <div className="flex gap-3">
-                  <div className="flex flex-col items-center">
-                    <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center">
-                      <div className="w-3 h-3 bg-white rounded-full" />
-                    </div>
-                    <div className="w-0.5 h-full bg-gray-300 my-1" />
-                  </div>
-                  <div className="flex-1 pb-4">
-                    <div className="font-medium text-sm">Capacitações</div>
-                    <div className="text-xs text-gray-600">30 dias</div>
-                  </div>
-                </div>
-
-                <div className="flex gap-3">
-                  <div className="flex flex-col items-center">
-                    <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center">
-                      <div className="w-3 h-3 bg-white rounded-full" />
-                    </div>
-                    <div className="w-0.5 h-full bg-gray-300 my-1" />
-                  </div>
-                  <div className="flex-1 pb-4">
-                    <div className="font-medium text-sm">Fase 2: Projetos</div>
-                    <div className="text-xs text-gray-600">90 dias</div>
-                  </div>
-                </div>
-
-                <div className="flex gap-3">
-                  <div className="flex flex-col items-center">
-                    <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center">
-                      <div className="w-3 h-3 bg-white rounded-full" />
-                    </div>
-                  </div>
-                  <div className="flex-1">
-                    <div className="font-medium text-sm">Resultado Final</div>
-                    <div className="text-xs text-gray-600">30 dias</div>
-                  </div>
+            {edital?.timeline_estimada && edital.timeline_estimada.fases && Array.isArray(edital.timeline_estimada.fases) && edital.timeline_estimada.fases.length > 0 ? (
+              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                <h3 className="font-bold text-gray-900 mb-4">Timeline Estimada</h3>
+                <div className="space-y-4">
+                  {edital.timeline_estimada.fases.map((fase: any, index: number) => {
+                    const isLast = index === edital.timeline_estimada.fases.length - 1;
+                    
+                    // Determinar status baseado nas datas atual
+                    const hoje = new Date();
+                    hoje.setHours(0, 0, 0, 0); // Normalizar para meia-noite
+                    
+                    let statusCalculado = fase.status?.toLowerCase() || 'pendente';
+                    
+                    // Se tiver data_fim, verificar se já passou
+                    if (fase.data_fim) {
+                      const dataFim = new Date(fase.data_fim);
+                      dataFim.setHours(23, 59, 59, 999); // Final do dia
+                      if (hoje > dataFim) {
+                        statusCalculado = 'fechado';
+                      } else if (fase.data_inicio) {
+                        const dataInicio = new Date(fase.data_inicio);
+                        dataInicio.setHours(0, 0, 0, 0);
+                        // Se hoje está entre início e fim, está aberto
+                        if (hoje >= dataInicio && hoje <= dataFim) {
+                          statusCalculado = 'aberto';
+                        } else if (hoje < dataInicio) {
+                          statusCalculado = 'pendente';
+                        }
+                      } else {
+                        // Se não tem data_inicio mas tem data_fim no futuro, considerar aberto
+                        if (hoje <= dataFim) {
+                          statusCalculado = 'aberto';
+                        }
+                      }
+                    } else if (fase.data_inicio) {
+                      // Se só tem data_inicio, verificar se já passou
+                      const dataInicio = new Date(fase.data_inicio);
+                      dataInicio.setHours(0, 0, 0, 0);
+                      if (hoje >= dataInicio) {
+                        statusCalculado = 'aberto';
+                      } else {
+                        statusCalculado = 'pendente';
+                      }
+                    }
+                    
+                    const status = statusCalculado;
+                    const isAberto = status === 'aberto' || status === 'aberta';
+                    const isPendente = status === 'pendente';
+                    const isFechado = status === 'fechado' || status === 'fechada';
+                    
+                    return (
+                      <div key={index} className="flex gap-3">
+                        <div className="flex flex-col items-center">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                            isAberto ? 'bg-green-500' : isFechado ? 'bg-red-300' : 'bg-gray-300'
+                          }`}>
+                            {isAberto ? (
+                              <CheckCircle2 className="w-4 h-4 text-white" />
+                            ) : (
+                              <div className="w-3 h-3 bg-white rounded-full" />
+                            )}
+                          </div>
+                          {!isLast && <div className="w-0.5 h-full bg-gray-300 my-1" />}
+                        </div>
+                        <div className={`flex-1 ${!isLast ? 'pb-4' : ''}`}>
+                          <div className="font-medium text-sm">{fase.nome || `Fase ${index + 1}`}</div>
+                          {fase.prazo && (
+                            <div className="text-xs text-gray-600">{fase.prazo}</div>
+                          )}
+                          {(fase.data_inicio || fase.data_fim) && (
+                            <div className="text-xs text-gray-500 mt-1">
+                              {fase.data_inicio && fase.data_fim 
+                                ? `${new Date(fase.data_inicio).toLocaleDateString('pt-BR')} - ${new Date(fase.data_fim).toLocaleDateString('pt-BR')}`
+                                : fase.data_inicio 
+                                  ? `Início: ${new Date(fase.data_inicio).toLocaleDateString('pt-BR')}`
+                                  : fase.data_fim 
+                                    ? `Fim: ${new Date(fase.data_fim).toLocaleDateString('pt-BR')}`
+                                    : null
+                              }
+                            </div>
+                          )}
+                          {fase.status && (
+                            <Badge 
+                              variant={isAberto ? "default" : "outline"} 
+                              className={`mt-1 ${
+                                isAberto ? 'bg-green-100 text-green-700 border-green-200' :
+                                isFechado ? 'bg-red-100 text-red-700 border-red-200' :
+                                'bg-gray-100 text-gray-700 border-gray-200'
+                              }`}
+                            >
+                              {isAberto ? 'Aberto' : isFechado ? 'Fechado' : 'Pendente'}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                <h3 className="font-bold text-gray-900 mb-4">Timeline Estimada</h3>
+                <div className="text-sm text-gray-500 italic">
+                  Timeline estimada não foi extraída ainda ou não está disponível.
+                </div>
+              </div>
+            )}
 
-            {/* Stats */}
-            <div className="bg-gradient-to-br from-blue-500 to-violet-600 rounded-xl p-6 text-white">
-              <div className="flex items-center gap-2 mb-4">
-                <TrendingUp className="w-5 h-5" />
-                <h3 className="font-bold">Estatísticas</h3>
-              </div>
-              <div className="space-y-3">
-                <div>
-                  <div className="text-2xl font-bold">~35%</div>
-                  <div className="text-sm opacity-90">Taxa de aprovação Fase 1</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold">~70%</div>
-                  <div className="text-sm opacity-90">Taxa de aprovação Fase 2</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold">47</div>
-                  <div className="text-sm opacity-90">Projetos serão aprovados</div>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>

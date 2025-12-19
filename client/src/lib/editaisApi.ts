@@ -30,6 +30,7 @@ export interface DatabaseEdital {
   is_company?: boolean | null;
   sobre_programa?: string | null;
   criterios_elegibilidade?: string | null;
+  timeline_estimada?: any | null;
 }
 
 export interface EditalWithScores extends DatabaseEdital {
