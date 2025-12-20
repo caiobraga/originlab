@@ -15,6 +15,8 @@ import { DatabaseEdital, calculateEditalScores } from "@/lib/editaisApi";
 import { formatValorProjeto, formatPrazoInscricao } from "@/lib/editalFormatters";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { gerarPropostaComIA } from "@/lib/propostasApi";
+import { useLocation } from "wouter";
 
 
 interface EditalPdf {
@@ -37,8 +39,10 @@ export default function EditalDetails() {
   const [scores, setScores] = useState<{ match: number; probabilidade: number; justificativa?: string | null } | null>(null);
   const [loadingScores, setLoadingScores] = useState(false);
   const [linkCopiado, setLinkCopiado] = useState(false);
+  const [gerandoProposta, setGerandoProposta] = useState(false);
   const { user } = useAuth();
   const { profile } = useUserProfile();
+  const [, setLocation] = useLocation();
 
   // Buscar dados do edital
   useEffect(() => {
@@ -232,6 +236,37 @@ export default function EditalDetails() {
         return <Badge className="bg-red-100 text-red-700 border-red-200">✗ Reprovado</Badge>;
       default:
         return <Badge variant="outline">N/A</Badge>;
+    }
+  };
+
+  // Função para gerar proposta com IA
+  const handleGerarProposta = async () => {
+    if (!user) {
+      toast.error("Faça login para gerar uma proposta");
+      return;
+    }
+
+    if (!editalId) {
+      toast.error("ID do edital não encontrado");
+      return;
+    }
+
+    try {
+      setGerandoProposta(true);
+      toast.loading("Criando proposta...", { id: "gerar-proposta" });
+
+      const proposta = await gerarPropostaComIA(editalId, user.id, user, profile);
+
+      toast.success("Proposta criada com sucesso!", { id: "gerar-proposta" });
+      setLocation(`/propostas/${proposta.id}`);
+    } catch (error) {
+      console.error("Erro ao criar proposta:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Erro ao criar proposta",
+        { id: "gerar-proposta" }
+      );
+    } finally {
+      setGerandoProposta(false);
     }
   };
 
@@ -536,9 +571,22 @@ export default function EditalDetails() {
             <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
               <h3 className="font-bold text-gray-900 mb-4">Ações</h3>
               <div className="space-y-3">
-                <Button className="w-full bg-gradient-to-r from-blue-600 to-violet-600">
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Gerar proposta com IA
+                <Button 
+                  className="w-full bg-gradient-to-r from-blue-600 to-violet-600"
+                  onClick={handleGerarProposta}
+                  disabled={gerandoProposta || !user}
+                >
+                  {gerandoProposta ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Gerando...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Gerar proposta com IA
+                    </>
+                  )}
                 </Button>
                 <div className="space-y-2">
                   <Button 

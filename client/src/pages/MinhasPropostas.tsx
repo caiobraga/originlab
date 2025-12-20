@@ -1,32 +1,25 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { 
   ArrowLeft, FileText, Clock, CheckCircle2, Send, AlertCircle,
   Edit3, Trash2, Download, Eye, Sparkles, Calendar, DollarSign,
-  TrendingUp, MessageSquare, Users
+  TrendingUp, MessageSquare, Users, Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+import { fetchPropostas, deleteProposta, type Proposta, type StatusProposta } from "@/lib/propostasApi";
+import { formatValorProjeto } from "@/lib/editalFormatters";
 
-type StatusProposta = "rascunho" | "em_redacao" | "revisao" | "submetida" | "aprovada" | "rejeitada";
-
-interface Proposta {
-  id: string;
-  editalId: string;
+interface PropostaDisplay extends Proposta {
   editalTitulo: string;
   orgao: string;
   valor: string;
-  prazo: string;
-  status: StatusProposta;
-  progresso: number;
-  ultimaAtualizacao: string;
-  proximaEtapa: string;
-  observacoes?: string;
 }
 
-const propostas: Proposta[] = [
+const propostasMock: PropostaDisplay[] = [
   {
     id: "1",
     editalId: "centelha-es",
@@ -95,7 +88,10 @@ const propostas: Proposta[] = [
 ];
 
 export default function MinhasPropostas() {
+  const { user } = useAuth();
   const [filtroStatus, setFiltroStatus] = useState<StatusProposta | "todos">("todos");
+  const [propostas, setPropostas] = useState<PropostaDisplay[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const getStatusBadge = (status: StatusProposta) => {
     switch (status) {
@@ -133,16 +129,85 @@ export default function MinhasPropostas() {
     }
   };
 
+  // Carregar propostas do banco
+  useEffect(() => {
+    async function loadPropostas() {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const data = await fetchPropostas(user.id);
+        
+        // Converter para formato de exibição
+        const propostasDisplay: PropostaDisplay[] = data.map((p) => ({
+          ...p,
+          editalTitulo: p.edital_titulo || "Sem título",
+          orgao: p.edital_orgao || "Não informado",
+          valor: formatValorProjeto(p.edital_valor).display,
+        }));
+
+        setPropostas(propostasDisplay);
+      } catch (error) {
+        console.error("Erro ao carregar propostas:", error);
+        toast.error("Erro ao carregar propostas");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadPropostas();
+  }, [user]);
+
   const propostasFiltradas = propostas.filter(p => 
     filtroStatus === "todos" || p.status === filtroStatus
   );
 
   const handleContinuarRedacao = (id: string) => {
-    toast.success("Abrindo editor de proposta...");
+    // Navegar para o editor usando Link do wouter
+    window.location.href = `/propostas/${id}`;
   };
 
-  const handleExcluir = (id: string) => {
-    toast.error("Funcionalidade em desenvolvimento");
+  const handleExcluir = async (id: string) => {
+    if (!user) return;
+    
+    if (!confirm("Tem certeza que deseja excluir esta proposta?")) {
+      return;
+    }
+
+    try {
+      await deleteProposta(id, user.id);
+      setPropostas(propostas.filter(p => p.id !== id));
+      toast.success("Proposta excluída com sucesso");
+    } catch (error) {
+      console.error("Erro ao excluir proposta:", error);
+      toast.error("Erro ao excluir proposta");
+    }
+  };
+
+  // Formatar data de última atualização
+  const formatUltimaAtualizacao = (data: string) => {
+    const date = new Date(data);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) {
+      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+      if (diffHours === 0) {
+        const diffMins = Math.floor(diffMs / (1000 * 60));
+        return diffMins < 1 ? "Agora" : `Há ${diffMins} minuto(s)`;
+      }
+      return `Hoje, ${date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+    } else if (diffDays === 1) {
+      return `Ontem, ${date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+    } else if (diffDays < 7) {
+      return `Há ${diffDays} dia(s)`;
+    } else {
+      return date.toLocaleDateString('pt-BR');
+    }
   };
 
   return (
@@ -174,6 +239,13 @@ export default function MinhasPropostas() {
       </header>
 
       <div className="container py-8">
+        {/* Loading State */}
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+          </div>
+        ) : (
+          <>
         {/* Stats */}
         <div className="grid grid-cols-5 gap-4 mb-8">
           <div className="bg-white rounded-lg p-4 border border-gray-200">
@@ -296,13 +368,10 @@ export default function MinhasPropostas() {
                           <DollarSign className="w-4 h-4" />
                           {proposta.valor}
                         </div>
-                        <div className="flex items-center gap-1">
-                          <Calendar className="w-4 h-4" />
-                          {proposta.prazo}
-                        </div>
+                        {/* Prazo removido - não está disponível no banco */}
                         <div className="flex items-center gap-1">
                           <Clock className="w-4 h-4" />
-                          {proposta.ultimaAtualizacao}
+                          {formatUltimaAtualizacao(proposta.atualizado_em)}
                         </div>
                       </div>
 
@@ -316,15 +385,17 @@ export default function MinhasPropostas() {
                       </div>
 
                       {/* Próxima Etapa */}
-                      <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
-                        <div className="flex items-start gap-2">
-                          <TrendingUp className="w-4 h-4 text-blue-600 mt-0.5" />
-                          <div>
-                            <div className="text-xs font-medium text-blue-900 mb-1">Próxima Etapa</div>
-                            <div className="text-sm text-blue-700">{proposta.proximaEtapa}</div>
+                      {proposta.proxima_etapa && (
+                        <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+                          <div className="flex items-start gap-2">
+                            <TrendingUp className="w-4 h-4 text-blue-600 mt-0.5" />
+                            <div>
+                              <div className="text-xs font-medium text-blue-900 mb-1">Próxima Etapa</div>
+                              <div className="text-sm text-blue-700">{proposta.proxima_etapa}</div>
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      )}
 
                       {/* Observações */}
                       {proposta.observacoes && (
@@ -357,7 +428,7 @@ export default function MinhasPropostas() {
                     </Button>
                   ) : null}
                   
-                  <Link href={`/edital/${proposta.editalId}`}>
+                  <Link href={`/edital/${proposta.edital_id}`}>
                     <Button variant="outline">
                       <Eye className="w-4 h-4 mr-2" />
                       Ver Edital
@@ -386,6 +457,8 @@ export default function MinhasPropostas() {
             ))
           )}
         </div>
+        </>
+        )}
       </div>
     </div>
   );

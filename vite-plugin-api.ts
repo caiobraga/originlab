@@ -20,9 +20,11 @@ export function apiPlugin(): Plugin {
       try {
         const { default: extractEditalInfoRouter } = await import('./server/api/extract-edital-info.js');
         const { default: calculateEditalScoresRouter } = await import('./server/api/calculate-edital-scores.js');
+        const { default: generatePropostaRouter } = await import('./server/api/generate-proposta.js');
         
         app.use('/api', extractEditalInfoRouter);
         app.use('/api', calculateEditalScoresRouter);
+        app.use('/api', generatePropostaRouter);
         
         // Usar o middleware do Express no servidor Vite
         server.middlewares.use(app);
@@ -30,6 +32,7 @@ export function apiPlugin(): Plugin {
         console.log('✅ API endpoints configurados:');
         console.log('   - /api/extract-edital-info');
         console.log('   - /api/calculate-edital-scores');
+        console.log('   - /api/generate-proposta');
       } catch (error) {
         console.error('❌ Erro ao configurar API endpoints:', error);
       }

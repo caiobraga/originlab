@@ -10,6 +10,7 @@ import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
 import EditalDetails from "./pages/EditalDetails";
 import MinhasPropostas from "./pages/MinhasPropostas";
+import EditorProposta from "./pages/EditorProposta";
 import Dashboard from "./pages/Dashboard";
 import Demo from "./pages/Demo";
 import Profile from "./pages/Profile";
@@ -27,6 +28,7 @@ function Router() {
       <Route path={"/demo"} component={Demo} />
       <Route path={"/edital/:id"} component={EditalDetails} />
       <Route path={"/minhas-propostas"} component={MinhasPropostas} />
+      <Route path={"/propostas/:id"} component={EditorProposta} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
