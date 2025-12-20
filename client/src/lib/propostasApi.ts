@@ -97,13 +97,16 @@ export async function createProposta(
   userId: string,
   camposIniciais?: Record<string, any>
 ): Promise<Proposta> {
+  // Garantir que progresso seja um número válido entre 0 e 100
+  const progresso = 0;
+  
   const { data, error } = await supabase
     .from("propostas")
     .insert({
       edital_id: editalId,
       user_id: userId,
       status: "rascunho",
-      progresso: 0,
+      progresso: progresso,
       campos_formulario: camposIniciais || {},
       gerado_com_ia: !!camposIniciais,
       ultima_versao_ia: camposIniciais ? JSON.stringify(camposIniciais) : null,
@@ -113,6 +116,12 @@ export async function createProposta(
 
   if (error) {
     console.error("Erro ao criar proposta:", error);
+    console.error("Detalhes do erro:", {
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code,
+    });
     throw error;
   }
 
@@ -133,9 +142,22 @@ export async function updateProposta(
     proxima_etapa?: string;
   }
 ): Promise<Proposta> {
+  // Validar e normalizar progresso se fornecido
+  const normalizedUpdates = { ...updates };
+  if (normalizedUpdates.progresso !== undefined) {
+    let progresso = Number(normalizedUpdates.progresso);
+    // Garantir que está entre 0 e 100
+    progresso = Math.max(0, Math.min(100, progresso));
+    // Garantir que não seja NaN
+    if (isNaN(progresso)) {
+      progresso = 0;
+    }
+    normalizedUpdates.progresso = Math.round(progresso);
+  }
+
   const { data, error } = await supabase
     .from("propostas")
-    .update(updates)
+    .update(normalizedUpdates)
     .eq("id", propostaId)
     .eq("user_id", userId)
     .select()
@@ -143,6 +165,13 @@ export async function updateProposta(
 
   if (error) {
     console.error("Erro ao atualizar proposta:", error);
+    console.error("Detalhes do erro:", {
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code,
+    });
+    console.error("Updates que causaram o erro:", normalizedUpdates);
     throw error;
   }
 
@@ -196,7 +225,7 @@ export async function gerarPropostaComIA(
     const camposFormulario = createEmptyPropostaForm();
     const proposta = await createProposta(editalId, userId, camposFormulario as any);
 
-    // Atualizar progresso inicial
+    // Atualizar progresso inicial (já validado dentro de updateProposta)
     await updateProposta(proposta.id, userId, {
       progresso: 0,
       proxima_etapa: "Preencher os campos do formulário",

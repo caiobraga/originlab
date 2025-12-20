@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchPropostas, deleteProposta, type Proposta, type StatusProposta } from "@/lib/propostasApi";
 import { formatValorProjeto } from "@/lib/editalFormatters";
+import Header from "@/components/Header";
 
 interface PropostaDisplay extends Proposta {
   editalTitulo: string;
@@ -212,33 +213,21 @@ export default function MinhasPropostas() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="container py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link href="/dashboard">
-                <Button variant="ghost" size="sm">
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Voltar
-                </Button>
-              </Link>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Minhas Propostas</h1>
-                <p className="text-sm text-gray-600">Acompanhe o progresso dos seus projetos</p>
-              </div>
-            </div>
-            <Link href="/dashboard">
-              <Button className="bg-gradient-to-r from-blue-600 to-violet-600">
-                <Sparkles className="w-4 h-4 mr-2" />
-                Nova Proposta
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
-
+      <Header />
       <div className="container py-8">
+        {/* Page Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Minhas Propostas</h1>
+            <p className="text-gray-600">Acompanhe o progresso dos seus projetos</p>
+          </div>
+          <Link href="/dashboard">
+            <Button className="bg-gradient-to-r from-blue-600 to-violet-600">
+              <Sparkles className="w-4 h-4 mr-2" />
+              Nova Proposta
+            </Button>
+          </Link>
+        </div>
         {/* Loading State */}
         {loading ? (
           <div className="flex items-center justify-center py-12">

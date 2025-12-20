@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import Header from "@/components/Header";
 import {
   fetchEditaisWithScores,
   EditalWithScores,
@@ -126,49 +127,14 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="container py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link href="/">
-                <Button variant="ghost" size="sm">
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Voltar
-                </Button>
-              </Link>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Meu Painel</h1>
-                <p className="text-sm text-gray-600">Oportunidades globais de fomento</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <Link href="/minhas-propostas">
-                <Button variant="outline" className="border-violet-600 text-violet-600 hover:bg-violet-50">
-                  <FileText className="w-4 h-4 mr-2" />
-                  Minhas Propostas
-                </Button>
-              </Link>
-              <Link href="/dashboard">
-                <Button variant="outline" className="border-blue-600 text-blue-600 hover:bg-blue-50">
-                  Meu Painel
-                </Button>
-              </Link>
-              <Link href="/perfil">
-                <Button variant="outline" className="border-green-600 text-green-600 hover:bg-green-50">
-                  <User className="w-4 h-4 mr-2" />
-                  Meu Perfil
-                </Button>
-              </Link>
-              <Badge className="bg-gradient-to-r from-blue-600 to-violet-600 text-white">
-                Plano Pro
-              </Badge>
-            </div>
-          </div>
-        </div>
-      </header>
-
+      <Header />
       <div className="container py-8">
+        {/* Page Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Meu Painel</h1>
+          <p className="text-gray-600">Oportunidades globais de fomento</p>
+        </div>
+
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-8 h-8 animate-spin text-blue-600" />

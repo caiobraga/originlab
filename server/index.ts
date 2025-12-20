@@ -5,6 +5,7 @@ import { fileURLToPath } from "url";
 import extractEditalInfoRouter from "./api/extract-edital-info.js";
 import calculateEditalScoresRouter from "./api/calculate-edital-scores.js";
 import generatePropostaRouter from "./api/generate-proposta.js";
+import improveTextRouter from "./api/improve-text.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,6 +18,7 @@ async function startServer() {
   app.use("/api", extractEditalInfoRouter);
   app.use("/api", calculateEditalScoresRouter);
   app.use("/api", generatePropostaRouter);
+  app.use("/api", improveTextRouter);
 
   // Serve static files from dist/public in production
   const staticPath =
@@ -39,6 +41,7 @@ async function startServer() {
     console.log(`  - http://localhost:${port}/api/extract-edital-info`);
     console.log(`  - http://localhost:${port}/api/calculate-edital-scores`);
     console.log(`  - http://localhost:${port}/api/generate-proposta`);
+    console.log(`  - http://localhost:${port}/api/improve-text`);
   });
 }
 

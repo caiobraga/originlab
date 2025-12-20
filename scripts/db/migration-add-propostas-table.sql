@@ -63,4 +63,30 @@ COMMENT ON COLUMN propostas.progresso IS 'Percentual de conclusão da proposta (
 COMMENT ON COLUMN propostas.gerado_com_ia IS 'Indica se a proposta foi gerada usando IA';
 COMMENT ON COLUMN propostas.ultima_versao_ia IS 'Última sugestão ou versão gerada pela IA';
 
+-- Habilitar Row Level Security (RLS)
+ALTER TABLE propostas ENABLE ROW LEVEL SECURITY;
 
+-- Política: Usuários podem ver apenas suas próprias propostas
+CREATE POLICY "Users can view their own propostas"
+  ON propostas
+  FOR SELECT
+  USING (auth.uid() = user_id);
+
+-- Política: Usuários podem criar suas próprias propostas
+CREATE POLICY "Users can create their own propostas"
+  ON propostas
+  FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+-- Política: Usuários podem atualizar suas próprias propostas
+CREATE POLICY "Users can update their own propostas"
+  ON propostas
+  FOR UPDATE
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+-- Política: Usuários podem deletar suas próprias propostas
+CREATE POLICY "Users can delete their own propostas"
+  ON propostas
+  FOR DELETE
+  USING (auth.uid() = user_id);

@@ -6,13 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { type PropostaFormData, FORM_OPTIONS } from "@/lib/propostaFormFields";
 import { Plus, Trash2 } from "lucide-react";
+import TextFieldWithAI from "./TextFieldWithAI";
 
 interface FormularioPropostaProps {
   data: PropostaFormData;
   onChange: (data: PropostaFormData) => void;
+  editalId: string;
 }
 
-export default function FormularioProposta({ data, onChange }: FormularioPropostaProps) {
+export default function FormularioProposta({ data, onChange, editalId }: FormularioPropostaProps) {
   const updateField = <K extends keyof PropostaFormData>(
     field: K,
     value: PropostaFormData[K]
@@ -468,19 +470,22 @@ export default function FormularioProposta({ data, onChange }: FormularioPropost
                 placeholder="https://orcid.org/..."
               />
             </div>
-            <div className="space-y-2 col-span-2">
-              <Label htmlFor="coord_experiencia">Resumo da Experiência Profissional</Label>
-              <Textarea
+            <div className="col-span-2">
+              <TextFieldWithAI
                 id="coord_experiencia"
+                label="Resumo da Experiência Profissional"
                 value={data.coordenador_projeto.resumo_experiencia_profissional || ""}
-                onChange={(e) =>
+                onChange={(value) =>
                   updateNestedField(
                     "coordenador_projeto",
                     "resumo_experiencia_profissional",
-                    e.target.value
+                    value
                   )
                 }
                 rows={4}
+                wordLimit={null}
+                fieldDescription="Informar as habilidades e competências necessárias do coordenador que assegurem a realização do projeto."
+                editalId={editalId}
               />
             </div>
           </div>
@@ -747,19 +752,18 @@ export default function FormularioProposta({ data, onChange }: FormularioPropost
 
           {/* Campos de texto longo */}
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="resumo_publicavel">
-                3.1. Resumo (Publicável pela FAPES) - até 500 palavras
-              </Label>
-              <Textarea
-                id="resumo_publicavel"
-                value={data.detalhamento_projeto.resumo_publicavel || ""}
-                onChange={(e) =>
-                  updateNestedField("detalhamento_projeto", "resumo_publicavel", e.target.value)
-                }
-                rows={6}
-              />
-            </div>
+            <TextFieldWithAI
+              id="resumo_publicavel"
+              label="3.1. Resumo (Publicável pela FAPES) - até 500 palavras"
+              value={data.detalhamento_projeto.resumo_publicavel || ""}
+              onChange={(value) =>
+                updateNestedField("detalhamento_projeto", "resumo_publicavel", value)
+              }
+              rows={6}
+              wordLimit={500}
+              fieldDescription="Resumo do projeto que será publicado pela FAPES. Deve conter objetivo geral, caminho percorrido para desenvolvimento e resultados esperados."
+              editalId={editalId}
+            />
 
             <div className="space-y-2">
               <Label htmlFor="palavras_chave">3.2. Palavras-chave (até 6 palavras)</Label>
@@ -774,75 +778,74 @@ export default function FormularioProposta({ data, onChange }: FormularioPropost
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="caracterizacao_problema">
-                3.3. Caracterização do Problema Científico e/ou Tecnológico (até 2500 palavras)
-              </Label>
-              <Textarea
-                id="caracterizacao_problema"
-                value={data.detalhamento_projeto.caracterizacao_problema || ""}
-                onChange={(e) =>
-                  updateNestedField("detalhamento_projeto", "caracterizacao_problema", e.target.value)
-                }
-                rows={12}
-              />
-            </div>
+            <TextFieldWithAI
+              id="caracterizacao_problema"
+              label="3.3. Caracterização do Problema Científico e/ou Tecnológico (até 2500 palavras)"
+              value={data.detalhamento_projeto.caracterizacao_problema || ""}
+              onChange={(value) =>
+                updateNestedField("detalhamento_projeto", "caracterizacao_problema", value)
+              }
+              rows={12}
+              wordLimit={2500}
+              fieldDescription="Descreva o problema científico/tecnológico a ser abordado, contextualizando e justificando a importância da proposta com base em bibliografias científicas atualizadas."
+              editalId={editalId}
+            />
 
-            <div className="space-y-2">
-              <Label htmlFor="potencial_fortalecimento">
-                3.4. Potencial da Proposta para o Fortalecimento da Linha de Pesquisa
-              </Label>
-              <Textarea
-                id="potencial_fortalecimento"
-                value={data.detalhamento_projeto.potencial_fortalecimento_linha_pesquisa || ""}
-                onChange={(e) =>
-                  updateNestedField(
-                    "detalhamento_projeto",
-                    "potencial_fortalecimento_linha_pesquisa",
-                    e.target.value
-                  )
-                }
-                rows={6}
-              />
-            </div>
+            <TextFieldWithAI
+              id="potencial_fortalecimento"
+              label="3.4. Potencial da Proposta para o Fortalecimento da Linha de Pesquisa"
+              value={data.detalhamento_projeto.potencial_fortalecimento_linha_pesquisa || ""}
+              onChange={(value) =>
+                updateNestedField(
+                  "detalhamento_projeto",
+                  "potencial_fortalecimento_linha_pesquisa",
+                  value
+                )
+              }
+              rows={6}
+              wordLimit={null}
+              fieldDescription="Descreva a importância da realização dessa pesquisa em sua região e seu potencial para fortalecer a linha de pesquisa."
+              editalId={editalId}
+            />
 
-            <div className="space-y-2">
-              <Label htmlFor="descricao_avanco">
-                3.5. Descrição do Avanço em CT&I (até 1000 palavras)
-              </Label>
-              <Textarea
-                id="descricao_avanco"
-                value={data.detalhamento_projeto.descricao_avancao_cti || ""}
-                onChange={(e) =>
-                  updateNestedField("detalhamento_projeto", "descricao_avancao_cti", e.target.value)
-                }
-                rows={8}
-              />
-            </div>
+            <TextFieldWithAI
+              id="descricao_avanco"
+              label="3.5. Descrição do Avanço em CT&I (até 1000 palavras)"
+              value={data.detalhamento_projeto.descricao_avancao_cti || ""}
+              onChange={(value) =>
+                updateNestedField("detalhamento_projeto", "descricao_avancao_cti", value)
+              }
+              rows={8}
+              wordLimit={1000}
+              fieldDescription="Descreva o avanço científico, tecnológico ou inovação proporcionado pelo projeto."
+              editalId={editalId}
+            />
 
-            <div className="space-y-2">
-              <Label htmlFor="qualificacao_equipe">3.6. Qualificação da Equipe do Projeto</Label>
-              <Textarea
-                id="qualificacao_equipe"
-                value={data.detalhamento_projeto.qualificacao_equipe || ""}
-                onChange={(e) =>
-                  updateNestedField("detalhamento_projeto", "qualificacao_equipe", e.target.value)
-                }
-                rows={6}
-              />
-            </div>
+            <TextFieldWithAI
+              id="qualificacao_equipe"
+              label="3.6. Qualificação da Equipe do Projeto"
+              value={data.detalhamento_projeto.qualificacao_equipe || ""}
+              onChange={(value) =>
+                updateNestedField("detalhamento_projeto", "qualificacao_equipe", value)
+              }
+              rows={6}
+              wordLimit={null}
+              fieldDescription="Relate a experiência e qualificação do coordenador/proponente e dos pesquisadores principais quanto à quantidade e regularidade da produção científica/tecnológica e formação de recursos humanos nos últimos 10 anos."
+              editalId={editalId}
+            />
 
-            <div className="space-y-2">
-              <Label htmlFor="objetivo_geral">3.7. Objetivo Geral (até 100 palavras)</Label>
-              <Textarea
-                id="objetivo_geral"
-                value={data.detalhamento_projeto.objetivo_geral || ""}
-                onChange={(e) =>
-                  updateNestedField("detalhamento_projeto", "objetivo_geral", e.target.value)
-                }
-                rows={3}
-              />
-            </div>
+            <TextFieldWithAI
+              id="objetivo_geral"
+              label="3.7. Objetivo Geral (até 100 palavras)"
+              value={data.detalhamento_projeto.objetivo_geral || ""}
+              onChange={(value) =>
+                updateNestedField("detalhamento_projeto", "objetivo_geral", value)
+              }
+              rows={3}
+              wordLimit={100}
+              fieldDescription="Descreva as aspirações amplas e abrangentes ou resultados desejados que fornecem direção e propósito ao projeto."
+              editalId={editalId}
+            />
 
             <div className="space-y-2">
               <Label>3.7.1. Objetivos Específicos</Label>
@@ -894,124 +897,122 @@ export default function FormularioProposta({ data, onChange }: FormularioPropost
               </Button>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="detalhamento">
-                3.8. Detalhamento do Projeto (até 3000 palavras)
-              </Label>
-              <Textarea
-                id="detalhamento"
-                value={data.detalhamento_projeto.detalhamento_projeto || ""}
-                onChange={(e) =>
-                  updateNestedField("detalhamento_projeto", "detalhamento_projeto", e.target.value)
-                }
-                rows={12}
-              />
-            </div>
+            <TextFieldWithAI
+              id="detalhamento"
+              label="3.8. Detalhamento do Projeto (até 3000 palavras)"
+              value={data.detalhamento_projeto.detalhamento_projeto || ""}
+              onChange={(value) =>
+                updateNestedField("detalhamento_projeto", "detalhamento_projeto", value)
+              }
+              rows={12}
+              wordLimit={3000}
+              fieldDescription="Descreva de forma categorizada o trabalho que será executado no projeto, incluindo metodologia aplicada, etapas e entregas, gestão e conclusão do projeto."
+              editalId={editalId}
+            />
 
-            <div className="space-y-2">
-              <Label htmlFor="interdisciplinaridade">
-                3.9. Caracterização da Interdisciplinaridade (até 1000 palavras)
-              </Label>
-              <Textarea
-                id="interdisciplinaridade"
-                value={data.detalhamento_projeto.caracterizacao_interdisciplinaridade || ""}
-                onChange={(e) =>
-                  updateNestedField(
-                    "detalhamento_projeto",
-                    "caracterizacao_interdisciplinaridade",
-                    e.target.value
-                  )
-                }
-                rows={8}
-              />
-            </div>
+            <TextFieldWithAI
+              id="interdisciplinaridade"
+              label="3.9. Caracterização da Interdisciplinaridade (até 1000 palavras)"
+              value={data.detalhamento_projeto.caracterizacao_interdisciplinaridade || ""}
+              onChange={(value) =>
+                updateNestedField(
+                  "detalhamento_projeto",
+                  "caracterizacao_interdisciplinaridade",
+                  value
+                )
+              }
+              rows={8}
+              wordLimit={1000}
+              fieldDescription="Descreva a interdisciplinaridade/multidisciplinaridade do projeto, intercâmbio institucional/interinstitucional e possibilidade de parcerias estaduais, nacionais e internacionais."
+              editalId={editalId}
+            />
 
             {/* 3.10 Promoção e Divulgação */}
             <div className="space-y-4 p-4 border border-gray-200 rounded-lg">
               <h3 className="font-semibold text-gray-900">3.10. Plano para Promoção e Divulgação</h3>
               <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="publico_alvo">3.10.1. Público-alvo (até 300 palavras)</Label>
-                  <Textarea
-                    id="publico_alvo"
-                    value={data.detalhamento_projeto.promocao_popularizacao?.publico_alvo || ""}
-                    onChange={(e) =>
-                      updateNestedField(
-                        "detalhamento_projeto",
-                        "promocao_popularizacao",
-                        {
-                          ...data.detalhamento_projeto.promocao_popularizacao,
-                          publico_alvo: e.target.value,
-                        }
-                      )
-                    }
-                    rows={4}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="estrategias_traducao">
-                    3.10.2. Estratégias de Tradução do Conhecimento (até 1000 palavras)
-                  </Label>
-                  <Textarea
-                    id="estrategias_traducao"
-                    value={
-                      data.detalhamento_projeto.promocao_popularizacao
-                        ?.estrategias_traducao_conhecimento || ""
-                    }
-                    onChange={(e) =>
-                      updateNestedField(
-                        "detalhamento_projeto",
-                        "promocao_popularizacao",
-                        {
-                          ...data.detalhamento_projeto.promocao_popularizacao,
-                          estrategias_traducao_conhecimento: e.target.value,
-                        }
-                      )
-                    }
-                    rows={8}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="estrategias_disseminacao">
-                    3.10.3. Estratégias de Disseminação do Conhecimento
-                  </Label>
-                  <Textarea
-                    id="estrategias_disseminacao"
-                    value={
-                      data.detalhamento_projeto.promocao_popularizacao
-                        ?.estrategias_disseminacao_conhecimento || ""
-                    }
-                    onChange={(e) =>
-                      updateNestedField(
-                        "detalhamento_projeto",
-                        "promocao_popularizacao",
-                        {
-                          ...data.detalhamento_projeto.promocao_popularizacao,
-                          estrategias_disseminacao_conhecimento: e.target.value,
-                        }
-                      )
-                    }
-                    rows={8}
-                  />
-                </div>
+                <TextFieldWithAI
+                  id="publico_alvo"
+                  label="3.10.1. Público-alvo (até 300 palavras)"
+                  value={data.detalhamento_projeto.promocao_popularizacao?.publico_alvo || ""}
+                  onChange={(value) =>
+                    updateNestedField(
+                      "detalhamento_projeto",
+                      "promocao_popularizacao",
+                      {
+                        ...data.detalhamento_projeto.promocao_popularizacao,
+                        publico_alvo: value,
+                      }
+                    )
+                  }
+                  rows={4}
+                  wordLimit={300}
+                  fieldDescription="Descreva o público-alvo para promoção, popularização e divulgação científica e tecnológica, considerando a necessidade de popularização da ciência."
+                  editalId={editalId}
+                />
+                <TextFieldWithAI
+                  id="estrategias_traducao"
+                  label="3.10.2. Estratégias de Tradução do Conhecimento (até 1000 palavras)"
+                  value={
+                    data.detalhamento_projeto.promocao_popularizacao
+                      ?.estrategias_traducao_conhecimento || ""
+                  }
+                  onChange={(value) =>
+                    updateNestedField(
+                      "detalhamento_projeto",
+                      "promocao_popularizacao",
+                      {
+                        ...data.detalhamento_projeto.promocao_popularizacao,
+                        estrategias_traducao_conhecimento: value,
+                      }
+                    )
+                  }
+                  rows={8}
+                  wordLimit={1000}
+                  fieldDescription="Descreva as estratégias para comunicar e disseminar os resultados da pesquisa, incluindo adaptação da linguagem, desenvolvimento de materiais de apoio e capacitação."
+                  editalId={editalId}
+                />
+                <TextFieldWithAI
+                  id="estrategias_disseminacao"
+                  label="3.10.3. Estratégias de Disseminação do Conhecimento"
+                  value={
+                    data.detalhamento_projeto.promocao_popularizacao
+                      ?.estrategias_disseminacao_conhecimento || ""
+                  }
+                  onChange={(value) =>
+                    updateNestedField(
+                      "detalhamento_projeto",
+                      "promocao_popularizacao",
+                      {
+                        ...data.detalhamento_projeto.promocao_popularizacao,
+                        estrategias_disseminacao_conhecimento: value,
+                      }
+                    )
+                  }
+                  rows={8}
+                  wordLimit={null}
+                  fieldDescription="Descreva as estratégias de disseminação do conhecimento, incluindo canais de comunicação, parcerias, eventos, workshops e plataformas online."
+                  editalId={editalId}
+                />
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="beneficios">3.11. Benefícios/Resultados Esperados (até 1000 palavras)</Label>
-              <Textarea
-                id="beneficios"
-                value={data.detalhamento_projeto.beneficios_resultados_esperados || ""}
-                onChange={(e) =>
-                  updateNestedField(
-                    "detalhamento_projeto",
-                    "beneficios_resultados_esperados",
-                    e.target.value
-                  )
-                }
-                rows={8}
-              />
-            </div>
+            <TextFieldWithAI
+              id="beneficios"
+              label="3.11. Benefícios/Resultados Esperados (até 1000 palavras)"
+              value={data.detalhamento_projeto.beneficios_resultados_esperados || ""}
+              onChange={(value) =>
+                updateNestedField(
+                  "detalhamento_projeto",
+                  "beneficios_resultados_esperados",
+                  value
+                )
+              }
+              rows={8}
+              wordLimit={1000}
+              fieldDescription="Detalhe os benefícios e resultados esperados com o desenvolvimento do projeto, promovendo o desenvolvimento socioeconômico e ambiental local. Inclua produtos científicos, formação de recursos humanos, tecnologias e patentes."
+              editalId={editalId}
+            />
 
             {/* 3.12 Impactos Esperados */}
             <div className="space-y-4 p-4 border border-gray-200 rounded-lg">

@@ -77,38 +77,150 @@ export default function EditorProposta() {
       setSaving(true);
 
       // Calcular progresso baseado em campos preenchidos
-      // Contar campos não vazios de forma recursiva
-      const countFilledFields = (obj: any, path = ""): number => {
-        if (obj === null || obj === undefined) return 0;
-        if (typeof obj === "string") return obj.trim() ? 1 : 0;
-        if (typeof obj === "boolean") return obj ? 1 : 0;
-        if (typeof obj === "number") return obj > 0 ? 1 : 0;
-        if (Array.isArray(obj)) {
-          return obj.length > 0 ? obj.reduce((sum, item) => sum + countFilledFields(item), 0) : 0;
+      // Função recursiva para verificar se um campo está preenchido
+      const isFieldFilled = (value: any): boolean => {
+        if (value === null || value === undefined) return false;
+        if (typeof value === "string") return value.trim().length > 0;
+        if (typeof value === "boolean") return value === true;
+        if (typeof value === "number") return value > 0;
+        if (Array.isArray(value)) {
+          // Arrays devem ter pelo menos um elemento válido
+          if (value.length === 0) return false;
+          return value.some(item => {
+            if (typeof item === "string") return item.trim().length > 0;
+            if (typeof item === "number") return item > 0;
+            if (typeof item === "boolean") return item === true;
+            if (typeof item === "object" && item !== null) {
+              // Para objetos em arrays, verificar se pelo menos um campo está preenchido
+              return Object.values(item).some(v => isFieldFilled(v));
+            }
+            return isFieldFilled(item);
+          });
         }
-        if (typeof obj === "object") {
-          return Object.values(obj).reduce(
-            (sum, value) => sum + countFilledFields(value),
-            0
-          );
+        if (typeof value === "object") {
+          // Para objetos, verificar se pelo menos um campo está preenchido
+          return Object.values(value).some(v => isFieldFilled(v));
         }
-        return 0;
+        return false;
       };
 
-      const totalFields = countFilledFields(createEmptyPropostaForm());
-      const filledFields = countFilledFields(campos);
-      const progresso = totalFields > 0 ? Math.round((filledFields / totalFields) * 100) : 0;
+      // Contar campos recursivamente, comparando estrutura vazia vs preenchida
+      const countFields = (obj: any, baseObj: any): { total: number; filled: number } => {
+        let total = 0;
+        let filled = 0;
 
+        if (typeof obj !== typeof baseObj) {
+          return { total: 0, filled: 0 };
+        }
+
+        if (typeof obj === "string") {
+          total = 1;
+          if (obj.trim().length > 0) filled = 1;
+          return { total, filled };
+        }
+
+        if (typeof obj === "boolean") {
+          total = 1;
+          if (obj === true) filled = 1;
+          return { total, filled };
+        }
+
+        if (typeof obj === "number") {
+          total = 1;
+          if (obj > 0) filled = 1;
+          return { total, filled };
+        }
+
+        if (Array.isArray(obj)) {
+          // Arrays: contar como um campo (preenchido se tiver elementos válidos)
+          total = 1;
+          if (obj.length > 0 && obj.some(item => {
+            if (typeof item === "string") return item.trim().length > 0;
+            if (typeof item === "number") return item > 0;
+            if (typeof item === "object" && item !== null) {
+              return Object.values(item).some(v => isFieldFilled(v));
+            }
+            return isFieldFilled(item);
+          })) {
+            filled = 1;
+          }
+          // Processar itens do array se forem objetos
+          obj.forEach((item, index) => {
+            if (typeof item === "object" && item !== null) {
+              const baseItem = Array.isArray(baseObj) && baseObj[index] ? baseObj[index] : {};
+              const result = countFields(item, baseItem);
+              total += result.total;
+              filled += result.filled;
+            }
+          });
+          return { total, filled };
+        }
+
+        if (typeof obj === "object" && obj !== null) {
+          // Para objetos, processar cada campo
+          const allKeys = new Set([...Object.keys(obj), ...Object.keys(baseObj || {})]);
+          allKeys.forEach(key => {
+            // Ignorar campos condicionais opcionais se não aplicáveis
+            if (key === "grupo_pesquisa_cnpq" && campos.coordenador_projeto?.participa_grupo_pesquisa_cnpq !== true) {
+              return; // Campo opcional, não contar
+            }
+            if (key === "outras_fontes_fomento" && campos.detalhamento_projeto?.possui_outras_fontes_fomento !== true) {
+              return; // Campo opcional, não contar
+            }
+            if (key === "caracterizacao_contribuicao_inovacao" && 
+                campos.detalhamento_projeto?.tipo_contribuicao_inovacao?.includes('nao_se_aplica')) {
+              return; // Campo opcional, não contar
+            }
+
+            const result = countFields(obj[key] ?? null, baseObj?.[key] ?? null);
+            total += result.total;
+            filled += result.filled;
+          });
+          return { total, filled };
+        }
+
+        return { total: 0, filled: 0 };
+      };
+
+      const emptyForm = createEmptyPropostaForm();
+      const { total, filled } = countFields(campos, emptyForm);
+      
+      // Calcular progresso: só 100% quando TODOS os campos estiverem preenchidos
+      let progresso = total > 0 ? Math.round((filled / total) * 100) : 0;
+      
+      // Garantir que só seja 100% se TODOS os campos estiverem realmente preenchidos
+      // Usar comparação estrita para garantir que filled === total exatamente
+      if (filled < total) {
+        // Não permitir 100% se não estiver completo
+        progresso = Math.min(99, progresso);
+      } else if (filled === total && total > 0) {
+        // Só permitir 100% quando TODOS os campos estiverem preenchidos
+        progresso = 100;
+      }
+      
+      // Garantir que progresso está sempre entre 0 e 100
+      progresso = Math.max(0, Math.min(100, progresso));
+      
+      // Validar que não seja NaN ou undefined
+      if (isNaN(progresso) || progresso === null || progresso === undefined) {
+        progresso = 0;
+      }
+
+      // Validar que campos pode ser serializado como JSON
+      const camposToSave = JSON.parse(JSON.stringify(campos));
+      
       await updateProposta(proposta.id, user.id, {
-        campos_formulario: campos as any,
-        progresso,
+        campos_formulario: camposToSave,
+        progresso: Number(progresso), // Garantir que é um número inteiro
       });
 
-      setProposta({ ...proposta, campos_formulario: campos as any, progresso });
+      setProposta({ ...proposta, campos_formulario: camposToSave, progresso });
       toast.success("Proposta salva com sucesso!");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao salvar proposta:", error);
-      toast.error("Erro ao salvar proposta");
+      const errorMessage = error?.message || error?.details || "Erro desconhecido ao salvar proposta";
+      console.error("Detalhes completos do erro:", error);
+      toast.error(`Erro ao salvar proposta: ${errorMessage}`);
     } finally {
       setSaving(false);
     }
@@ -269,7 +381,11 @@ export default function EditorProposta() {
                 Campos do Formulário
               </h2>
 
-              <FormularioProposta data={campos} onChange={handleFormChange} />
+              <FormularioProposta 
+                data={campos} 
+                onChange={handleFormChange}
+                editalId={proposta.edital_id}
+              />
             </div>
           </div>
 
