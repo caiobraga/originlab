@@ -413,12 +413,12 @@ async function extractInfoFromWebhook(
             
             // Se output (processado) é uma string JSON, tentar parsear
             if (outputContent.trim().startsWith('{')) {
-              try {
+            try {
                 const innerJson = JSON.parse(outputContent);
-                // Se parseou com sucesso, usar o JSON interno
-                parsedResponse = innerJson;
-                responseText = JSON.stringify(innerJson);
-              } catch (e) {
+              // Se parseou com sucesso, usar o JSON interno
+              parsedResponse = innerJson;
+              responseText = JSON.stringify(innerJson);
+            } catch (e) {
                 // Se não conseguir parsear, usar o texto original processado
                 responseText = outputContent;
               }
@@ -470,8 +470,8 @@ async function extractInfoFromWebhook(
         const match = responseText.match(pattern);
         if (match && match[1]) {
           const codeContent = match[1].trim();
-          if (codeContent.startsWith('{')) {
-            jsonMatch = [codeContent];
+        if (codeContent.startsWith('{')) {
+          jsonMatch = [codeContent];
             break;
           }
         }

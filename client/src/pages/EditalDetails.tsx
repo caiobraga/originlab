@@ -467,7 +467,7 @@ export default function EditalDetails() {
               ) : (
                 <div className="text-gray-500 italic">
                   Critérios de elegibilidade não foram extraídos ainda ou não estão disponíveis.
-                </div>
+              </div>
               )}
             </div>
 
@@ -583,8 +583,8 @@ export default function EditalDetails() {
                     </>
                   ) : (
                     <>
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      Gerar proposta com IA
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Gerar proposta com IA
                     </>
                   )}
                 </Button>
@@ -614,7 +614,7 @@ export default function EditalDetails() {
                         onClick={handleCompartilharEmail}
                       >
                         Email
-                      </Button>
+                </Button>
                     </div>
                   )}
                 </div>
@@ -623,9 +623,9 @@ export default function EditalDetails() {
 
             {/* Timeline */}
             {edital?.timeline_estimada && edital.timeline_estimada.fases && Array.isArray(edital.timeline_estimada.fases) && edital.timeline_estimada.fases.length > 0 ? (
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-                <h3 className="font-bold text-gray-900 mb-4">Timeline Estimada</h3>
-                <div className="space-y-4">
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+              <h3 className="font-bold text-gray-900 mb-4">Timeline Estimada</h3>
+              <div className="space-y-4">
                   {edital.timeline_estimada.fases.map((fase: any, index: number) => {
                     const isLast = index === edital.timeline_estimada.fases.length - 1;
                     
@@ -674,18 +674,18 @@ export default function EditalDetails() {
                     
                     return (
                       <div key={index} className="flex gap-3">
-                        <div className="flex flex-col items-center">
+                  <div className="flex flex-col items-center">
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                             isAberto ? 'bg-green-500' : isFechado ? 'bg-red-300' : 'bg-gray-300'
                           }`}>
                             {isAberto ? (
                               <CheckCircle2 className="w-4 h-4 text-white" />
                             ) : (
-                              <div className="w-3 h-3 bg-white rounded-full" />
+                      <div className="w-3 h-3 bg-white rounded-full" />
                             )}
-                          </div>
+                    </div>
                           {!isLast && <div className="w-0.5 h-full bg-gray-300 my-1" />}
-                        </div>
+                  </div>
                         <div className={`flex-1 ${!isLast ? 'pb-4' : ''}`}>
                           <div className="font-medium text-sm">{fase.nome || `Fase ${index + 1}`}</div>
                           {fase.prazo && (
@@ -701,7 +701,7 @@ export default function EditalDetails() {
                                     ? `Fim: ${new Date(fase.data_fim).toLocaleDateString('pt-BR')}`
                                     : null
                               }
-                            </div>
+                  </div>
                           )}
                           {fase.status && (
                             <Badge 
@@ -715,8 +715,8 @@ export default function EditalDetails() {
                               {isAberto ? 'Aberto' : isFechado ? 'Fechado' : 'Pendente'}
                             </Badge>
                           )}
-                        </div>
-                      </div>
+                    </div>
+                  </div>
                     );
                   })}
                 </div>
