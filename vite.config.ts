@@ -1,4 +1,4 @@
-import { jsxLocPlugin } from "@builder.io/vite-plugin-jsx-loc";
+// import { jsxLocPlugin } from "@builder.io/vite-plugin-jsx-loc"; // Removido temporariamente devido a conflito com Vite 7
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import fs from "node:fs";
@@ -7,7 +7,7 @@ import { defineConfig } from "vite";
 import { vitePluginManusRuntime } from "vite-plugin-manus-runtime";
 import { apiPlugin } from "./vite-plugin-api";
 
-const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), apiPlugin()];
+const plugins = [react(), tailwindcss(), /* jsxLocPlugin(), */ vitePluginManusRuntime(), apiPlugin()];
 
 export default defineConfig({
   plugins,
@@ -40,6 +40,9 @@ export default defineConfig({
     fs: {
       strict: true,
       deny: ["**/.*"],
+    },
+    hmr: {
+      overlay: false, // Desabilitar overlay de erro temporariamente
     },
   },
 });
