@@ -274,19 +274,19 @@ export default function EditalDetails() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="container py-4">
-          <div className="flex items-center gap-4">
+        <div className="container py-3 md:py-4">
+          <div className="flex items-start gap-2 md:gap-4">
             <Link href="/dashboard">
-              <Button variant="ghost" size="sm">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Voltar
+              <Button variant="ghost" size="sm" className="flex-shrink-0">
+                <ArrowLeft className="w-4 h-4 md:mr-2" />
+                <span className="hidden md:inline">Voltar</span>
               </Button>
             </Link>
-            <div className="flex-1">
-              <h1 className="text-2xl font-bold text-gray-900">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-lg md:text-2xl font-bold text-gray-900 break-words">
                 {loading ? "Carregando..." : edital?.titulo || "Edital não encontrado"}
               </h1>
-              <p className="text-sm text-gray-600">
+              <p className="text-xs md:text-sm text-gray-600 break-words">
                 {edital?.orgao || ""} {edital?.numero ? `- Edital ${edital.numero}` : ""}
               </p>
             </div>
@@ -294,20 +294,20 @@ export default function EditalDetails() {
         </div>
       </header>
 
-      <div className="container py-8">
-        <div className="grid grid-cols-3 gap-6">
+      <div className="container py-4 md:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
           {/* Coluna Principal */}
-          <div className="col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-4 md:space-y-6">
             {/* Informações Básicas */}
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Informações do Edital</h2>
+            <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-gray-200">
+              <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-4">Informações do Edital</h2>
               
               {loading ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="flex items-start gap-3">
                     <DollarSign className="w-5 h-5 text-blue-600 mt-1" />
                     <div className="flex-1">
@@ -396,10 +396,10 @@ export default function EditalDetails() {
             </div>
 
             {/* Sobre o Programa */}
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-              <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <FileText className="w-5 h-5 text-blue-600" />
-                Sobre o Programa
+            <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-gray-200">
+              <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <FileText className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                <span className="break-words">Sobre o Programa</span>
               </h2>
               {loading ? (
                 <div className="flex items-center justify-center py-8">
@@ -434,10 +434,10 @@ export default function EditalDetails() {
             </div>
 
             {/* Critérios de Elegibilidade */}
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-              <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <Shield className="w-5 h-5 text-blue-600" />
-                Critérios de Elegibilidade
+            <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-gray-200">
+              <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <Shield className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                <span className="break-words">Critérios de Elegibilidade</span>
               </h2>
               {loading ? (
                 <div className="flex items-center justify-center py-8">
@@ -472,8 +472,8 @@ export default function EditalDetails() {
             </div>
 
             {/* Arquivos do Edital */}
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Arquivos do Edital</h2>
+            <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-gray-200">
+              <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-4">Arquivos do Edital</h2>
               {loadingPdfs ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
@@ -518,13 +518,13 @@ export default function EditalDetails() {
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             {/* Análise de Match */}
             {user && (
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+              <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-gray-200">
                 <div className="flex items-center gap-2 mb-4">
-                  <Info className="w-5 h-5 text-blue-600" />
-                  <h3 className="text-lg font-bold text-gray-900">Análise de Match</h3>
+                  <Info className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                  <h3 className="text-base md:text-lg font-bold text-gray-900 break-words">Análise de Match</h3>
                 </div>
                 
                 {loadingScores ? (
@@ -568,8 +568,8 @@ export default function EditalDetails() {
             {editalId && <EditalChat editalId={editalId} />}
 
             {/* Actions */}
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-              <h3 className="font-bold text-gray-900 mb-4">Ações</h3>
+            <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-gray-200">
+              <h3 className="text-base md:text-lg font-bold text-gray-900 mb-4">Ações</h3>
               <div className="space-y-3">
                 <Button 
                   className="w-full bg-gradient-to-r from-blue-600 to-violet-600"
@@ -584,7 +584,8 @@ export default function EditalDetails() {
                   ) : (
                     <>
                   <Sparkles className="w-4 h-4 mr-2" />
-                  Gerar proposta com IA
+                  <span className="hidden sm:inline">Gerar proposta com IA</span>
+                  <span className="sm:hidden">Gerar proposta</span>
                     </>
                   )}
                 </Button>
@@ -594,7 +595,7 @@ export default function EditalDetails() {
                     className="w-full"
                     onClick={handleCompartilhar}
                   >
-                    <Send className={`w-4 h-4 mr-2 ${linkCopiado ? "text-green-600" : ""}`} />
+                    <Send className={`w-4 h-4 mr-2 flex-shrink-0 ${linkCopiado ? "text-green-600" : ""}`} />
                     {linkCopiado ? "Link copiado!" : "Compartilhar"}
                   </Button>
                   {linkCopiado && (
@@ -623,8 +624,8 @@ export default function EditalDetails() {
 
             {/* Timeline */}
             {edital?.timeline_estimada && edital.timeline_estimada.fases && Array.isArray(edital.timeline_estimada.fases) && edital.timeline_estimada.fases.length > 0 ? (
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-              <h3 className="font-bold text-gray-900 mb-4">Timeline Estimada</h3>
+            <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-gray-200">
+              <h3 className="text-base md:text-lg font-bold text-gray-900 mb-4">Timeline Estimada</h3>
               <div className="space-y-4">
                   {edital.timeline_estimada.fases.map((fase: any, index: number) => {
                     const isLast = index === edital.timeline_estimada.fases.length - 1;
@@ -722,8 +723,8 @@ export default function EditalDetails() {
                 </div>
               </div>
             ) : (
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-                <h3 className="font-bold text-gray-900 mb-4">Timeline Estimada</h3>
+              <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-gray-200">
+                <h3 className="text-base md:text-lg font-bold text-gray-900 mb-4">Timeline Estimada</h3>
                 <div className="text-sm text-gray-500 italic">
                   Timeline estimada não foi extraída ainda ou não está disponível.
                 </div>

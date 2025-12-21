@@ -8,6 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import Header from "@/components/Header";
@@ -19,6 +20,7 @@ import {
   getStatusFromEdital,
 } from "@/lib/editaisApi";
 import { formatValorProjeto, formatPrazoInscricao } from "@/lib/editalFormatters";
+import { gerarPropostaComIA } from "@/lib/propostasApi";
 
 interface EditalDisplay extends EditalWithScores {
   prazo: string;
@@ -33,6 +35,7 @@ export default function Dashboard() {
   const [busca, setBusca] = useState("");
   const [editais, setEditais] = useState<EditalDisplay[]>([]);
   const [loading, setLoading] = useState(true);
+  const [gerandoProposta, setGerandoProposta] = useState<string | null>(null); // ID do edital sendo processado
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const { profile, loading: profileLoading } = useUserProfile();
@@ -74,6 +77,37 @@ export default function Dashboard() {
 
   const handleVerDetalhes = (editalId: string) => {
     setLocation(`/edital/${editalId}`);
+  };
+
+  // Função para gerar proposta com IA
+  const handleGerarProposta = async (editalId: string) => {
+    if (!user) {
+      toast.error("Faça login para gerar uma proposta");
+      return;
+    }
+
+    if (!editalId) {
+      toast.error("ID do edital não encontrado");
+      return;
+    }
+
+    try {
+      setGerandoProposta(editalId);
+      toast.loading("Criando proposta...", { id: `gerar-proposta-${editalId}` });
+
+      const proposta = await gerarPropostaComIA(editalId, user.id, user, profile);
+
+      toast.success("Proposta criada com sucesso!", { id: `gerar-proposta-${editalId}` });
+      setLocation(`/propostas/${proposta.id}`);
+    } catch (error) {
+      console.error("Erro ao criar proposta:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Erro ao criar proposta",
+        { id: `gerar-proposta-${editalId}` }
+      );
+    } finally {
+      setGerandoProposta(null);
+    }
   };
 
   // Filtrar editais baseado no perfil do usuário e outros filtros
@@ -131,8 +165,8 @@ export default function Dashboard() {
       <div className="container py-8">
         {/* Page Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Meu Painel</h1>
-          <p className="text-gray-600">Oportunidades globais de fomento</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Meu Painel</h1>
+          <p className="text-sm md:text-base text-gray-600">Oportunidades globais de fomento</p>
         </div>
 
         {loading ? (
@@ -143,7 +177,7 @@ export default function Dashboard() {
         ) : (
           <>
             {/* Stats */}
-            <div className="grid grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
             <div className="flex items-center justify-between mb-2">
               <Target className="w-5 h-5 text-blue-600" />
@@ -179,23 +213,23 @@ export default function Dashboard() {
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 mb-6">
-          <div className="flex items-center gap-4">
-            <div className="flex-1">
+        <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-gray-200 mb-6">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+            <div className="flex-1 min-w-0">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <Input
                   placeholder="Buscar editais..."
-                  className="pl-10"
+                  className="pl-10 w-full"
                   value={busca}
                   onChange={(e) => setBusca(e.target.value)}
                 />
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Filter className="w-5 h-5 text-gray-400" />
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Filter className="w-5 h-5 text-gray-400 flex-shrink-0" />
               <select
-                className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="px-3 md:px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto"
                 value={filtroRegiao}
                 onChange={(e) => setFiltroRegiao(e.target.value)}
               >
@@ -229,51 +263,51 @@ export default function Dashboard() {
         {/* Editais List */}
         <div className="space-y-4">
           {editaisFiltrados.map((edital) => (
-            <div key={edital.id} className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className="text-2xl">{edital.flag}</span>
-                    <h3 className="text-lg font-bold text-gray-900">{edital.titulo}</h3>
+            <div key={edital.id} className="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+              <div className="flex flex-col md:flex-row items-start md:justify-between gap-4 mb-4">
+                <div className="flex-1 min-w-0 w-full">
+                  <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-2">
+                    <span className="text-xl md:text-2xl flex-shrink-0">{edital.flag}</span>
+                    <h3 className="text-base md:text-lg font-bold text-gray-900 break-words flex-1 min-w-0">{edital.titulo}</h3>
                     {edital.status === "novo" && (
-                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 flex-shrink-0">
                         Novo
                       </Badge>
                     )}
                     {edital.status === "em_analise" && (
-                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 flex-shrink-0">
                         Em análise
                       </Badge>
                     )}
                   </div>
-                  <div className="text-sm text-gray-600 mb-3">
+                  <div className="text-xs md:text-sm text-gray-600 mb-3 break-words">
                     {edital.orgao || "Órgão não informado"} • {edital.pais}
                   </div>
                   
                   {/* Descrição resumida */}
                   {edital.descricao && (
-                    <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                    <p className="text-xs md:text-sm text-gray-600 mb-3 line-clamp-2 break-words">
                       {edital.descricao.substring(0, 150)}
                       {edital.descricao.length > 150 ? "..." : ""}
                     </p>
                   )}
 
-                  <div className="flex items-center gap-6 text-sm">
+                  <div className="flex flex-wrap items-center gap-3 md:gap-6 text-xs md:text-sm">
                     {(() => {
                       const valorFormatado = formatValorProjeto(edital.valor_projeto || edital.valor);
                       if (valorFormatado.display !== 'Não informado') {
                         return (
-                          <div className="flex items-center gap-2">
-                            <DollarSign className="w-4 h-4 text-gray-400" />
-                            <span className="font-semibold text-gray-900">{valorFormatado.display}</span>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <DollarSign className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                            <span className="font-semibold text-gray-900 break-words">{valorFormatado.display}</span>
                           </div>
                         );
                       }
                       return null;
                     })()}
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-gray-400" />
-                      <span className="text-gray-600">
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                      <span className="text-gray-600 break-words">
                         {(() => {
                           const prazoFormatado = formatPrazoInscricao(edital.prazo_inscricao);
                           if (prazoFormatado.display !== 'Não informado') {
@@ -284,33 +318,33 @@ export default function Dashboard() {
                       </span>
                     </div>
                     {edital.area && (
-                      <div className="flex items-center gap-2">
-                        <Target className="w-4 h-4 text-gray-400" />
-                        <span className="text-gray-600">{edital.area}</span>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <Target className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                        <span className="text-gray-600 break-words">{edital.area}</span>
                       </div>
                     )}
                   </div>
                 </div>
 
-                <div className="flex flex-col items-end gap-3">
+                <div className="flex flex-row md:flex-col items-center md:items-end gap-3 md:gap-3 w-full md:w-auto justify-between md:justify-start">
                   {/* Match Score */}
-                  <div className="text-right">
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className="text-3xl font-bold text-blue-600">{edital.match}%</div>
-                      <CheckCircle2 className="w-5 h-5 text-green-600" />
+                  <div className="text-center md:text-right">
+                    <div className="flex items-center gap-2 mb-1 justify-center md:justify-end">
+                      <div className="text-2xl md:text-3xl font-bold text-blue-600">{edital.match}%</div>
+                      <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5 text-green-600 flex-shrink-0" />
                     </div>
                     <div className="text-xs text-gray-600">Match</div>
                   </div>
 
                   {/* Probabilidade */}
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-violet-600">{edital.probabilidade}%</div>
+                  <div className="text-center md:text-right">
+                    <div className="text-xl md:text-2xl font-bold text-violet-600">{edital.probabilidade}%</div>
                     <div className="text-xs text-gray-600">Prob. aprovação</div>
                   </div>
 
                   {/* Elegibilidade */}
                   {edital.elegivel && (
-                    <Badge className="bg-green-100 text-green-700 border-green-200">
+                    <Badge className="bg-green-100 text-green-700 border-green-200 flex-shrink-0">
                       ✓ Elegível
                     </Badge>
                   )}
@@ -318,18 +352,34 @@ export default function Dashboard() {
               </div>
 
               {/* Actions */}
-              <div className="flex items-center gap-3 pt-4 border-t border-gray-200">
-                <Button className="flex-1 bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700">
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Gerar proposta com IA
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 pt-4 border-t border-gray-200">
+                <Button 
+                  onClick={() => handleGerarProposta(edital.id)}
+                  disabled={gerandoProposta === edital.id || !user}
+                  className="w-full sm:flex-1 bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {gerandoProposta === edital.id ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      <span className="hidden sm:inline">Gerando...</span>
+                      <span className="sm:hidden">Gerando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      <span className="hidden sm:inline">Gerar proposta com IA</span>
+                      <span className="sm:hidden">Gerar proposta</span>
+                    </>
+                  )}
                 </Button>
-                <Button variant="outline" onClick={() => handleVerDetalhes(edital.id)}>
+                <Button variant="outline" onClick={() => handleVerDetalhes(edital.id)} className="w-full sm:w-auto">
                   <Eye className="w-4 h-4 mr-2" />
-                  Ver detalhes
+                  <span className="hidden sm:inline">Ver detalhes</span>
+                  <span className="sm:hidden">Detalhes</span>
                 </Button>
-                <Button variant="outline">
-                  <Download className="w-4 h-4 mr-2" />
-                  Baixar edital
+                <Button variant="outline" className="w-full sm:w-auto">
+                  <Download className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Baixar edital</span>
                 </Button>
               </div>
             </div>

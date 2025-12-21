@@ -140,17 +140,17 @@ export default function EditalChat({ editalId }: EditalChatProps) {
       {/* Floating Chat Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 w-16 h-16 bg-gradient-to-r from-blue-600 to-violet-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center z-50 hover:scale-110"
+        className="fixed bottom-4 right-4 md:bottom-6 md:right-6 w-14 h-14 md:w-16 md:h-16 bg-gradient-to-r from-blue-600 to-violet-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center z-50 hover:scale-110 active:scale-95"
         aria-label="Abrir chat"
       >
         {isOpen ? (
-          <X className="w-6 h-6" />
+          <X className="w-5 h-5 md:w-6 md:h-6" />
         ) : (
           <>
-            <MessageCircle className="w-6 h-6" />
+            <MessageCircle className="w-5 h-5 md:w-6 md:h-6" />
             {messages.length > 0 && (
               <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold">
-                {messages.length}
+                {messages.length > 9 ? '9+' : messages.length}
               </span>
             )}
           </>
@@ -159,128 +159,146 @@ export default function EditalChat({ editalId }: EditalChatProps) {
 
       {/* Chat Panel */}
       {isOpen && (
-        <div className="fixed bottom-24 right-6 w-96 h-[600px] bg-white rounded-xl border border-gray-200 shadow-2xl z-50 flex flex-col animate-in fade-in-0 zoom-in-95 duration-300 overflow-hidden">
-          {/* Header */}
-          <div className="flex-shrink-0 p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-violet-50 rounded-t-xl">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Bot className="w-5 h-5 text-blue-600" />
-                <h3 className="font-bold text-gray-900">Assistente de Edital</h3>
-              </div>
-              <button
-                onClick={() => setIsOpen(false)}
-                className="p-1 hover:bg-gray-200 rounded-full transition-colors"
-                aria-label="Fechar chat"
-              >
-                <X className="w-4 h-4 text-gray-600" />
-              </button>
-            </div>
-            <p className="text-xs text-gray-600 mt-1">
-              Faça perguntas sobre este edital e receba respostas inteligentes
-            </p>
-          </div>
-
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 min-h-0 overscroll-contain">
-            <div className="space-y-4">
-              {messages.length === 0 ? (
-                <div className="text-center text-gray-500 py-8">
-                  <Bot className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-                  <p className="text-sm">
-                    Olá! Como posso ajudá-lo com este edital?
-                  </p>
-                  <p className="text-xs mt-2 text-gray-400">
-                    Faça perguntas sobre requisitos, prazos, valores ou qualquer outra informação.
-                  </p>
+        <>
+          {/* Backdrop for mobile */}
+          <div 
+            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 md:hidden"
+            onClick={() => setIsOpen(false)}
+            aria-hidden="true"
+          />
+          
+          <div className="fixed bottom-0 right-0 left-0 md:bottom-24 md:right-6 md:left-auto w-full md:w-96 h-[85vh] md:h-[600px] max-h-[700px] bg-white rounded-t-2xl md:rounded-xl border border-gray-200 shadow-2xl z-50 flex flex-col animate-in fade-in-0 zoom-in-95 duration-300 overflow-hidden">
+            {/* Header */}
+            <div className="flex-shrink-0 p-3 md:p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-violet-50 rounded-t-2xl md:rounded-t-xl">
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gradient-to-r from-blue-600 to-violet-600 flex items-center justify-center flex-shrink-0">
+                    <Bot className="w-4 h-4 md:w-5 md:h-5 text-white" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-bold text-sm md:text-base text-gray-900 truncate">Assistente de Edital</h3>
+                    <p className="text-xs text-gray-600 truncate">
+                      Faça perguntas sobre este edital
+                    </p>
+                  </div>
                 </div>
-              ) : (
-                messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex gap-3 ${
-                      message.role === "user" ? "justify-end" : "justify-start"
-                    }`}
-                  >
-                    {message.role === "assistant" && (
-                      <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                        <Bot className="w-4 h-4 text-blue-600" />
-                      </div>
-                    )}
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="p-1.5 hover:bg-gray-200 active:bg-gray-300 rounded-full transition-colors flex-shrink-0"
+                  aria-label="Fechar chat"
+                >
+                  <X className="w-5 h-5 text-gray-600" />
+                </button>
+              </div>
+            </div>
 
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-3 md:p-4 min-h-0 overscroll-contain scroll-smooth">
+              <div className="space-y-3 md:space-y-4">
+                {messages.length === 0 ? (
+                  <div className="text-center text-gray-500 py-8 md:py-12">
+                    <div className="w-16 h-16 md:w-20 md:h-20 mx-auto mb-4 rounded-full bg-gradient-to-r from-blue-100 to-violet-100 flex items-center justify-center">
+                      <Bot className="w-8 h-8 md:w-10 md:h-10 text-blue-600" />
+                    </div>
+                    <p className="text-sm md:text-base font-medium mb-2">
+                      Olá! Como posso ajudá-lo?
+                    </p>
+                    <p className="text-xs md:text-sm text-gray-400 px-4">
+                      Faça perguntas sobre requisitos, prazos, valores ou qualquer outra informação do edital.
+                    </p>
+                  </div>
+                ) : (
+                  messages.map((message) => (
                     <div
-                      className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                        message.role === "user"
-                          ? "bg-blue-600 text-white"
-                          : "bg-gray-100 text-gray-900"
+                      key={message.id}
+                      className={`flex gap-2 md:gap-3 ${
+                        message.role === "user" ? "justify-end" : "justify-start"
                       }`}
                     >
-                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                      <p
-                        className={`text-xs mt-1 ${
+                      {message.role === "assistant" && (
+                        <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-gradient-to-r from-blue-100 to-violet-100 flex items-center justify-center flex-shrink-0 mt-1">
+                          <Bot className="w-3.5 h-3.5 md:w-4 md:h-4 text-blue-600" />
+                        </div>
+                      )}
+
+                      <div
+                        className={`max-w-[85%] md:max-w-[80%] rounded-2xl px-3 md:px-4 py-2.5 md:py-3 shadow-sm ${
                           message.role === "user"
-                            ? "text-blue-100"
-                            : "text-gray-500"
+                            ? "bg-gradient-to-r from-blue-600 to-violet-600 text-white rounded-br-sm"
+                            : "bg-gray-50 text-gray-900 border border-gray-100 rounded-bl-sm"
                         }`}
                       >
-                        {message.timestamp.toLocaleTimeString("pt-BR", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </p>
-                    </div>
-
-                    {message.role === "user" && (
-                      <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
-                        <User className="w-4 h-4 text-gray-600" />
+                        <p className="text-sm md:text-base whitespace-pre-wrap break-words leading-relaxed">
+                          {message.content}
+                        </p>
+                        <p
+                          className={`text-xs mt-1.5 ${
+                            message.role === "user"
+                              ? "text-blue-100"
+                              : "text-gray-400"
+                          }`}
+                        >
+                          {message.timestamp.toLocaleTimeString("pt-BR", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </p>
                       </div>
-                    )}
-                  </div>
-                ))
-              )}
 
-              {isLoading && (
-                <div className="flex gap-3 justify-start">
-                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                    <Bot className="w-4 h-4 text-blue-600" />
-                  </div>
-                  <div className="bg-gray-100 rounded-lg px-4 py-2">
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="w-4 h-4 animate-spin text-gray-600" />
-                      <span className="text-sm text-gray-600">Pensando...</span>
+                      {message.role === "user" && (
+                        <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-gradient-to-r from-gray-300 to-gray-400 flex items-center justify-center flex-shrink-0 mt-1">
+                          <User className="w-3.5 h-3.5 md:w-4 md:h-4 text-white" />
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+
+                {isLoading && (
+                  <div className="flex gap-2 md:gap-3 justify-start">
+                    <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-gradient-to-r from-blue-100 to-violet-100 flex items-center justify-center flex-shrink-0 mt-1">
+                      <Bot className="w-3.5 h-3.5 md:w-4 md:h-4 text-blue-600" />
+                    </div>
+                    <div className="bg-gray-50 rounded-2xl rounded-bl-sm px-3 md:px-4 py-2.5 md:py-3 border border-gray-100 shadow-sm">
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                        <span className="text-sm text-gray-600">Pensando...</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
-
-              <div ref={messagesEndRef} />
-            </div>
-          </div>
-
-          {/* Input */}
-          <div className="flex-shrink-0 p-4 border-t border-gray-200 rounded-b-xl bg-white">
-            <div className="flex gap-2">
-              <Input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Digite sua pergunta..."
-                disabled={isLoading}
-                className="flex-1"
-              />
-              <Button
-                onClick={handleSend}
-                disabled={isLoading || !input.trim()}
-                className="bg-gradient-to-r from-blue-600 to-violet-600"
-              >
-                {isLoading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Send className="w-4 h-4" />
                 )}
-              </Button>
+
+                <div ref={messagesEndRef} />
+              </div>
+            </div>
+
+            {/* Input */}
+            <div className="flex-shrink-0 p-3 md:p-4 border-t border-gray-200 bg-white rounded-b-2xl md:rounded-b-xl">
+              <div className="flex gap-2">
+                <Input
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Digite sua pergunta..."
+                  disabled={isLoading}
+                  className="flex-1 text-sm md:text-base border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                />
+                <Button
+                  onClick={handleSend}
+                  disabled={isLoading || !input.trim()}
+                  className="bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white px-3 md:px-4 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                  size="default"
+                >
+                  {isLoading ? (
+                    <Loader2 className="w-4 h-4 md:w-5 md:h-5 animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4 md:w-5 md:h-5" />
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
+        </>
       )}
     </>
   );

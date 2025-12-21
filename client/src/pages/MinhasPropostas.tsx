@@ -236,7 +236,7 @@ export default function MinhasPropostas() {
         ) : (
           <>
         {/* Stats */}
-        <div className="grid grid-cols-5 gap-4 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 md:gap-4 mb-6 md:mb-8">
           <div className="bg-white rounded-lg p-4 border border-gray-200">
             <div className="text-2xl font-bold text-gray-900">{propostas.length}</div>
             <div className="text-sm text-gray-600">Total de Propostas</div>
@@ -268,51 +268,59 @@ export default function MinhasPropostas() {
         </div>
 
         {/* Filtros */}
-        <div className="bg-white rounded-lg p-4 mb-6 border border-gray-200">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-gray-700">Filtrar por status:</span>
-            <Button 
-              variant={filtroStatus === "todos" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFiltroStatus("todos")}
-            >
-              Todos
-            </Button>
-            <Button 
-              variant={filtroStatus === "rascunho" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFiltroStatus("rascunho")}
-            >
-              Rascunho
-            </Button>
-            <Button 
-              variant={filtroStatus === "em_redacao" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFiltroStatus("em_redacao")}
-            >
-              Em Redação
-            </Button>
-            <Button 
-              variant={filtroStatus === "revisao" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFiltroStatus("revisao")}
-            >
-              Em Revisão
-            </Button>
-            <Button 
-              variant={filtroStatus === "submetida" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFiltroStatus("submetida")}
-            >
-              Submetida
-            </Button>
-            <Button 
-              variant={filtroStatus === "aprovada" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFiltroStatus("aprovada")}
-            >
-              Aprovada
-            </Button>
+        <div className="bg-white rounded-lg p-3 md:p-4 mb-6 border border-gray-200">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-2">
+            <span className="text-xs sm:text-sm font-medium text-gray-700 whitespace-nowrap">Filtrar por status:</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button 
+                variant={filtroStatus === "todos" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFiltroStatus("todos")}
+                className="text-xs"
+              >
+                Todos
+              </Button>
+              <Button 
+                variant={filtroStatus === "rascunho" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFiltroStatus("rascunho")}
+                className="text-xs"
+              >
+                Rascunho
+              </Button>
+              <Button 
+                variant={filtroStatus === "em_redacao" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFiltroStatus("em_redacao")}
+                className="text-xs"
+              >
+                Em Redação
+              </Button>
+              <Button 
+                variant={filtroStatus === "revisao" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFiltroStatus("revisao")}
+                className="text-xs"
+              >
+                Em Revisão
+              </Button>
+              <Button 
+                variant={filtroStatus === "submetida" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFiltroStatus("submetida")}
+                className="text-xs"
+              >
+                Submetida
+              </Button>
+              <Button 
+                variant={filtroStatus === "aprovada" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFiltroStatus("aprovada")}
+                className="text-xs"
+              >
+                Aprovada
+              </Button>
+            </div>
           </div>
         </div>
 

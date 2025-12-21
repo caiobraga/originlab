@@ -46,14 +46,14 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-gray-200 bg-white/80 backdrop-blur-md">
       <div className="container">
-        <div className="flex h-16 items-center justify-between">
+        <div className="flex h-14 md:h-16 items-center justify-between gap-2">
           {/* Logo */}
           <Link href="/">
-            <div className="flex items-center gap-2 cursor-pointer">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-violet-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">O</span>
+            <div className="flex items-center gap-1.5 md:gap-2 cursor-pointer flex-shrink-0 min-w-0">
+              <div className="w-7 h-7 md:w-8 md:h-8 bg-gradient-to-br from-blue-600 to-violet-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                <span className="text-white font-bold text-xs md:text-sm">O</span>
               </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
+              <span className="text-base md:text-xl font-bold bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent truncate">
                 {APP_TITLE}
               </span>
             </div>
@@ -111,7 +111,7 @@ export default function Header() {
           )}
 
           {/* CTA Buttons */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
             {!loading && user ? (
               <>
                 {/* Badge Plano Pro */}
@@ -127,22 +127,22 @@ export default function Header() {
                 <div className="relative hidden md:block" ref={profileMenuRef}>
                   <Button 
                     variant="ghost" 
-                    className="h-9 px-3 gap-2 hover:bg-gray-50"
+                    className="h-9 px-2 md:px-3 gap-1.5 md:gap-2 hover:bg-gray-50"
                     type="button"
                     onClick={() => setProfileMenuOpen(!profileMenuOpen)}
                   >
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center text-white font-semibold text-sm">
+                    <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center text-white font-semibold text-xs md:text-sm flex-shrink-0">
                       {user.email?.charAt(0).toUpperCase() || "U"}
                     </div>
-                    <ChevronDown className={cn("w-4 h-4 text-gray-400 transition-transform", profileMenuOpen && "rotate-180")} />
+                    <ChevronDown className={cn("w-4 h-4 text-gray-400 transition-transform flex-shrink-0", profileMenuOpen && "rotate-180")} />
                   </Button>
                   
                   {profileMenuOpen && (
                     <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 z-[9999] overflow-hidden">
                       <div className="p-3 border-b border-gray-200 bg-gray-50">
-                        <div className="flex flex-col space-y-1">
+                        <div className="flex flex-col space-y-1 min-w-0">
                           <p className="text-sm font-semibold leading-none text-gray-900">Minha Conta</p>
-                          <p className="text-xs leading-none text-gray-500">
+                          <p className="text-xs leading-none text-gray-500 truncate">
                             {user.email}
                           </p>
                         </div>
@@ -175,6 +175,7 @@ export default function Header() {
                     <Button 
                       variant="outline" 
                       className="hidden md:inline-flex"
+                      size="sm"
                     >
                       <LogIn className="w-4 h-4 mr-2" />
                       Entrar
@@ -183,8 +184,10 @@ export default function Header() {
                   <Link href="/cadastro">
                     <Button 
                       className="hidden md:inline-flex bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white"
+                      size="sm"
                     >
-                      Criar Conta Grátis
+                      <span className="hidden lg:inline">Criar Conta Grátis</span>
+                      <span className="lg:hidden">Cadastrar</span>
                     </Button>
                   </Link>
                 </>
@@ -198,7 +201,7 @@ export default function Header() {
                   <Menu className="w-5 h-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+              <SheetContent side="right" className="w-[280px] sm:w-[400px] overflow-y-auto">
                 <div className="flex flex-col gap-4 mt-8">
                   {/* Mobile Navigation */}
                   <nav className="flex flex-col gap-4">

@@ -20,20 +20,20 @@ export default function Hero() {
       <div className="container relative z-10">
         <div className="max-w-4xl mx-auto text-center">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 backdrop-blur-sm border border-blue-200 mb-8 shadow-sm">
-            <Sparkles className="w-4 h-4 text-violet-600" />
-            <span className="text-sm font-medium text-gray-700">
+          <div className="inline-flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-full bg-white/80 backdrop-blur-sm border border-blue-200 mb-6 md:mb-8 shadow-sm mx-2">
+            <Sparkles className="w-3.5 h-3.5 md:w-4 md:h-4 text-violet-600 flex-shrink-0" />
+            <span className="text-xs md:text-sm font-medium text-gray-700 break-words">
               Inteligência Artificial para Fomento e Subvenção
             </span>
           </div>
 
           {/* Main heading */}
-          <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 bg-gradient-to-r from-blue-600 via-violet-600 to-blue-600 bg-clip-text text-transparent leading-tight">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold mb-4 md:mb-6 bg-gradient-to-r from-blue-600 via-violet-600 to-blue-600 bg-clip-text text-transparent leading-tight break-words px-2">
             Transforme ideias em projetos financiados
           </h1>
 
           {/* Subheading */}
-          <p className="text-xl md:text-2xl text-gray-600 mb-12 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-600 mb-8 md:mb-12 max-w-3xl mx-auto leading-relaxed break-words px-2">
             Conecte seu projeto às melhores oportunidades de fomento com inteligência artificial. 
             Da busca à prestação de contas, tudo automatizado.
           </p>
@@ -73,18 +73,18 @@ export default function Hero() {
           </div>
 
           {/* Stats */}
-          <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-3xl mx-auto">
+          <div className="mt-12 md:mt-16 grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 max-w-3xl mx-auto px-2">
             <div className="text-center">
-              <div className="text-4xl font-bold text-blue-600 mb-2">+2.000</div>
-              <div className="text-sm text-gray-600">Editais mapeados</div>
+              <div className="text-3xl md:text-4xl font-bold text-blue-600 mb-2">+2.000</div>
+              <div className="text-xs md:text-sm text-gray-600 break-words">Editais mapeados</div>
             </div>
             <div className="text-center">
-              <div className="text-4xl font-bold text-violet-600 mb-2">R$ 20bi</div>
-              <div className="text-sm text-gray-600">Mercado de P&D</div>
+              <div className="text-3xl md:text-4xl font-bold text-violet-600 mb-2">R$ 20bi</div>
+              <div className="text-xs md:text-sm text-gray-600 break-words">Mercado de P&D</div>
             </div>
             <div className="text-center">
-              <div className="text-4xl font-bold text-blue-600 mb-2">20.000+</div>
-              <div className="text-sm text-gray-600">Startups no Brasil</div>
+              <div className="text-3xl md:text-4xl font-bold text-blue-600 mb-2">20.000+</div>
+              <div className="text-xs md:text-sm text-gray-600 break-words">Startups no Brasil</div>
             </div>
           </div>
         </div>
