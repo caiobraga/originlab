@@ -97,3 +97,4 @@ COMMENT ON TABLE edital_pdfs IS 'Armazena referências aos PDFs dos editais arma
 
 
 
+
