@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, Link } from "wouter";
 import {
   ArrowLeft,
@@ -32,6 +32,9 @@ export default function EditorProposta() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [campos, setCampos] = useState<PropostaFormData>(createEmptyPropostaForm());
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const hasUnsavedChangesRef = useRef(false);
+  const camposRef = useRef<PropostaFormData>(createEmptyPropostaForm());
 
   useEffect(() => {
     async function loadProposta() {
@@ -55,6 +58,7 @@ export default function EditorProposta() {
           ...camposFormulario,
         };
         setCampos(camposCompletos as PropostaFormData);
+        camposRef.current = camposCompletos as PropostaFormData;
       } catch (error) {
         console.error("Erro ao carregar proposta:", error);
         toast.error("Erro ao carregar proposta");
@@ -68,9 +72,22 @@ export default function EditorProposta() {
 
   const handleFormChange = (newData: PropostaFormData) => {
     setCampos(newData);
+    camposRef.current = newData;
+    hasUnsavedChangesRef.current = true;
+    
+    // Auto-save com debounce de 2 segundos
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    
+    saveTimeoutRef.current = setTimeout(() => {
+      if (hasUnsavedChangesRef.current && proposta && user) {
+        handleSave();
+      }
+    }, 2000);
   };
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (!proposta || !user) return;
 
     try {
@@ -161,14 +178,15 @@ export default function EditorProposta() {
           const allKeys = new Set([...Object.keys(obj), ...Object.keys(baseObj || {})]);
           allKeys.forEach(key => {
             // Ignorar campos condicionais opcionais se não aplicáveis
-            if (key === "grupo_pesquisa_cnpq" && campos.coordenador_projeto?.participa_grupo_pesquisa_cnpq !== true) {
+            const currentCampos = camposRef.current;
+            if (key === "grupo_pesquisa_cnpq" && currentCampos.coordenador_projeto?.participa_grupo_pesquisa_cnpq !== true) {
               return; // Campo opcional, não contar
             }
-            if (key === "outras_fontes_fomento" && campos.detalhamento_projeto?.possui_outras_fontes_fomento !== true) {
+            if (key === "outras_fontes_fomento" && currentCampos.detalhamento_projeto?.possui_outras_fontes_fomento !== true) {
               return; // Campo opcional, não contar
             }
             if (key === "caracterizacao_contribuicao_inovacao" && 
-                campos.detalhamento_projeto?.tipo_contribuicao_inovacao?.includes('nao_se_aplica')) {
+                currentCampos.detalhamento_projeto?.tipo_contribuicao_inovacao?.includes('nao_se_aplica')) {
               return; // Campo opcional, não contar
             }
 
@@ -183,7 +201,8 @@ export default function EditorProposta() {
       };
 
       const emptyForm = createEmptyPropostaForm();
-      const { total, filled } = countFields(campos, emptyForm);
+      const currentCampos = camposRef.current;
+      const { total, filled } = countFields(currentCampos, emptyForm);
       
       // Calcular progresso: só 100% quando TODOS os campos estiverem preenchidos
       let progresso = total > 0 ? Math.round((filled / total) * 100) : 0;
@@ -207,7 +226,7 @@ export default function EditorProposta() {
       }
 
       // Validar que campos pode ser serializado como JSON
-      const camposToSave = JSON.parse(JSON.stringify(campos));
+      const camposToSave = JSON.parse(JSON.stringify(currentCampos));
       
       await updateProposta(proposta.id, user.id, {
         campos_formulario: camposToSave,
@@ -215,6 +234,7 @@ export default function EditorProposta() {
       });
 
       setProposta({ ...proposta, campos_formulario: camposToSave, progresso });
+      hasUnsavedChangesRef.current = false;
       toast.success("Proposta salva com sucesso!");
     } catch (error: any) {
       console.error("Erro ao salvar proposta:", error);
@@ -224,7 +244,7 @@ export default function EditorProposta() {
     } finally {
       setSaving(false);
     }
-  };
+  }, [proposta, user]);
 
   const handleStatusChange = async (newStatus: StatusProposta) => {
     if (!proposta || !user) return;
@@ -241,6 +261,37 @@ export default function EditorProposta() {
       setSaving(false);
     }
   };
+
+  // Auto-save quando o usuário muda de tab ou sai da página
+  // IMPORTANTE: Este useEffect deve estar ANTES dos early returns para evitar erro de hooks
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // Salvar antes de sair da página se houver mudanças não salvas
+      if (hasUnsavedChangesRef.current && proposta && user) {
+        // Usar sendBeacon para garantir que o salvamento aconteça mesmo ao sair
+        handleSave();
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      // Salvar quando a aba perde o foco
+      if (document.hidden && hasUnsavedChangesRef.current && proposta && user) {
+        handleSave();
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      // Limpar timeout ao desmontar
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [handleSave]);
 
   if (loading) {
     return (
@@ -327,8 +378,8 @@ export default function EditorProposta() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+      {/* Header - Sempre visível no topo */}
+      <header className="bg-white border-b border-gray-200 fixed top-0 left-0 right-0 z-50 shadow-sm">
         <div className="container py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -371,10 +422,66 @@ export default function EditorProposta() {
         </div>
       </header>
 
+      {/* Espaço para o header fixo - altura aproximada do header */}
+      <div className="h-[88px]"></div>
+
+      {/* Card Fixo - Status, Progresso e Ver Edital - Sempre visível */}
+      <div className="fixed top-[100px] right-6 z-40 bg-white rounded-xl p-5 shadow-lg border border-gray-200 w-56 space-y-4">
+        {/* Status */}
+        <div>
+          <h3 className="font-bold text-gray-900 mb-3 text-sm">Status</h3>
+          <div className="space-y-2">
+            {(
+              [
+                "rascunho",
+                "em_redacao",
+                "revisao",
+                "submetida",
+              ] as StatusProposta[]
+            ).map((status) => (
+              <Button
+                key={status}
+                variant={proposta.status === status ? "default" : "outline"}
+                className="w-full justify-start text-xs py-1.5 h-9"
+                onClick={() => handleStatusChange(status)}
+                disabled={saving}
+              >
+                {statusConfig[status]?.label || status}
+              </Button>
+            ))}
+          </div>
+        </div>
+
+        {/* Progresso */}
+        <div className="border-t border-gray-200 pt-4">
+          <h3 className="font-bold text-gray-900 mb-3 text-sm">Progresso</h3>
+          <div className="space-y-2">
+            <div className="text-2xl font-bold text-blue-600">
+              {proposta.progresso}%
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div
+                className="bg-blue-600 h-2 rounded-full transition-all"
+                style={{ width: `${proposta.progresso}%` }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Ver Edital Original */}
+        <div className="border-t border-gray-200 pt-4">
+          <Link href={`/edital/${proposta.edital_id}`}>
+            <Button variant="outline" className="w-full text-xs">
+              Ver Edital Original
+            </Button>
+          </Link>
+        </div>
+      </div>
+
       <div className="container py-8">
-        <div className="grid grid-cols-4 gap-6">
+        <div className={`grid gap-6 ${proposta.observacoes ? 'grid-cols-4' : 'grid-cols-1'}`}>
           {/* Formulário Principal */}
-          <div className="col-span-3 space-y-6">
+          <div className={`${proposta.observacoes ? 'col-span-3' : 'col-span-1'} space-y-6`}>
             <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
               <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
                 <FileText className="w-5 h-5 text-blue-600" />
@@ -389,66 +496,17 @@ export default function EditorProposta() {
             </div>
           </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Status */}
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-              <h3 className="font-bold text-gray-900 mb-4">Status</h3>
-              <div className="space-y-2">
-                {(
-                  [
-                    "rascunho",
-                    "em_redacao",
-                    "revisao",
-                    "submetida",
-                  ] as StatusProposta[]
-                ).map((status) => (
-                  <Button
-                    key={status}
-                    variant={proposta.status === status ? "default" : "outline"}
-                    className="w-full justify-start"
-                    onClick={() => handleStatusChange(status)}
-                    disabled={saving}
-                  >
-                    {statusConfig[status]?.label || status}
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            {/* Progresso */}
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-              <h3 className="font-bold text-gray-900 mb-4">Progresso</h3>
-              <div className="space-y-2">
-                <div className="text-3xl font-bold text-blue-600">
-                  {proposta.progresso}%
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-blue-600 h-2 rounded-full transition-all"
-                    style={{ width: `${proposta.progresso}%` }}
-                  />
+          {/* Sidebar - Apenas Observações (se houver) */}
+          {proposta.observacoes && (
+            <div className="col-span-1">
+              <div className="sticky top-[88px]">
+                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                  <h3 className="font-bold text-gray-900 mb-4">Observações</h3>
+                  <p className="text-sm text-gray-600">{proposta.observacoes}</p>
                 </div>
               </div>
             </div>
-
-            {/* Observações */}
-            {proposta.observacoes && (
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-                <h3 className="font-bold text-gray-900 mb-4">Observações</h3>
-                <p className="text-sm text-gray-600">{proposta.observacoes}</p>
-              </div>
-            )}
-
-            {/* Link para Edital */}
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-              <Link href={`/edital/${proposta.edital_id}`}>
-                <Button variant="outline" className="w-full">
-                  Ver Edital Original
-                </Button>
-              </Link>
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
