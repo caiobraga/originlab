@@ -24,3 +24,4 @@ COMMENT ON COLUMN editais.informacoes_processadas_em IS 'Data/hora em que as inf
 
 
 
+

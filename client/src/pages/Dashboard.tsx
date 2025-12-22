@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { 
   ArrowLeft, Search, Filter, Globe, TrendingUp, Calendar, 
   DollarSign, Target, CheckCircle2, Clock, AlertCircle,
-  Download, Send, Eye, Sparkles, BarChart3, FileText, User, Loader2
+  Send, Eye, Sparkles, BarChart3, FileText, User, Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -376,10 +376,6 @@ export default function Dashboard() {
                   <Eye className="w-4 h-4 mr-2" />
                   <span className="hidden sm:inline">Ver detalhes</span>
                   <span className="sm:hidden">Detalhes</span>
-                </Button>
-                <Button variant="outline" className="w-full sm:w-auto">
-                  <Download className="w-4 h-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Baixar edital</span>
                 </Button>
               </div>
             </div>
