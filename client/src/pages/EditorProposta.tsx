@@ -35,6 +35,7 @@ export default function EditorProposta() {
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const hasUnsavedChangesRef = useRef(false);
   const camposRef = useRef<PropostaFormData>(createEmptyPropostaForm());
+  const scrollPositionKey = `scroll_${propostaId}`;
 
   useEffect(() => {
     async function loadProposta() {
@@ -262,10 +263,26 @@ export default function EditorProposta() {
     }
   };
 
+  // Restaurar scroll position quando a página carrega
+  useEffect(() => {
+    if (!loading && proposta) {
+      const savedScrollPosition = sessionStorage.getItem(scrollPositionKey);
+      if (savedScrollPosition) {
+        // Usar setTimeout para garantir que o DOM está totalmente renderizado
+        setTimeout(() => {
+          window.scrollTo(0, parseInt(savedScrollPosition, 10));
+        }, 100);
+      }
+    }
+  }, [loading, proposta, scrollPositionKey]);
+
   // Auto-save quando o usuário muda de tab ou sai da página
   // IMPORTANTE: Este useEffect deve estar ANTES dos early returns para evitar erro de hooks
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // Salvar scroll position antes de sair
+      sessionStorage.setItem(scrollPositionKey, window.scrollY.toString());
+      
       // Salvar antes de sair da página se houver mudanças não salvas
       if (hasUnsavedChangesRef.current && proposta && user) {
         // Usar sendBeacon para garantir que o salvamento aconteça mesmo ao sair
@@ -274,14 +291,34 @@ export default function EditorProposta() {
     };
 
     const handleVisibilityChange = () => {
-      // Salvar quando a aba perde o foco
-      if (document.hidden && hasUnsavedChangesRef.current && proposta && user) {
-        handleSave();
+      if (document.hidden) {
+        // Salvar scroll position quando a aba perde o foco
+        sessionStorage.setItem(scrollPositionKey, window.scrollY.toString());
+        
+        // Salvar quando a aba perde o foco
+        if (hasUnsavedChangesRef.current && proposta && user) {
+          handleSave();
+        }
+      } else {
+        // Restaurar scroll position quando a aba volta ao foco
+        const savedScrollPosition = sessionStorage.getItem(scrollPositionKey);
+        if (savedScrollPosition) {
+          // Usar requestAnimationFrame para garantir que o DOM está pronto
+          requestAnimationFrame(() => {
+            window.scrollTo(0, parseInt(savedScrollPosition, 10));
+          });
+        }
       }
+    };
+
+    // Salvar scroll position periodicamente enquanto o usuário está na página
+    const handleScroll = () => {
+      sessionStorage.setItem(scrollPositionKey, window.scrollY.toString());
     };
 
     window.addEventListener("beforeunload", handleBeforeUnload);
     document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("scroll", handleScroll, { passive: true });
 
     return () => {
       // Limpar timeout ao desmontar
@@ -290,8 +327,9 @@ export default function EditorProposta() {
       }
       window.removeEventListener("beforeunload", handleBeforeUnload);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("scroll", handleScroll);
     };
-  }, [handleSave]);
+  }, [handleSave, proposta, user, scrollPositionKey]);
 
   if (loading) {
     return (

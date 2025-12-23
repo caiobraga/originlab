@@ -19,7 +19,8 @@
     "db:test-env": "tsx -e \"import './scripts/load-env'; console.log('SUPABASE_URL:', process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL); console.log('SERVICE_ROLE_KEY:', process.env.VITE_SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY ? 'Configurada' : 'Não configurada');\"",
     "api:process-edital-info": "tsx scripts/api/processEditalInfo.ts",
     "api:update-edital-info": "tsx scripts/api/updateEditalInfo.ts",
-    "api:check-edital-data": "tsx scripts/api/checkEditalData.ts"
+    "api:check-edital-data": "tsx scripts/api/checkEditalData.ts",
+    "api:fix-edital-flags": "tsx scripts/api/fixEditalFlags.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

@@ -286,8 +286,108 @@ async function extractInfoFromWebhook(
       prazo_inscricao: "Quais são os prazos de inscrição ou submissão deste edital? Se houver múltiplos prazos (ex: diferentes chamadas, modalidades ou fases), liste TODOS os prazos encontrados. Para cada prazo, inclua: data inicial, data final, horário (se houver) e descrição da modalidade/chamada. Retorne em formato JSON: {\"prazos\": [{\"chamada\": \"nome da chamada\", \"inicio\": \"data inicial\", \"fim\": \"data final\", \"horario\": \"horário\"}, ...]} ou se for único: {\"prazo\": \"prazo encontrado\"}",
       localizacao: "Do edital, qual localização preciso estar para participar desse edital? Ou posso participar de qualquer lugar do Brasil? Procure por informações sobre requisitos de localização, residência, ou área geográfica necessária para participar. IMPORTANTE: Você DEVE retornar SEMPRE em formato JSON válido, nunca em texto livre. Se o edital aceita participantes de qualquer lugar do Brasil (sem restrição geográfica), retorne: {\"localizacao\": \"Brasil\"} ou {\"localizacao\": \"Nacional\"}. Se houver restrição geográfica específica (ex: apenas Espírito Santo, apenas São Paulo, apenas região Sudeste), retorne: {\"localizacao\": \"Espírito Santo\"} ou {\"localizacao\": \"São Paulo\"} ou {\"localizacao\": \"Região Sudeste\"} com o estado, cidade ou região específica encontrada. Procure também por termos como 'localização', 'residência', 'área de atuação', 'abrangência', 'região', 'estado', 'município', 'nacional', 'brasileiro'. Se não encontrar nenhuma informação sobre restrição geográfica, retorne: {\"localizacao\": \"Brasil\"} (assumindo que não há restrição). Se não encontrar nenhuma informação no documento, retorne: {\"localizacao\": null}. LEMBRE-SE: Retorne APENAS o JSON, sem texto adicional antes ou depois.",
       vagas: "Qual é o número máximo de participantes, projetos ou propostas que este edital aceita para inscrição? Procure ESPECIFICAMENTE por valores numéricos inteiros (números como 10, 20, 50, 100, 200, etc) que estejam próximos ou ao lado das palavras: 'vagas', 'propostas', 'projetos', 'inscrições', 'beneficiados', 'beneficiários', 'selecionados', 'aprovados', 'contratados', 'quantidade', 'total de', 'número de', 'máximo de', 'limite de', 'até', 'serão selecionados', 'serão aprovados', 'serão contratados', 'projetos aprovados', 'propostas aprovadas', 'número de projetos', 'quantidade de projetos', 'total de projetos', 'número de beneficiários', 'quantidade de beneficiários'. REGRAS CRÍTICAS: 1) Busque apenas números inteiros (10, 20, 50, 100) que NÃO sejam parte do nome/número do edital (ignore 'Edital 21/2024', 'Nº 10', datas '2024', '2025'). 2) Os números devem representar quantidade de vagas/propostas/projetos/beneficiados/selecionados, NÃO valores monetários ou datas. 3) Procure por padrões como: 'X vagas', 'X propostas', 'até X projetos', 'máximo de X', 'limite de X', 'X beneficiados', 'serão selecionados X', 'serão aprovados X', 'total de X projetos', 'quantidade de X', 'número de X', onde X é um número inteiro. 4) CÁLCULO BASEADO EM VALORES: Se encontrar valores financeiros totais e valores por projeto/beneficiário, calcule o número de vagas. Exemplo: se há R$ 1.000.000 total e cada projeto recebe R$ 50.000, então há 20 vagas. Procure por tabelas de 'recursos disponíveis', 'distribuição de recursos', 'valores por projeto', 'valores por beneficiário'. 5) PROCURE EM SEÇÕES ESPECÍFICAS: 'Objetivo', 'Recursos', 'Seleção', 'Aprovação', 'Quantidade de Projetos', 'Número de Vagas', 'Distribuição de Recursos', 'Critérios de Seleção', 'Resultado Esperado'. 6) Se encontrar 'cada proponente pode apresentar apenas uma proposta', isso é limite por proponente, NÃO o total de vagas - continue procurando pelo número total de vagas/projetos aprovados. 7) Ignore números de identificação do edital, datas, valores monetários ou contextos não relacionados. FORMATO DE RESPOSTA OBRIGATÓRIO: Você DEVE retornar APENAS JSON válido, SEM texto adicional. Se encontrar um número, retorne: {\"vagas\": \"X\"} onde X é o número encontrado. Se não encontrar nenhum número específico, retorne: {\"vagas\": null}. NUNCA retorne texto livre como 'Não foi possível encontrar' - sempre retorne JSON válido.",
-      is_researcher: "Este edital é direcionado para pesquisadores, estudantes de iniciação científica, ou pessoas físicas que desenvolvem pesquisa científica? Procure por informações sobre quem pode se candidatar, incluindo termos como: 'pesquisadores', 'pesquisador', 'pesquisa', 'cientista', 'doutor', 'doutorado', 'pós-doutorado', 'pesquisador associado', 'pesquisador principal', 'investigador', 'investigação científica', 'projeto de pesquisa', 'pesquisador individual', 'bolsista pesquisador', 'iniciação científica', 'IC', 'bolsista de iniciação científica', 'estudante de iniciação científica', 'pesquisa acadêmica', 'pesquisa científica', 'pesquisador acadêmico', 'docente pesquisador', 'pesquisador júnior', 'pesquisador sênior', 'bolsa de pesquisa', 'auxílio pesquisa', 'bolsa científica', 'bolsista científico'. IMPORTANTE: Se o edital mencionar que é direcionado para pesquisadores, estudantes de iniciação científica, ou qualquer tipo de pessoa física que desenvolve pesquisa científica (independente de ser empresa ou não), retorne {\"is_researcher\": true}. Retorne {\"is_researcher\": false} se for exclusivamente para empresas sem foco em pesquisa, ou {\"is_researcher\": null} se não houver informação clara. LEMBRE-SE: Retorne APENAS o JSON, sem texto adicional.",
-      is_company: "Este edital é aberto ao público geral, empresas (com ou sem CNPJ), pessoas físicas com atividade empresarial, ou organizações? Procure por informações sobre quem pode se candidatar, incluindo termos como: 'empresa', 'empresas', 'empresário', 'empresários', 'microempresa', 'pequena empresa', 'média empresa', 'grande empresa', 'ME', 'EPP', 'MPE', 'startup', 'startups', 'empresa de base tecnológica', 'EBT', 'empresa privada', 'CNPJ', 'PJ', 'pessoa jurídica', 'empresarial', 'setor privado', 'empresa nacional', 'empresa estrangeira', 'pessoa física', 'autônomo', 'MEI', 'microempreendedor individual', 'aberto ao público', 'público em geral', 'qualquer interessado', 'pessoa física ou jurídica', 'empresas e pessoas físicas', 'organizações', 'ONG', 'organização não governamental', 'associação', 'cooperativa', 'sociedade', 'empreendedor', 'empreendedores', 'negócio', 'negócios', 'comércio', 'prestação de serviços', 'qualquer pessoa', 'todos podem participar', 'sem restrição'. IMPORTANTE: Retorne {\"is_company\": true} se o edital for direcionado para empresas, pessoas físicas com atividade empresarial, autônomos, MEI, ou se for aberto ao público geral (com ou sem necessidade de CNPJ). Retorne {\"is_company\": false} se for exclusivamente para pesquisadores acadêmicos sem envolvimento empresarial, ou {\"is_company\": null} se não houver informação clara. LEMBRE-SE: Retorne APENAS o JSON, sem texto adicional.",
+      is_researcher: `Analise o edital COMPLETO e determine se ele é direcionado EXCLUSIVA ou PRINCIPALMENTE para PESQUISADORES ACADÊMICOS.
+
+REGRAS CRÍTICAS DE CLASSIFICAÇÃO:
+
+RETORNE {"is_researcher": true} APENAS SE:
+1. O edital menciona PROGRAMAS ACADÊMICOS CONHECIDOS no título ou texto principal:
+   - "Marie Skłodowska-Curie", "MSCA", "Horizon Europe", "Horizon 2020", "ERC", "European Research Council"
+   - "intercâmbio de pessoal", "mobility", "fellowship", "research grant", "research fellowship"
+   Estes programas são SEMPRE para pesquisadores acadêmicos, mesmo que mencionem empresas.
+
+2. O edital EXIGE EXPLICITAMENTE títulos acadêmicos como REQUISITO OBRIGATÓRIO:
+   - "requisito de doutorado", "requisito de mestrado"
+   - "título de doutor obrigatório", "título de mestre obrigatório"
+   - "deve ter doutorado", "deve ter mestrado", "exige doutorado", "exige mestrado"
+   - "PhD obrigatório", "pós-doutorado", "postdoc", "post-doctoral"
+   IMPORTANTE: Apenas se for REQUISITO OBRIGATÓRIO, não apenas menção casual.
+
+3. O edital EXIGE vínculo com instituição de ensino como REQUISITO:
+   - "vinculado a universidade", "pesquisador de universidade"
+   - "pesquisador de instituição de ensino", "docente pesquisador", "professor pesquisador"
+   - "requer vínculo institucional com universidade"
+   IMPORTANTE: Apenas se for REQUISITO, não apenas menção casual de universidades.
+
+4. O edital menciona bolsas acadêmicas específicas:
+   - "bolsa de iniciação científica", "bolsista de iniciação científica", "IC - iniciação científica"
+   - "bolsa de pesquisa científica", "bolsa científica"
+
+RETORNE {"is_researcher": false} SE:
+- O edital menciona "CNPJ obrigatório", "pessoa jurídica obrigatória", "formação de empresa obrigatória" E NÃO menciona títulos acadêmicos ou vínculo com instituição de ensino como requisito
+- O edital menciona apenas "empresas", "startups", "negócios", "empreendedores", "MEI", "microempresa" SEM mencionar pesquisa acadêmica ou requisitos acadêmicos
+- O edital é claramente para atividade empresarial/comercial sem componente acadêmico
+
+RETORNE {"is_researcher": null} SE:
+- Não houver informação suficiente no documento
+- O edital menciona tanto empresas quanto pesquisadores sem deixar claro qual é o público principal
+- Não for possível determinar com certeza baseado no conteúdo disponível
+
+REGRA DE PRIORIDADE:
+- Se o edital menciona programas acadêmicos conhecidos (MSCA, Horizon, ERC), SEMPRE retorne true, mesmo que também mencione empresas
+- Se o edital menciona CNPJ/empresa como requisito obrigatório E NÃO menciona títulos acadêmicos ou vínculo institucional como requisito, retorne false
+- Se o edital menciona títulos acadêmicos como requisito obrigatório E NÃO menciona CNPJ/empresa como requisito obrigatório, retorne true
+
+EXEMPLOS ESPECÍFICOS:
+- "MSCA - Marie Skłodowska-Curie Intercâmbio de Pessoal 2025" → true (programa acadêmico conhecido)
+- "Edital para pesquisadores com doutorado vinculados a universidade" → true (requisito acadêmico explícito)
+- "CNPJ obrigatório para empresas inovadoras" → false (requisito empresarial sem requisito acadêmico)
+- "Edital para startups e pesquisadores" → null (ambos mencionados, não é claro qual é o principal)
+- "Horizon Europe - Research and Innovation" → true (programa acadêmico conhecido)
+- "Formação de empresa obrigatória para receber o recurso" → false (requisito empresarial sem requisito acadêmico)
+
+Retorne APENAS o JSON válido: {"is_researcher": true/false/null}`,
+      is_company: `Analise o edital COMPLETO e determine se ele é direcionado EXCLUSIVA ou PRINCIPALMENTE para EMPRESAS ou requer CNPJ como requisito obrigatório.
+
+REGRAS CRÍTICAS DE CLASSIFICAÇÃO:
+
+RETORNE {"is_company": true} APENAS SE:
+1. O edital EXIGE EXPLICITAMENTE CNPJ ou Pessoa Jurídica como REQUISITO OBRIGATÓRIO:
+   - "CNPJ obrigatório", "CNPJ é obrigatório", "requer CNPJ", "necessário CNPJ"
+   - "pessoa jurídica obrigatória", "PJ obrigatória", "requer pessoa jurídica"
+   - "inscrição como pessoa jurídica obrigatória"
+   IMPORTANTE: Apenas se for REQUISITO OBRIGATÓRIO, não apenas menção casual.
+
+2. O edital EXIGE formação ou constituição de empresa como REQUISITO:
+   - "formação de empresa obrigatória", "constituição de empresa obrigatória"
+   - "deve constituir empresa", "deve formar empresa", "deve abrir empresa"
+   - "obrigatório constituir empresa", "exige formação de empresa"
+   IMPORTANTE: Apenas se for REQUISITO, não apenas menção casual.
+
+3. O edital menciona tipos específicos de empresa como público-alvo PRINCIPAL:
+   - "microempresa", "pequena empresa", "média empresa", "grande empresa"
+   - "startup", "startups", "MEI", "microempreendedor individual"
+   - "empresa de base tecnológica", "EBT", "ME", "EPP", "MPE"
+   IMPORTANTE: Apenas se forem o público-alvo PRINCIPAL, não apenas mencionados.
+
+RETORNE {"is_company": false} SE:
+- O edital menciona PROGRAMAS ACADÊMICOS CONHECIDOS (MSCA, Horizon Europe, ERC, Marie Skłodowska-Curie) mesmo que também mencione empresas
+- O edital EXIGE títulos acadêmicos (doutorado, mestrado) como requisito obrigatório E NÃO exige CNPJ/empresa como requisito obrigatório
+- O edital EXIGE vínculo com instituição de ensino (universidade, faculdade) como requisito E NÃO exige CNPJ/empresa como requisito obrigatório
+- O edital menciona apenas "pesquisadores acadêmicos", "bolsas de pesquisa científica" SEM mencionar CNPJ ou empresa como requisito obrigatório
+- Não houver menção clara a CNPJ obrigatório, formação de empresa obrigatória, ou empresas como público-alvo principal
+
+RETORNE {"is_company": null} SE:
+- Não houver informação suficiente no documento
+- O edital menciona tanto empresas quanto pesquisadores sem deixar claro qual é o público principal
+- Não for possível determinar com certeza baseado no conteúdo disponível
+
+REGRA DE PRIORIDADE:
+- Se o edital menciona programas acadêmicos conhecidos (MSCA, Horizon, ERC), SEMPRE retorne false, mesmo que também mencione empresas
+- Se o edital exige CNPJ/empresa como requisito obrigatório E NÃO exige títulos acadêmicos ou vínculo institucional como requisito obrigatório, retorne true
+- Se o edital exige títulos acadêmicos como requisito obrigatório E NÃO exige CNPJ/empresa como requisito obrigatório, retorne false
+- Se o edital exige ambos (CNPJ E títulos acadêmicos), avalie qual é o requisito PRINCIPAL ou retorne null se não for claro
+
+EXEMPLOS ESPECÍFICOS:
+- "CNPJ obrigatório para empresas inovadoras" → true (requisito empresarial explícito)
+- "Formação de startup obrigatória para receber o recurso" → true (requisito empresarial explícito)
+- "MSCA - Marie Skłodowska-Curie Intercâmbio de Pessoal" → false (programa acadêmico conhecido)
+- "Edital para pesquisadores com doutorado vinculados a universidade" → false (requisito acadêmico sem requisito empresarial)
+- "Horizon Europe - Research and Innovation" → false (programa acadêmico conhecido)
+- "Edital para startups e pesquisadores" → null (ambos mencionados, não é claro qual é o principal)
+- "CNPJ obrigatório E título de doutor obrigatório" → null (ambos são requisitos, precisa avaliar qual é o principal)
+
+Retorne APENAS o JSON válido: {"is_company": true/false/null}`,
       sobre_programa: "Quais são as informações sobre o programa deste edital? Procure por seções como 'Sobre o Programa', 'Sobre o Edital', 'Objetivo do Programa', 'Descrição do Programa', 'Apresentação', 'Introdução', 'Contexto', 'Justificativa', 'Objetivos Gerais', 'Objetivos Específicos', 'Público-alvo', 'Área de Atuação'. Extraia um resumo completo e informativo sobre o programa, incluindo seus objetivos, público-alvo, área de atuação e contexto. IMPORTANTE: Retorne em formato JSON: {\"sobre_programa\": \"texto completo extraído sobre o programa\"}. Se não encontrar informações, retorne: {\"sobre_programa\": null}. LEMBRE-SE: Retorne APENAS o JSON, sem texto adicional antes ou depois.",
       criterios_elegibilidade: "Quais são os CRITÉRIOS DE ELEGIBILIDADE deste edital? Procure ESPECIFICAMENTE pela seção 'Critérios de Elegibilidade', 'Critérios de Habilitação', 'Requisitos para Participação', 'Condições de Elegibilidade', 'Condições de Habilitação', 'Requisitos de Elegibilidade', 'Critérios de Participação', 'Condições para Participação'. Extraia TODOS os critérios, requisitos e condições necessários para participar do edital. IMPORTANTE: Retorne em formato JSON: {\"criterios_elegibilidade\": \"texto completo com todos os critérios de elegibilidade encontrados\"}. Se não encontrar a seção de critérios de elegibilidade, retorne: {\"criterios_elegibilidade\": null}. LEMBRE-SE: Retorne APENAS o JSON, sem texto adicional antes ou depois.",
       timeline_estimada: "IMPORTANTE: Você recebeu os arquivos do edital através dos file_ids fornecidos. Analise o conteúdo desses arquivos para responder esta pergunta. Quais são as fases e cronograma deste edital? Procure por seções como 'Cronograma', 'Timeline', 'Calendário', 'Fases do Edital', 'Etapas', 'Fases de Execução', 'Cronograma de Atividades', 'Calendário de Execução', 'Linha do Tempo'. Para cada fase encontrada, extraia: nome da fase, prazo (em dias ou datas), status (aberto/fechado/pendente), data de início (se disponível), data de fim (se disponível). IMPORTANTE: Retorne em formato JSON: {\"timeline_estimada\": {\"fases\": [{\"nome\": \"Inscrição\", \"prazo\": \"30 dias\", \"status\": \"aberto\", \"data_inicio\": \"2024-01-01\", \"data_fim\": \"2024-01-31\"}, {\"nome\": \"Fase 1\", \"prazo\": \"60 dias\", \"status\": \"pendente\"}, ...]}}. Se não encontrar informações sobre cronograma/fases, retorne: {\"timeline_estimada\": null}. LEMBRE-SE: Retorne APENAS o JSON, sem texto adicional antes ou depois.",
@@ -1127,6 +1227,9 @@ export async function processEditalInfo(
     is_company = edital.is_company ?? null;
     console.log(`  ⏭️  Is Company já possui valor válido, mantendo valor existente`);
   }
+
+  // Confiar na classificação da IA - sem pós-processamento
+  // Os prompts foram melhorados para que a IA faça a classificação correta desde o início
   
   if (needsSobrePrograma) {
     const result = await extractInfoFromWebhook('sobre_programa', pdfIds);

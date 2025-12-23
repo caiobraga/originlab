@@ -8,6 +8,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
@@ -33,6 +35,7 @@ interface EditalDisplay extends EditalWithScores {
 export default function Dashboard() {
   const [filtroRegiao, setFiltroRegiao] = useState<string>("todos");
   const [busca, setBusca] = useState("");
+  const [mostrarInativos, setMostrarInativos] = useState(false); // Opção para mostrar editais inativos
   const [editais, setEditais] = useState<EditalDisplay[]>([]);
   const [loading, setLoading] = useState(true);
   const [gerandoProposta, setGerandoProposta] = useState<string | null>(null); // ID do edital sendo processado
@@ -110,8 +113,95 @@ export default function Dashboard() {
     }
   };
 
+  // Função helper para verificar se um edital ainda está ativo
+  const isEditalAtivo = (edital: EditalDisplay): boolean => {
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0); // Resetar horas para comparar apenas datas
+
+    // Verificar data_encerramento primeiro
+    if (edital.data_encerramento) {
+      const encerramento = new Date(edital.data_encerramento);
+      encerramento.setHours(0, 0, 0, 0);
+      if (encerramento < hoje) {
+        return false; // Edital já encerrou
+      }
+    }
+
+    // Verificar prazo_inscricao (pode ter múltiplos prazos)
+    if (edital.prazo_inscricao) {
+      try {
+        // Tentar parsear como JSON
+        let parsed: any;
+        if (typeof edital.prazo_inscricao === 'string' && edital.prazo_inscricao.trim().startsWith('{')) {
+          parsed = JSON.parse(edital.prazo_inscricao);
+        } else if (typeof edital.prazo_inscricao === 'object') {
+          parsed = edital.prazo_inscricao;
+        } else {
+          // Se for string simples, tentar parsear como data
+          const dataPrazo = new Date(edital.prazo_inscricao);
+          if (!isNaN(dataPrazo.getTime())) {
+            dataPrazo.setHours(0, 0, 0, 0);
+            return dataPrazo >= hoje;
+          }
+          // Se não for data válida, considerar como ativo
+          return true;
+        }
+
+        // Se for objeto com array de prazos
+        if (parsed.prazos && Array.isArray(parsed.prazos)) {
+          // Verificar se pelo menos um prazo ainda está ativo
+          const temPrazoAtivo = parsed.prazos.some((prazo: any) => {
+            if (typeof prazo === 'string') {
+              const dataPrazo = new Date(prazo);
+              if (!isNaN(dataPrazo.getTime())) {
+                dataPrazo.setHours(0, 0, 0, 0);
+                return dataPrazo >= hoje;
+              }
+            } else if (prazo.fim) {
+              const dataFim = new Date(prazo.fim);
+              if (!isNaN(dataFim.getTime())) {
+                dataFim.setHours(0, 0, 0, 0);
+                return dataFim >= hoje;
+              }
+            }
+            return false;
+          });
+          return temPrazoAtivo;
+        }
+
+        // Se for objeto com prazo único
+        if (parsed.prazo) {
+          const dataPrazo = new Date(parsed.prazo);
+          if (!isNaN(dataPrazo.getTime())) {
+            dataPrazo.setHours(0, 0, 0, 0);
+            return dataPrazo >= hoje;
+          }
+        }
+
+        if (parsed.fim) {
+          const dataFim = new Date(parsed.fim);
+          if (!isNaN(dataFim.getTime())) {
+            dataFim.setHours(0, 0, 0, 0);
+            return dataFim >= hoje;
+          }
+        }
+      } catch (e) {
+        // Se não conseguir parsear, considerar como ativo para não remover por engano
+        console.warn("Erro ao parsear prazo_inscricao:", e);
+      }
+    }
+
+    // Se não tem data de encerramento nem prazo de inscrição, considerar como ativo
+    return true;
+  };
+
   // Filtrar editais baseado no perfil do usuário e outros filtros
   const editaisFiltrados = editais.filter((edital) => {
+    // Filtrar editais que já passaram da data de encerramento (a menos que mostrarInativos esteja ativo)
+    if (!mostrarInativos && !isEditalAtivo(edital)) {
+      return false;
+    }
+
     // Filtro baseado no perfil do usuário (is_researcher ou is_company)
     if (profile && !profileLoading) {
       const userType = profile.userType;
@@ -153,9 +243,9 @@ export default function Dashboard() {
   });
 
   const stats = {
-    editaisAtivos: editais.length,
-    emAnalise: editais.filter((e) => e.status === "em_analise").length,
-    matchAlto: editais.filter((e) => e.match >= 90).length,
+    editaisAtivos: editaisFiltrados.length,
+    emAnalise: editaisFiltrados.filter((e) => e.status === "em_analise").length,
+    matchAlto: editaisFiltrados.filter((e) => e.match >= 90).length,
     propostas: 5, // Mock - número de propostas ativas
   };
 
@@ -238,6 +328,18 @@ export default function Dashboard() {
                 <option value="europa">🇪🇺 Europa</option>
                 <option value="latam">🌎 América Latina</option>
               </select>
+            </div>
+          </div>
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="mostrar-inativos"
+                checked={mostrarInativos}
+                onCheckedChange={(checked) => setMostrarInativos(checked === true)}
+              />
+              <Label htmlFor="mostrar-inativos" className="text-sm text-gray-700 cursor-pointer">
+                Mostrar editais inativos (com prazo encerrado)
+              </Label>
             </div>
           </div>
           {profile && !profileLoading && (
