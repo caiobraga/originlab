@@ -7,6 +7,7 @@ import {
   AlertCircle,
   CheckCircle2,
   FileText,
+  List,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +37,7 @@ export default function EditorProposta() {
   const hasUnsavedChangesRef = useRef(false);
   const camposRef = useRef<PropostaFormData>(createEmptyPropostaForm());
   const scrollPositionKey = `scroll_${propostaId}`;
+  const [activeSection, setActiveSection] = useState<string>("");
 
   useEffect(() => {
     async function loadProposta() {
@@ -263,6 +265,70 @@ export default function EditorProposta() {
     }
   };
 
+  // Navegação por seções
+  const sections = [
+    { id: "secao-titulo-projeto", label: "1. Título do Projeto" },
+    { id: "secao-eixos-estrategicos", label: "1.3. Eixos Estratégicos" },
+    { id: "secao-instituicao-executora", label: "2. Instituição Executora" },
+    { id: "secao-detalhamento-projeto", label: "3. Detalhamento do Projeto" },
+    { id: "secao-equipe-projeto", label: "4. Equipe do Projeto" },
+    { id: "secao-cronograma", label: "5. Cronograma" },
+    { id: "secao-recursos-financeiros", label: "6. Recursos Financeiros" },
+  ];
+
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      const headerOffset = 120; // Mais espaço para o header fixo
+      const elementPosition = element.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+      window.scrollTo({
+        top: Math.max(0, offsetPosition - 20), // Adicionar um pouco mais de espaço
+        behavior: "smooth",
+      });
+    }
+  };
+
+  // Detectar seção ativa durante scroll
+  useEffect(() => {
+    if (!proposta) return;
+
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY + 150; // Offset maior para header fixo
+      const windowHeight = window.innerHeight;
+      const documentHeight = document.documentElement.scrollHeight;
+
+      // Se estiver perto do final da página, marcar a última seção como ativa
+      if (scrollPosition + windowHeight >= documentHeight - 100) {
+        setActiveSection(sections[sections.length - 1].id);
+        return;
+      }
+
+      // Verificar cada seção de baixo para cima
+      for (let i = sections.length - 1; i >= 0; i--) {
+        const section = document.getElementById(sections[i].id);
+        if (section) {
+          const sectionTop = section.offsetTop;
+          const sectionHeight = section.offsetHeight;
+          
+          // Considerar a seção ativa se estiver dentro de um range maior
+          if (scrollPosition >= sectionTop - 50 && scrollPosition < sectionTop + sectionHeight) {
+            setActiveSection(sections[i].id);
+            break;
+          }
+        }
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll(); // Verificar seção inicial
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, [proposta]);
+
   // Restaurar scroll position quando a página carrega
   useEffect(() => {
     if (!loading && proposta) {
@@ -463,6 +529,29 @@ export default function EditorProposta() {
       {/* Espaço para o header fixo - altura aproximada do header */}
       <div className="h-[88px]"></div>
 
+      {/* Barra Lateral de Navegação - Tópicos */}
+      <div className="fixed top-[100px] left-6 z-40 bg-white rounded-xl p-4 shadow-lg border border-gray-200 w-64 hidden lg:block">
+        <div className="flex items-center gap-2 mb-4">
+          <List className="w-4 h-4 text-blue-600" />
+          <h3 className="font-bold text-gray-900 text-sm">Navegação</h3>
+        </div>
+        <nav className="space-y-1">
+          {sections.map((section) => (
+            <button
+              key={section.id}
+              onClick={() => scrollToSection(section.id)}
+              className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                activeSection === section.id
+                  ? "bg-blue-50 text-blue-700 font-semibold border-l-2 border-blue-600"
+                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              }`}
+            >
+              {section.label}
+            </button>
+          ))}
+        </nav>
+      </div>
+
       {/* Card Fixo - Status, Progresso e Ver Edital - Sempre visível */}
       <div className="fixed top-[100px] right-6 z-40 bg-white rounded-xl p-5 shadow-lg border border-gray-200 w-56 space-y-4">
         {/* Status */}
@@ -516,7 +605,7 @@ export default function EditorProposta() {
         </div>
       </div>
 
-      <div className="container py-8">
+      <div className="container py-8 lg:pl-72">
         <div className={`grid gap-6 ${proposta.observacoes ? 'grid-cols-4' : 'grid-cols-1'}`}>
           {/* Formulário Principal */}
           <div className={`${proposta.observacoes ? 'col-span-3' : 'col-span-1'} space-y-6`}>

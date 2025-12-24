@@ -152,6 +152,7 @@ async function fetchUserDataForScoring(
 
 /**
  * Calcula probabilidade de aprovação e % de match usando API
+ * Usa cache para evitar requisições duplicadas simultâneas
  */
 export async function calculateEditalScores(
   edital: DatabaseEdital,
@@ -170,51 +171,74 @@ export async function calculateEditalScores(
     };
   }
 
-  // Verificar se já existe score no banco
-  const existingScore = await fetchEditalScore(edital.id, userId);
-  if (existingScore) {
-    console.log(`✅ Score já existe para edital ${edital.id} e usuário ${userId}`);
-    return existingScore;
+  // Criar chave única para cache (edital_id + user_id)
+  const cacheKey = `${edital.id}-${userId}`;
+
+  // Verificar se já existe uma requisição em andamento para este edital+usuário
+  if (scoreCalculationCache.has(cacheKey)) {
+    console.log(`⏳ Aguardando cálculo de score já em andamento para edital ${edital.id}...`);
+    return await scoreCalculationCache.get(cacheKey)!;
   }
 
-  // Buscar dados do usuário
-  const userProfile = profile || await getUserProfile(user);
-  const userData = await fetchUserDataForScoring(user, userProfile);
+  // Criar promise para o cálculo
+  const calculationPromise = (async () => {
+    try {
+      // Verificar se já existe score no banco
+      const existingScore = await fetchEditalScore(edital.id, userId);
+      if (existingScore) {
+        console.log(`✅ Score já existe para edital ${edital.id} e usuário ${userId}`);
+        return existingScore;
+      }
 
-  // Fazer requisição para API
-  try {
-    const response = await fetch("/api/calculate-edital-scores", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        edital_id: edital.id,
-        user_id: userId,
-        user_data: userData,
-      }),
-    });
+      // Buscar dados do usuário
+      const userProfile = profile || await getUserProfile(user);
+      const userData = await fetchUserDataForScoring(user, userProfile);
 
-    if (!response.ok) {
-      throw new Error(`Erro na API: ${response.statusText}`);
+      // Fazer requisição para API
+      const response = await fetch("/api/calculate-edital-scores", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          edital_id: edital.id,
+          user_id: userId,
+          user_data: userData,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erro na API: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      return {
+        match: result.match || 50,
+        probabilidade: result.probabilidade || 40,
+        justificativa: result.justificativa || null,
+      };
+    } catch (error) {
+      console.error("Erro ao calcular scores:", error);
+      // Fallback para valores padrão em caso de erro
+      return {
+        match: 50,
+        probabilidade: 40,
+        justificativa: null,
+      };
+    } finally {
+      // Remover do cache após completar (sucesso ou erro)
+      scoreCalculationCache.delete(cacheKey);
     }
+  })();
 
-    const result = await response.json();
-    return {
-      match: result.match || 50,
-      probabilidade: result.probabilidade || 40,
-      justificativa: result.justificativa || null,
-    };
-  } catch (error) {
-    console.error("Erro ao calcular scores:", error);
-    // Fallback para valores padrão em caso de erro
-    return {
-      match: 50,
-      probabilidade: 40,
-      justificativa: null,
-    };
-  }
+  // Adicionar ao cache antes de executar
+  scoreCalculationCache.set(cacheKey, calculationPromise);
+
+  return await calculationPromise;
 }
+
+// Cache para evitar requisições duplicadas simultâneas
+const scoreCalculationCache = new Map<string, Promise<{ match: number; probabilidade: number; justificativa?: string | null }>>();
 
 /**
  * Busca editais do Supabase e adiciona scores (match e probabilidade)
@@ -226,16 +250,32 @@ export async function fetchEditaisWithScores(
 ): Promise<EditalWithScores[]> {
   const editais = await fetchEditaisFromSupabase();
 
-  // Calcular scores para cada edital
-  const editaisComScores = await Promise.all(
-    editais.map(async (edital) => {
-      const scores = await calculateEditalScores(edital, userId, user, profile);
-      return {
-        ...edital,
-        ...scores,
-      };
-    })
-  );
+  // Processar editais em batches para evitar rate limits
+  // Calcular scores em batches de 5 para não sobrecarregar a API
+  const batchSize = 5;
+  const editaisComScores: EditalWithScores[] = [];
+
+  for (let i = 0; i < editais.length; i += batchSize) {
+    const batch = editais.slice(i, i + batchSize);
+    
+    // Processar batch com Promise.all, mas limitado ao tamanho do batch
+    const batchResults = await Promise.all(
+      batch.map(async (edital) => {
+        const scores = await calculateEditalScores(edital, userId, user, profile);
+        return {
+          ...edital,
+          ...scores,
+        };
+      })
+    );
+    
+    editaisComScores.push(...batchResults);
+    
+    // Pequeno delay entre batches para evitar rate limits
+    if (i + batchSize < editais.length) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+  }
 
   return editaisComScores;
 }

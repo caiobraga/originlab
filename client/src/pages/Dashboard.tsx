@@ -3,7 +3,8 @@ import { Link, useLocation } from "wouter";
 import { 
   ArrowLeft, Search, Filter, Globe, TrendingUp, Calendar, 
   DollarSign, Target, CheckCircle2, Clock, AlertCircle,
-  Send, Eye, Sparkles, BarChart3, FileText, User, Loader2
+  Send, Eye, Sparkles, BarChart3, User, Loader2,
+  GraduationCap, Building2, Users
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,6 +37,7 @@ export default function Dashboard() {
   const [filtroRegiao, setFiltroRegiao] = useState<string>("todos");
   const [busca, setBusca] = useState("");
   const [mostrarInativos, setMostrarInativos] = useState(false); // Opção para mostrar editais inativos
+  const [filtroTipoEdital, setFiltroTipoEdital] = useState<"pesquisadores" | "empresas" | "todos">("todos"); // Filtro para tipo ambos
   const [editais, setEditais] = useState<EditalDisplay[]>([]);
   const [loading, setLoading] = useState(true);
   const [gerandoProposta, setGerandoProposta] = useState<string | null>(null); // ID do edital sendo processado
@@ -223,6 +225,22 @@ export default function Dashboard() {
           return false;
         }
       }
+      
+      // Se o usuário é tipo "ambos", aplicar filtro baseado no filtroTipoEdital
+      if (userType === "ambos") {
+        if (filtroTipoEdital === "pesquisadores") {
+          // Mostrar apenas editais onde is_researcher === true
+          if (edital.is_researcher === false) {
+            return false;
+          }
+        } else if (filtroTipoEdital === "empresas") {
+          // Mostrar apenas editais onde is_company === true
+          if (edital.is_company === false) {
+            return false;
+          }
+        }
+        // Se filtroTipoEdital === "todos", não filtrar por tipo
+      }
     }
 
     // Filtro de busca
@@ -246,7 +264,6 @@ export default function Dashboard() {
     editaisAtivos: editaisFiltrados.length,
     emAnalise: editaisFiltrados.filter((e) => e.status === "em_analise").length,
     matchAlto: editaisFiltrados.filter((e) => e.match >= 90).length,
-    propostas: 5, // Mock - número de propostas ativas
   };
 
   return (
@@ -267,7 +284,7 @@ export default function Dashboard() {
         ) : (
           <>
             {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
             <div className="flex items-center justify-between mb-2">
               <Target className="w-5 h-5 text-blue-600" />
@@ -283,14 +300,6 @@ export default function Dashboard() {
             </div>
             <div className="text-3xl font-bold text-gray-900">{stats.matchAlto}</div>
             <div className="text-sm text-gray-600">Match acima de 90%</div>
-          </div>
-
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between mb-2">
-              <FileText className="w-5 h-5 text-green-600" />
-            </div>
-            <div className="text-3xl font-bold text-gray-900">{stats.propostas}</div>
-            <div className="text-sm text-gray-600">Propostas ativas</div>
           </div>
 
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
@@ -329,6 +338,20 @@ export default function Dashboard() {
                 <option value="latam">🌎 América Latina</option>
               </select>
             </div>
+            {/* Filtro de tipo de edital - apenas para usuários tipo "ambos" */}
+            {profile && !profileLoading && profile.userType === "ambos" && (
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <select
+                  className="px-3 md:px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto"
+                  value={filtroTipoEdital}
+                  onChange={(e) => setFiltroTipoEdital(e.target.value as "pesquisadores" | "empresas" | "todos")}
+                >
+                  <option value="todos">Todos os tipos</option>
+                  <option value="pesquisadores">🔬 Pesquisadores</option>
+                  <option value="empresas">🏢 Empresas</option>
+                </select>
+              </div>
+            )}
           </div>
           <div className="mt-4 pt-4 border-t border-gray-200">
             <div className="flex items-center gap-2">
@@ -349,14 +372,24 @@ export default function Dashboard() {
                 <span>
                   Mostrando editais para{" "}
                   <span className="font-semibold text-gray-900">
-                    {profile.userType === "pesquisador" ? "pesquisadores" : "empresas e público geral"}
+                    {profile.userType === "pesquisador" 
+                      ? "pesquisadores" 
+                      : profile.userType === "pessoa-empresa"
+                      ? "empresas e público geral"
+                      : filtroTipoEdital === "pesquisadores"
+                      ? "pesquisadores"
+                      : filtroTipoEdital === "empresas"
+                      ? "empresas"
+                      : "todos os tipos"}
                   </span>
                 </span>
               </div>
               <p className="text-xs text-gray-500 mt-1">
                 {profile.userType === "pesquisador"
                   ? "Editais direcionados para pesquisadores e iniciação científica são exibidos primeiro."
-                  : "Editais abertos para empresas, MEI, autônomos e público geral são exibidos primeiro."}
+                  : profile.userType === "pessoa-empresa"
+                  ? "Editais abertos para empresas, MEI, autônomos e público geral são exibidos primeiro."
+                  : "Use o filtro acima para alternar entre editais para pesquisadores e empresas."}
               </p>
             </div>
           )}
@@ -371,6 +404,35 @@ export default function Dashboard() {
                   <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-2">
                     <span className="text-xl md:text-2xl flex-shrink-0">{edital.flag}</span>
                     <h3 className="text-base md:text-lg font-bold text-gray-900 break-words flex-1 min-w-0">{edital.titulo}</h3>
+                    {/* Badges de tipo de edital */}
+                    {(() => {
+                      const isResearcher = edital.is_researcher === true;
+                      const isCompany = edital.is_company === true;
+                      
+                      if (isResearcher && isCompany) {
+                        return (
+                          <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 flex-shrink-0">
+                            <Users className="w-3 h-3 mr-1" />
+                            Pesquisadores e Empresas
+                          </Badge>
+                        );
+                      } else if (isResearcher) {
+                        return (
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 flex-shrink-0">
+                            <GraduationCap className="w-3 h-3 mr-1" />
+                            Pesquisadores
+                          </Badge>
+                        );
+                      } else if (isCompany) {
+                        return (
+                          <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200 flex-shrink-0">
+                            <Building2 className="w-3 h-3 mr-1" />
+                            Empresas
+                          </Badge>
+                        );
+                      }
+                      return null;
+                    })()}
                     {edital.status === "novo" && (
                       <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 flex-shrink-0">
                         Novo

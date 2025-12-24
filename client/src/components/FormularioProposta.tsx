@@ -56,9 +56,9 @@ export default function FormularioProposta({ data, onChange, editalId }: Formula
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-12">
       {/* Seção 1: Título e Versão */}
-      <section className="bg-white rounded-lg p-6 border border-gray-200">
+      <section id="secao-titulo-projeto" className="bg-white rounded-lg p-6 border border-gray-200 scroll-mt-24">
         <h2 className="text-xl font-bold text-gray-900 mb-4">1. Título do Projeto</h2>
         <div className="space-y-4">
           <div className="space-y-2">
@@ -81,7 +81,7 @@ export default function FormularioProposta({ data, onChange, editalId }: Formula
       </section>
 
       {/* Seção 1.3: Eixos Estratégicos */}
-      <section className="bg-white rounded-lg p-6 border border-gray-200">
+      <section id="secao-eixos-estrategicos" className="bg-white rounded-lg p-6 border border-gray-200 scroll-mt-24">
         <h2 className="text-xl font-bold text-gray-900 mb-4">
           1.3. Selecionar Apenas Um Eixo e o(s) Tema(s) Estratégico(s)
         </h2>
@@ -160,7 +160,7 @@ export default function FormularioProposta({ data, onChange, editalId }: Formula
       </section>
 
       {/* Seção 2: Dados da Instituição Executora */}
-      <section className="bg-white rounded-lg p-6 border border-gray-200">
+      <section id="secao-instituicao-executora" className="bg-white rounded-lg p-6 border border-gray-200 scroll-mt-24">
         <h2 className="text-xl font-bold text-gray-900 mb-4">
           2. Dados da Instituição Executora
         </h2>
@@ -493,7 +493,7 @@ export default function FormularioProposta({ data, onChange, editalId }: Formula
       </section>
 
       {/* Seção 3: Detalhamento do Projeto - Apenas início, continuar depois */}
-      <section className="bg-white rounded-lg p-6 border border-gray-200">
+      <section id="secao-detalhamento-projeto" className="bg-white rounded-lg p-6 border border-gray-200 scroll-mt-24">
         <h2 className="text-xl font-bold text-gray-900 mb-4">3. Detalhamento do Projeto</h2>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -1376,7 +1376,7 @@ export default function FormularioProposta({ data, onChange, editalId }: Formula
       </section>
 
       {/* Seção 4: Equipe do Projeto */}
-      <section className="bg-white rounded-lg p-6 border border-gray-200">
+      <section id="secao-equipe-projeto" className="bg-white rounded-lg p-6 border border-gray-200 scroll-mt-24">
         <h2 className="text-xl font-bold text-gray-900 mb-4">4. Equipe do Projeto</h2>
         <div className="space-y-4">
           {(data.equipe_projeto || []).map((membro, index) => (
@@ -1504,13 +1504,13 @@ export default function FormularioProposta({ data, onChange, editalId }: Formula
       </section>
 
       {/* Seção 5: Cronograma - será implementado depois */}
-      <section className="bg-white rounded-lg p-6 border border-gray-200">
+      <section id="secao-cronograma" className="bg-white rounded-lg p-6 border border-gray-200 scroll-mt-24">
         <h2 className="text-xl font-bold text-gray-900 mb-4">5. Cronograma Físico do Projeto</h2>
         <p className="text-gray-500">Cronograma será implementado em breve...</p>
       </section>
 
       {/* Seção 6: Recursos Financeiros */}
-      <section className="bg-white rounded-lg p-6 border border-gray-200">
+      <section id="secao-recursos-financeiros" className="bg-white rounded-lg p-6 border border-gray-200 scroll-mt-24">
         <h2 className="text-xl font-bold text-gray-900 mb-4">
           6. Execução dos Recursos Financeiros
         </h2>

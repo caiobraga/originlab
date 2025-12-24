@@ -16,7 +16,7 @@ import { ArrowLeft } from "lucide-react";
 export default function EditProfile() {
   const [, setLocation] = useLocation();
   const { user, loading: authLoading } = useAuth();
-  const [userType, setUserType] = useState<"pesquisador" | "pessoa-empresa">("pesquisador");
+  const [userType, setUserType] = useState<"pesquisador" | "pessoa-empresa" | "ambos">("pesquisador");
   
   // Campos comuns
   const [cpf, setCpf] = useState("");
@@ -90,10 +90,10 @@ export default function EditProfile() {
       // Salvar dados adicionais no perfil do usuário
       await saveUserProfile(user.id, {
         cpf: cpf,
-        cnpj: hasCnpj === "sim" ? cnpj : undefined,
-        lattesId: userType === "pesquisador" ? lattesId : undefined,
+        cnpj: (userType === "pessoa-empresa" || userType === "ambos") && hasCnpj === "sim" ? cnpj : undefined,
+        lattesId: (userType === "pesquisador" || userType === "ambos") ? lattesId : undefined,
         userType: userType,
-        hasCnpj: hasCnpj === "sim",
+        hasCnpj: (userType === "pessoa-empresa" || userType === "ambos") && hasCnpj === "sim",
       });
 
       toast.success("Perfil atualizado com sucesso!");
@@ -163,10 +163,11 @@ export default function EditProfile() {
               </p>
             </div>
 
-            <Tabs value={userType} onValueChange={(value) => setUserType(value as "pesquisador" | "pessoa-empresa")} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6">
+            <Tabs value={userType} onValueChange={(value) => setUserType(value as "pesquisador" | "pessoa-empresa" | "ambos")} className="w-full">
+              <TabsList className="grid w-full grid-cols-3 mb-6">
                 <TabsTrigger value="pesquisador">Pesquisador</TabsTrigger>
                 <TabsTrigger value="pessoa-empresa">Pessoa Física/Empresa</TabsTrigger>
+                <TabsTrigger value="ambos">Ambos</TabsTrigger>
               </TabsList>
 
               <form onSubmit={handleSubmit} className="space-y-6">
@@ -237,6 +238,60 @@ export default function EditProfile() {
                   </div>
                 </TabsContent>
 
+                {/* Aba Ambos */}
+                <TabsContent value="ambos" className="space-y-6">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                    <p className="text-sm text-blue-800">
+                      <strong>Perfil Ambos:</strong> Você poderá visualizar editais tanto para pesquisadores quanto para empresas. 
+                      Use o filtro no dashboard para alternar entre os tipos.
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="lattesId-ambos">ID Lattes (Opcional)</Label>
+                    <Input
+                      id="lattesId-ambos"
+                      type="text"
+                      placeholder="0000000000000000"
+                      value={lattesId}
+                      onChange={(e) => setLattesId(e.target.value.replace(/\D/g, ""))}
+                      disabled={loading}
+                      className="w-full"
+                    />
+                    <p className="text-xs text-gray-500">Número do seu ID Lattes (apenas números) - opcional</p>
+                  </div>
+
+                  <div className="space-y-4">
+                    <Label>Você possui CNPJ?</Label>
+                    <RadioGroup value={hasCnpj} onValueChange={setHasCnpj} disabled={loading}>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="sim" id="cnpj-sim-ambos" />
+                        <Label htmlFor="cnpj-sim-ambos" className="cursor-pointer font-normal">Sim, tenho CNPJ</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="nao" id="cnpj-nao-ambos" />
+                        <Label htmlFor="cnpj-nao-ambos" className="cursor-pointer font-normal">Não tenho CNPJ</Label>
+                      </div>
+                    </RadioGroup>
+
+                    {hasCnpj === "sim" && (
+                      <div className="space-y-2 mt-4">
+                        <Label htmlFor="cnpj-ambos">CNPJ</Label>
+                        <Input
+                          id="cnpj-ambos"
+                          type="text"
+                          placeholder="00.000.000/0000-00"
+                          value={cnpj}
+                          onChange={(e) => setCnpj(formatCNPJ(e.target.value))}
+                          disabled={loading}
+                          maxLength={18}
+                          className="w-full"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+
                 <Button
                   type="submit"
                   className="w-full bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white mt-6"
@@ -245,6 +300,7 @@ export default function EditProfile() {
                     !cpf ||
                     (userType === "pesquisador" && !lattesId) ||
                     (userType === "pessoa-empresa" && hasCnpj === "sim" && !cnpj)
+                    // Tipo "ambos" não tem validações obrigatórias específicas
                   }
                 >
                   {loading ? (

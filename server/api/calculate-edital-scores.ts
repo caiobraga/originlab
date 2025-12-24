@@ -200,6 +200,8 @@ router.post('/calculate-edital-scores', async (req, res) => {
       userType: user_data?.userType || null,
     };
 
+    // Tentar inserir o score
+    // Se já existir (race condition), buscar o existente ao invés de atualizar
     const { error: insertError } = await supabase
       .from('edital_scores')
       .insert({
@@ -212,8 +214,31 @@ router.post('/calculate-edital-scores', async (req, res) => {
       });
 
     if (insertError) {
-      console.error('Erro ao salvar score:', insertError);
-      // Mesmo com erro ao salvar, retornar os scores calculados
+      // Se for erro de duplicate key (race condition), buscar o score existente
+      if (insertError.code === '23505') {
+        console.log(`⚠️ Score já existe (race condition detectada), buscando score existente...`);
+        const { data: existingScore, error: fetchError } = await supabase
+          .from('edital_scores')
+          .select('*')
+          .eq('edital_id', edital_id)
+          .eq('user_id', user_id)
+          .single();
+        
+        if (fetchError) {
+          console.error('Erro ao buscar score existente após race condition:', fetchError);
+        } else if (existingScore) {
+          console.log(`✅ Score encontrado após race condition: match=${existingScore.match_percent}%, probabilidade=${existingScore.probabilidade_percent}%`);
+          return res.json({
+            match: existingScore.match_percent,
+            probabilidade: existingScore.probabilidade_percent,
+            justificativa: existingScore.justificativa || null,
+            from_cache: true,
+          });
+        }
+      } else {
+        console.error('Erro ao salvar score:', insertError);
+        // Mesmo com erro ao salvar, retornar os scores calculados
+      }
     }
 
     console.log(`✅ Scores calculados: match=${scores.match}%, probabilidade=${scores.probabilidade}%`);
