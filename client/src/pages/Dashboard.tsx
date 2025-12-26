@@ -42,14 +42,23 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [gerandoProposta, setGerandoProposta] = useState<string | null>(null); // ID do edital sendo processado
   const [, setLocation] = useLocation();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { profile, loading: profileLoading } = useUserProfile();
 
+  // Redirecionar para login se não estiver logado
   useEffect(() => {
-    if (!profileLoading) {
+    if (!authLoading && !user) {
+      setLocation("/login");
+      return;
+    }
+  }, [user, authLoading, setLocation]);
+
+  useEffect(() => {
+    // Só carregar editais se estiver logado e não estiver carregando autenticação
+    if (!authLoading && !profileLoading && user) {
       loadEditais();
     }
-  }, [user, profile, profileLoading]);
+  }, [user, profile, profileLoading, authLoading]);
 
   const loadEditais = async () => {
     try {
@@ -116,20 +125,135 @@ export default function Dashboard() {
   };
 
   // Função helper para verificar se um edital ainda está ativo
+  // IMPORTANTE: Um edital é considerado ativo se QUALQUER um dos seguintes critérios for verdadeiro:
+  // 1. Tem fase ativa na Timeline Estimada
+  // 2. Status explícito é "Ativo" ou "Aberto"
+  // 3. Não tem data_encerramento OU data_encerramento é no futuro
+  // 4. Tem prazo_inscricao válido no futuro
+  // 5. Não tem nenhuma informação de encerramento (assumir ativo por padrão)
   const isEditalAtivo = (edital: EditalDisplay): boolean => {
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0); // Resetar horas para comparar apenas datas
 
-    // Verificar data_encerramento primeiro
+    // Critério 1: Verificar status explícito primeiro (mais confiável)
+    const statusLower = (edital.status || '').toLowerCase().trim();
+    if (statusLower === 'ativo' || statusLower === 'aberto' || statusLower === 'aberta') {
+      return true; // Status explícito indica ativo
+    }
+    if (statusLower === 'encerrado' || statusLower === 'finalizado' || statusLower === 'fechado') {
+      // Mesmo com status encerrado, verificar se tem fase ativa na timeline
+      // (pode ter sido encerrado mas ainda tem fase ativa)
+    } else {
+      // Se status não indica encerrado explicitamente, continuar verificando outros critérios
+    }
+
+    // Critério 2: Verificar Timeline Estimada
+    // IMPORTANTE: Se tem timeline_estimada, ela é a fonte de verdade principal
+    // Se nenhuma fase está ativa, o edital NÃO está ativo (a menos que outros critérios indiquem o contrário)
+    if (edital.timeline_estimada && edital.timeline_estimada.fases && Array.isArray(edital.timeline_estimada.fases)) {
+      const fasesValidas = edital.timeline_estimada.fases.filter((fase: any) => fase); // Filtrar fases nulas
+      
+      // Se não tem fases válidas, não considerar timeline
+      if (fasesValidas.length === 0) {
+        // Timeline vazia, continuar verificando outros critérios
+      } else {
+        // Verificar se alguma fase está ativa
+        const temFaseAtiva = fasesValidas.some((fase: any) => {
+          let statusCalculado = fase.status?.toLowerCase() || 'pendente';
+          
+          // Calcular status baseado nas datas
+          if (fase.data_fim) {
+            const dataFim = new Date(fase.data_fim);
+            dataFim.setHours(23, 59, 59, 999);
+            if (hoje > dataFim) {
+              statusCalculado = 'fechado';
+            } else if (fase.data_inicio) {
+              const dataInicio = new Date(fase.data_inicio);
+              dataInicio.setHours(0, 0, 0, 0);
+              if (hoje >= dataInicio && hoje <= dataFim) {
+                statusCalculado = 'aberto';
+              } else if (hoje < dataInicio) {
+                statusCalculado = 'pendente';
+              }
+            } else {
+              if (hoje <= dataFim) {
+                statusCalculado = 'aberto';
+              }
+            }
+          } else if (fase.data_inicio) {
+            const dataInicio = new Date(fase.data_inicio);
+            dataInicio.setHours(0, 0, 0, 0);
+            if (hoje >= dataInicio) {
+              statusCalculado = 'aberto';
+            } else {
+              statusCalculado = 'pendente';
+            }
+          } else {
+            // Fase sem datas válidas, considerar como pendente
+            statusCalculado = 'pendente';
+          }
+          
+          // Se a fase está aberta, o edital está ativo
+          return statusCalculado === 'aberto' || statusCalculado === 'aberta';
+        });
+        
+        if (temFaseAtiva) {
+          return true; // Tem fase ativa na timeline, edital está ativo
+        }
+        
+        // IMPORTANTE: Se tem timeline mas nenhuma fase está ativa, verificar se todas estão fechadas
+        // Se todas as fases estão fechadas/encerradas, o edital está inativo
+        const todasFasesFechadas = fasesValidas.every((fase: any) => {
+          // Verificar status explícito primeiro
+          const statusFase = fase.status?.toLowerCase() || '';
+          if (statusFase === 'fechado' || statusFase === 'encerrado' || statusFase === 'finalizado') {
+            return true; // Status explícito indica fechado
+          }
+          
+          // Se não tem status explícito, verificar por data
+          if (fase.data_fim) {
+            const dataFim = new Date(fase.data_fim);
+            dataFim.setHours(23, 59, 59, 999);
+            return hoje > dataFim; // Data já passou = fechado
+          }
+          
+          // Se não tem data_fim nem status explícito, não considerar como fechada
+          return false;
+        });
+        
+        if (todasFasesFechadas && fasesValidas.length > 0) {
+          // Todas as fases da timeline estão fechadas, edital está inativo
+          // A menos que tenha status explícito de ativo (pode ter sido reaberto)
+          if (statusLower === 'ativo' || statusLower === 'aberto' || statusLower === 'aberta') {
+            return true; // Status explícito indica ativo mesmo com timeline fechada
+          }
+          
+          // Se não tem status explícito de ativo, está inativo
+          // (não precisa verificar prazo aqui, pois se todas as fases estão fechadas, o edital está inativo)
+          return false;
+        }
+        
+        // Se chegou aqui, tem timeline mas nenhuma fase está ativa e nem todas estão fechadas
+        // (pode ter fases pendentes sem datas ou fases futuras)
+        // Continuar verificando outros critérios abaixo
+      }
+    }
+
+    // Critério 3: Verificar data_encerramento
+    // Se tem data_encerramento e já passou, verificar se não há outras indicações de atividade
     if (edital.data_encerramento) {
       const encerramento = new Date(edital.data_encerramento);
       encerramento.setHours(0, 0, 0, 0);
       if (encerramento < hoje) {
-        return false; // Edital já encerrou
+        // Data de encerramento passou, mas verificar se tem prazo_inscricao válido
+        // (pode ter múltiplos prazos ou prorrogações)
+      } else {
+        // Data de encerramento ainda não chegou, edital está ativo
+        return true;
       }
     }
 
-    // Verificar prazo_inscricao (pode ter múltiplos prazos)
+    // Critério 4: Verificar prazo_inscricao (pode ter múltiplos prazos)
     if (edital.prazo_inscricao) {
       try {
         // Tentar parsear como JSON
@@ -143,10 +267,11 @@ export default function Dashboard() {
           const dataPrazo = new Date(edital.prazo_inscricao);
           if (!isNaN(dataPrazo.getTime())) {
             dataPrazo.setHours(0, 0, 0, 0);
-            return dataPrazo >= hoje;
+            if (dataPrazo >= hoje) {
+              return true; // Prazo ainda válido
+            }
           }
-          // Se não for data válida, considerar como ativo
-          return true;
+          // Se não for data válida, continuar verificando outros critérios
         }
 
         // Se for objeto com array de prazos
@@ -168,7 +293,9 @@ export default function Dashboard() {
             }
             return false;
           });
-          return temPrazoAtivo;
+          if (temPrazoAtivo) {
+            return true; // Tem pelo menos um prazo ativo
+          }
         }
 
         // Se for objeto com prazo único
@@ -176,7 +303,9 @@ export default function Dashboard() {
           const dataPrazo = new Date(parsed.prazo);
           if (!isNaN(dataPrazo.getTime())) {
             dataPrazo.setHours(0, 0, 0, 0);
-            return dataPrazo >= hoje;
+            if (dataPrazo >= hoje) {
+              return true; // Prazo ainda válido
+            }
           }
         }
 
@@ -184,16 +313,111 @@ export default function Dashboard() {
           const dataFim = new Date(parsed.fim);
           if (!isNaN(dataFim.getTime())) {
             dataFim.setHours(0, 0, 0, 0);
-            return dataFim >= hoje;
+            if (dataFim >= hoje) {
+              return true; // Prazo ainda válido
+            }
           }
         }
       } catch (e) {
-        // Se não conseguir parsear, considerar como ativo para não remover por engano
+        // Se não conseguir parsear, continuar verificando outros critérios
         console.warn("Erro ao parsear prazo_inscricao:", e);
       }
     }
 
-    // Se não tem data de encerramento nem prazo de inscrição, considerar como ativo
+    // Critério 5: Verificação final - considerar múltiplos fatores
+    // IMPORTANTE: Se tem timeline_estimada e nenhuma fase está ativa, verificar se todas estão fechadas
+    // Se todas estão fechadas, considerar como inativo (a menos que tenha status explícito de ativo)
+    
+    // Verificar se tem timeline com todas as fases fechadas (verificação duplicada para garantir)
+    let todasFasesFechadas = false;
+    let temTimelineComFases = false;
+    if (edital.timeline_estimada && edital.timeline_estimada.fases && Array.isArray(edital.timeline_estimada.fases)) {
+      const fasesValidas = edital.timeline_estimada.fases.filter((fase: any) => fase);
+      if (fasesValidas.length > 0) {
+        temTimelineComFases = true;
+        todasFasesFechadas = fasesValidas.every((fase: any) => {
+          // Verificar status explícito primeiro
+          const statusFase = fase.status?.toLowerCase() || '';
+          if (statusFase === 'fechado' || statusFase === 'encerrado' || statusFase === 'finalizado') {
+            return true; // Status explícito indica fechado
+          }
+          
+          // Se não tem status explícito, verificar por data
+          if (fase.data_fim) {
+            const dataFim = new Date(fase.data_fim);
+            dataFim.setHours(23, 59, 59, 999);
+            return hoje > dataFim; // Data já passou = fechado
+          }
+          
+          return false; // Se não tem data_fim nem status explícito, não considerar como fechada
+        });
+      }
+    }
+    
+    // Se tem timeline e todas as fases estão fechadas, edital está inativo
+    // (a menos que tenha status explícito de ativo)
+    if (temTimelineComFases && todasFasesFechadas) {
+      // Verificar se tem status explícito de ativo (pode ter sido reaberto)
+      if (statusLower === 'ativo' || statusLower === 'aberto' || statusLower === 'aberta') {
+        return true; // Status explícito indica ativo mesmo com timeline fechada
+      }
+      
+      // Se não tem status explícito de ativo, está inativo
+      return false; // Timeline fechada e sem status explícito de ativo = inativo
+    }
+    
+    // Se tem timeline mas nenhuma fase está ativa e nem todas estão fechadas
+    // (pode ter fases pendentes sem datas), considerar como inativo se não tiver outros critérios válidos
+    if (temTimelineComFases && !todasFasesFechadas) {
+      // Tem timeline mas nenhuma fase ativa e nem todas fechadas
+      // Verificar outros critérios (status explícito ou prazo válido) antes de decidir
+      // Se não tiver outros critérios válidos, será considerado inativo no final
+    }
+    
+    // Se tem data_encerramento e já passou
+    if (edital.data_encerramento) {
+      const encerramento = new Date(edital.data_encerramento);
+      encerramento.setHours(0, 0, 0, 0);
+      
+      if (encerramento < hoje) {
+        // Data passou, mas verificar outros fatores antes de considerar inativo
+        
+        // Se status explícito é encerrado/finalizado, então está inativo
+        if (statusLower === 'encerrado' || statusLower === 'finalizado' || statusLower === 'fechado') {
+          return false; // Claramente encerrado
+        }
+        
+        // Se tem timeline mas nenhuma fase está ativa, está inativo
+        if (temTimelineComFases) {
+          return false; // Timeline sem fases ativas e data passou = inativo
+        }
+        
+        // Se não tem status explícito de encerrado e não tem timeline,
+        // ainda pode estar ativo se tem prazo válido (já verificamos prazo acima)
+        // Se chegou aqui sem prazo válido, está inativo
+        return false;
+      } else {
+        // Data de encerramento ainda não chegou, edital está ativo
+        return true;
+      }
+    }
+    
+    // Critério 6: Se não tem nenhuma informação de encerramento explícita, considerar como ativo
+    // Por padrão, assumimos que um edital está ativo a menos que haja evidência clara de que está encerrado
+    // Isso é importante porque muitos editais podem não ter todas as informações preenchidas
+    // PRINCÍPIO: Melhor mostrar editais que podem estar ativos do que esconder editais que estão ativos
+    
+    // IMPORTANTE: Se tem timeline mas nenhuma fase está ativa, considerar como inativo
+    // (a menos que tenha outros critérios válidos como status explícito ou prazo válido)
+    if (temTimelineComFases) {
+      // Tem timeline mas nenhuma fase está ativa
+      // Se não tem status explícito de ativo e não tem prazo válido, está inativo
+      // (já verificamos status e prazo acima, então se chegou aqui, está inativo)
+      return false;
+    }
+    
+    // Se chegou até aqui, não encontrou evidência clara de encerramento
+    // Considerar como ativo (não tem timeline ou timeline está vazia)
     return true;
   };
 
@@ -265,6 +489,11 @@ export default function Dashboard() {
     emAnalise: editaisFiltrados.filter((e) => e.status === "em_analise").length,
     matchAlto: editaisFiltrados.filter((e) => e.match >= 90).length,
   };
+
+  // Não renderizar se não estiver logado (está redirecionando)
+  if (!authLoading && !user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -444,8 +673,16 @@ export default function Dashboard() {
                       </Badge>
                     )}
                   </div>
-                  <div className="text-xs md:text-sm text-gray-600 mb-3 break-words">
-                    {edital.orgao || "Órgão não informado"} • {edital.pais}
+                  <div className="flex flex-wrap items-center gap-2 text-xs md:text-sm text-gray-600 mb-3 break-words">
+                    {edital.orgao && (
+                      <span className="inline-flex items-center gap-1">
+                        <Building2 className="w-3 h-3 text-gray-400" />
+                        <span className="font-medium">{edital.orgao}</span>
+                      </span>
+                    )}
+                    {edital.orgao && edital.pais && <span>•</span>}
+                    {edital.pais && <span>{edital.pais}</span>}
+                    {!edital.orgao && !edital.pais && <span className="text-gray-400">Órgão não informado</span>}
                   </div>
                   
                   {/* Descrição resumida */}
@@ -469,9 +706,15 @@ export default function Dashboard() {
                       }
                       return null;
                     })()}
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="flex items-center gap-2 min-w-0 max-w-full">
                       <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                      <span className="text-gray-600 break-words">
+                      <span className="text-gray-600 break-words min-w-0 overflow-hidden" title={(() => {
+                        const prazoFormatado = formatPrazoInscricao(edital.prazo_inscricao);
+                        if (prazoFormatado.display !== 'Não informado') {
+                          return `Prazo: ${prazoFormatado.display}`;
+                        }
+                        return `Prazo: ${edital.prazo}`;
+                      })()}>
                         {(() => {
                           const prazoFormatado = formatPrazoInscricao(edital.prazo_inscricao);
                           if (prazoFormatado.display !== 'Não informado') {
@@ -499,19 +742,6 @@ export default function Dashboard() {
                     </div>
                     <div className="text-xs text-gray-600">Match</div>
                   </div>
-
-                  {/* Probabilidade */}
-                  <div className="text-center md:text-right">
-                    <div className="text-xl md:text-2xl font-bold text-violet-600">{edital.probabilidade}%</div>
-                    <div className="text-xs text-gray-600">Prob. aprovação</div>
-                  </div>
-
-                  {/* Elegibilidade */}
-                  {edital.elegivel && (
-                    <Badge className="bg-green-100 text-green-700 border-green-200 flex-shrink-0">
-                      ✓ Elegível
-                    </Badge>
-                  )}
                 </div>
               </div>
 

@@ -320,13 +320,45 @@ async function uploadPdfsFromUrls(
       const urlPath = new URL(pdfUrl).pathname;
       let fileName = path.basename(urlPath);
       
-      // Se não tem extensão, adicionar .pdf
-      if (!fileName.includes('.')) {
-        fileName = `${fileName}.pdf`;
-      }
+      // IMPORTANTE: Sanitizar nome do arquivo para evitar problemas com espaços e caracteres especiais
+      const sanitizeFileName = (name: string): string => {
+        // Decodificar URL se necessário
+        let sanitized = decodeURIComponent(name);
+        
+        // Remover caracteres perigosos e substituir espaços por underscores
+        sanitized = sanitized
+          .replace(/[^a-zA-Z0-9._-]/g, '_') // Substituir caracteres especiais por underscore
+          .replace(/_{2,}/g, '_') // Remover underscores múltiplos
+          .replace(/^_+|_+$/g, '') // Remover underscores no início e fim
+          .substring(0, 200); // Limitar tamanho
+        
+        // Se não tem extensão, adicionar .pdf
+        if (!sanitized.includes('.')) {
+          sanitized = `${sanitized}.pdf`;
+        } else if (!sanitized.toLowerCase().endsWith('.pdf')) {
+          // Se tem extensão mas não é .pdf, substituir
+          sanitized = sanitized.replace(/\.[^.]+$/, '.pdf');
+        }
+        
+        return sanitized || 'edital.pdf';
+      };
+      
+      fileName = sanitizeFileName(fileName);
+      
+      // Sanitizar também o número do edital para o caminho
+      const sanitizePathSegment = (segment: string): string => {
+        return segment
+          .replace(/[^a-zA-Z0-9._-]/g, '_')
+          .replace(/_{2,}/g, '_')
+          .replace(/^_+|_+$/g, '')
+          .substring(0, 100);
+      };
+      
+      const safeFonte = sanitizePathSegment(edital.fonte || 'unknown');
+      const safeNumero = sanitizePathSegment(edital.numero || 'unknown');
 
-      // Criar caminho no storage: fonte/numero/nome_arquivo
-      const storagePath = `${edital.fonte || 'unknown'}/${edital.numero || 'unknown'}/${fileName}`;
+      // Criar caminho no storage: fonte/numero/nome_arquivo (todos sanitizados)
+      const storagePath = `${safeFonte}/${safeNumero}/${fileName}`;
 
       // Detectar tipo MIME
       let contentType = 'application/pdf';

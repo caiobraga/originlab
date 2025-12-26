@@ -42,10 +42,45 @@ export async function uploadPdfsToStorage(
         continue;
       }
 
-      const fileName = path.basename(pdfPath);
+      let fileName = path.basename(pdfPath);
       
-      // Criar caminho no storage: fonte/numero/nome_arquivo.pdf
-      const storagePath = `${edital.fonte || 'unknown'}/${edital.numero || 'unknown'}/${fileName}`;
+      // IMPORTANTE: Sanitizar nome do arquivo para evitar problemas com espaços e caracteres especiais
+      // Manter apenas caracteres seguros para URLs e sistemas de arquivos
+      const sanitizeFileName = (name: string): string => {
+        // Decodificar URL se necessário
+        let sanitized = decodeURIComponent(name);
+        
+        // Remover caracteres perigosos e substituir espaços por underscores
+        sanitized = sanitized
+          .replace(/[^a-zA-Z0-9._-]/g, '_') // Substituir caracteres especiais por underscore
+          .replace(/_{2,}/g, '_') // Remover underscores múltiplos
+          .replace(/^_+|_+$/g, '') // Remover underscores no início e fim
+          .substring(0, 200); // Limitar tamanho
+        
+        // Garantir que tem extensão .pdf
+        if (!sanitized.toLowerCase().endsWith('.pdf')) {
+          sanitized = `${sanitized}.pdf`;
+        }
+        
+        return sanitized || 'edital.pdf';
+      };
+      
+      fileName = sanitizeFileName(fileName);
+      
+      // Sanitizar também o número do edital para o caminho
+      const sanitizePathSegment = (segment: string): string => {
+        return segment
+          .replace(/[^a-zA-Z0-9._-]/g, '_')
+          .replace(/_{2,}/g, '_')
+          .replace(/^_+|_+$/g, '')
+          .substring(0, 100);
+      };
+      
+      const safeFonte = sanitizePathSegment(edital.fonte || 'unknown');
+      const safeNumero = sanitizePathSegment(edital.numero || 'unknown');
+      
+      // Criar caminho no storage: fonte/numero/nome_arquivo.pdf (todos sanitizados)
+      const storagePath = `${safeFonte}/${safeNumero}/${fileName}`;
 
       // Verificar se o PDF já existe no banco de dados
       const { data: existingPdf, error: checkError } = await supabase

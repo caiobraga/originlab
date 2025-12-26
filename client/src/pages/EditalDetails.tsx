@@ -97,11 +97,62 @@ export default function EditalDetails() {
 
         if (error) {
           console.error("Erro ao buscar PDFs:", error);
+          toast.error("Erro ao carregar arquivos do edital");
         } else {
-          setPdfs(data || []);
+          // IMPORTANTE: Remover duplicatas baseado em caminho_storage (chave única)
+          // Isso evita mostrar o mesmo PDF múltiplas vezes
+          // Usar Map com chave composta: caminho_storage + nome_arquivo (para garantir unicidade)
+          const uniquePdfs = new Map<string, EditalPdf>();
+          
+          (data || []).forEach((pdf: EditalPdf) => {
+            // Criar chave única baseada em caminho_storage (já inclui fonte/numero/nome)
+            // Normalizar para comparação (lowercase, trim)
+            const key = pdf.caminho_storage.toLowerCase().trim();
+            
+            // Se já existe, manter o mais completo (com mais informações)
+            if (!uniquePdfs.has(key)) {
+              uniquePdfs.set(key, pdf);
+            } else {
+              const existing = uniquePdfs.get(key)!;
+              // Preferir o que tem mais informações:
+              // 1. Tem tamanho_bytes
+              // 2. Tem tipo_mime
+              // 3. Mais recente (criado_em mais recente)
+              const existingScore = (existing.tamanho_bytes ? 1 : 0) + (existing.tipo_mime ? 1 : 0);
+              const newScore = (pdf.tamanho_bytes ? 1 : 0) + (pdf.tipo_mime ? 1 : 0);
+              
+              if (newScore > existingScore) {
+                uniquePdfs.set(key, pdf);
+              } else if (newScore === existingScore) {
+                // Se empate, manter o mais recente
+                const existingDate = new Date(existing.criado_em || 0).getTime();
+                const newDate = new Date(pdf.criado_em || 0).getTime();
+                if (newDate > existingDate) {
+                  uniquePdfs.set(key, pdf);
+                }
+              }
+            }
+          });
+          
+          const pdfsArray = Array.from(uniquePdfs.values());
+          
+          // Log para debug
+          if (data && data.length > pdfsArray.length) {
+            console.log(`⚠️ Removidas ${data.length - pdfsArray.length} duplicata(s) de PDFs`);
+            console.log(`   Total recebido: ${data.length}`);
+            console.log(`   Total único: ${pdfsArray.length}`);
+          }
+          
+          setPdfs(pdfsArray);
+          
+          // Se não encontrou PDFs mas o edital tem url_original, tentar usar ela
+          if (pdfsArray.length === 0 && edital?.link) {
+            console.log("Nenhum PDF encontrado no banco, usando link do edital:", edital.link);
+          }
         }
       } catch (error) {
         console.error("Erro ao buscar PDFs:", error);
+        toast.error("Erro ao carregar arquivos do edital");
       } finally {
         setLoadingPdfs(false);
       }
@@ -110,7 +161,7 @@ export default function EditalDetails() {
     if (editalId) {
       fetchPdfs();
     }
-  }, [editalId]);
+  }, [editalId, edital]);
 
   // Buscar scores do edital
   useEffect(() => {
@@ -136,28 +187,156 @@ export default function EditalDetails() {
   // Função para fazer download do arquivo
   const handleDownloadPdf = async (pdf: EditalPdf) => {
     try {
-      // Se tiver URL original, usar ela
+      // Se tiver URL original, usar ela primeiro
       if (pdf.url_original) {
+        console.log("Usando URL original:", pdf.url_original);
         window.open(pdf.url_original, '_blank');
         return;
       }
 
       // Caso contrário, baixar do storage
-      const { data, error } = await supabase.storage
-        .from('edital-pdfs')
-        .download(pdf.caminho_storage);
+      // IMPORTANTE: Tentar múltiplas estratégias para baixar o PDF
+      console.log("Tentando baixar PDF do storage:", pdf);
+      console.log("Caminho storage:", pdf.caminho_storage);
+      
+      let downloadData: Blob | null = null;
+      let downloadError: any = null;
+      
+      // Estratégia 1: Tentar obter URL pública do Supabase Storage
+      // Isso é mais confiável que download direto
+      try {
+        const pathParts = pdf.caminho_storage.split('/');
+        if (pathParts.length >= 3) {
+          const { data: publicUrl } = supabase.storage
+            .from('edital-pdfs')
+            .getPublicUrl(pdf.caminho_storage);
+          
+          if (publicUrl?.publicUrl) {
+            console.log("Tentativa 1 - URL pública:", publicUrl.publicUrl);
+            // Tentar baixar via fetch usando a URL pública
+            const response = await fetch(publicUrl.publicUrl);
+            if (response.ok) {
+              downloadData = await response.blob();
+              console.log("✅ Download via URL pública bem-sucedido");
+            } else {
+              console.log("Erro ao baixar via URL pública:", response.status);
+            }
+          }
+        }
+      } catch (e) {
+        console.log("Erro na tentativa de URL pública:", e);
+      }
+      
+      // Estratégia 2: Tentar com caminho codificado
+      if (!downloadData) {
+        const encodedPath = pdf.caminho_storage.split('/').map(segment => encodeURIComponent(segment)).join('/');
+        console.log("Tentativa 2 - Caminho codificado:", encodedPath);
+        
+        const { data: data2, error: error2 } = await supabase.storage
+          .from('edital-pdfs')
+          .download(encodedPath);
+        
+        if (!error2 && data2) {
+          downloadData = data2;
+          console.log("✅ Download via caminho codificado bem-sucedido");
+        } else {
+          downloadError = error2;
+          console.log("Erro na tentativa 2:", error2);
+        }
+      }
+      
+      // Estratégia 3: Tentar com caminho original
+      if (!downloadData) {
+        console.log("Tentativa 3 - Caminho original:", pdf.caminho_storage);
+        const { data: data3, error: error3 } = await supabase.storage
+          .from('edital-pdfs')
+          .download(pdf.caminho_storage);
+        
+        if (!error3 && data3) {
+          downloadData = data3;
+          console.log("✅ Download via caminho original bem-sucedido");
+        } else {
+          downloadError = error3;
+          console.log("Erro na tentativa 3:", error3);
+        }
+      }
+      
+      // Estratégia 4: Tentar buscar pelo nome do arquivo na pasta do edital
+      if (!downloadData) {
+        const pathParts = pdf.caminho_storage.split('/');
+        if (pathParts.length >= 2) {
+          const fonte = pathParts[0];
+          const numero = pathParts[1];
+          const fileName = pathParts[2] || pdf.nome_arquivo;
+          
+          console.log("Tentativa 4 - Buscar por pasta:", `${fonte}/${numero}`);
+          
+          // Listar arquivos na pasta e encontrar o correto
+          const { data: files, error: listError } = await supabase.storage
+            .from('edital-pdfs')
+            .list(`${fonte}/${numero}`);
+          
+          if (!listError && files && files.length > 0) {
+            console.log("Arquivos encontrados na pasta:", files.map(f => f.name));
+            
+            // Procurar arquivo que corresponda ao nome (pode ter sido sanitizado)
+            const matchingFile = files.find(f => {
+              const fName = f.name.toLowerCase();
+              const pdfName = pdf.nome_arquivo.toLowerCase();
+              const fileNameLower = fileName.toLowerCase();
+              
+              return fName === fileNameLower || 
+                     fName === pdfName ||
+                     decodeURIComponent(fName) === pdfName ||
+                     fName.replace(/_/g, ' ') === pdfName.replace(/_/g, ' ') ||
+                     fName.replace(/_/g, '-') === pdfName.replace(/_/g, '-');
+            });
+            
+            if (matchingFile) {
+              const finalPath = `${fonte}/${numero}/${matchingFile.name}`;
+              console.log("Tentativa 4 - Arquivo encontrado:", finalPath);
+              
+              const { data: data4, error: error4 } = await supabase.storage
+                .from('edital-pdfs')
+                .download(finalPath);
+              
+              if (!error4 && data4) {
+                downloadData = data4;
+                console.log("✅ Download via busca na pasta bem-sucedido");
+              } else {
+                downloadError = error4;
+                console.log("Erro na tentativa 4:", error4);
+              }
+            } else {
+              console.log("Nenhum arquivo correspondente encontrado na pasta");
+            }
+          } else {
+            console.log("Erro ao listar arquivos ou pasta vazia:", listError);
+          }
+        }
+      }
 
-      if (error) {
-        console.error("Erro ao baixar PDF:", error);
-        toast.error("Erro ao baixar arquivo");
+      if (!downloadData) {
+        console.error("Erro ao baixar PDF após todas as tentativas:", downloadError);
+        const errorMsg = downloadError?.message || 'Arquivo não encontrado no storage';
+        toast.error(`Erro ao baixar arquivo: ${errorMsg}`);
+        
+        // Se tiver URL original como fallback, tentar usar ela
+        if (pdf.url_original) {
+          console.log("Tentando usar URL original como fallback");
+          window.open(pdf.url_original, '_blank');
+          toast.info("Abrindo link original do arquivo");
+        }
         return;
       }
 
       // Criar link de download
-      const url = URL.createObjectURL(data);
+      const url = URL.createObjectURL(downloadData);
       const link = document.createElement('a');
       link.href = url;
-      link.download = pdf.nome_arquivo;
+      // Sanitizar nome do arquivo para download (remover caracteres problemáticos)
+      const safeFileName = pdf.nome_arquivo.replace(/[^a-zA-Z0-9._-]/g, '_');
+      link.download = safeFileName;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -166,7 +345,7 @@ export default function EditalDetails() {
       toast.success("Download iniciado");
     } catch (error) {
       console.error("Erro ao fazer download:", error);
-      toast.error("Erro ao baixar arquivo");
+      toast.error(`Erro ao baixar arquivo: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
     }
   };
 
@@ -818,7 +997,21 @@ export default function EditalDetails() {
                     </div>
                   ) : pdfs.length === 0 ? (
                     <div className="text-center py-8 text-gray-500">
-                      Nenhum arquivo disponível para este edital.
+                      {edital?.link ? (
+                        <div className="space-y-3">
+                          <p>Nenhum arquivo disponível no sistema.</p>
+                          <Button
+                            variant="outline"
+                            onClick={() => window.open(edital.link || '', '_blank')}
+                            className="mt-2"
+                          >
+                            <Download className="w-4 h-4 mr-2" />
+                            Abrir link do edital
+                          </Button>
+                        </div>
+                      ) : (
+                        <p>Nenhum arquivo disponível para este edital.</p>
+                      )}
                     </div>
                   ) : (
                     <div className="space-y-3">
