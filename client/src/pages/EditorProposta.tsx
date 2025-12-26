@@ -21,7 +21,9 @@ import {
 } from "@/lib/propostasApi";
 import { useAuth } from "@/contexts/AuthContext";
 import FormularioProposta from "@/components/FormularioProposta";
+import FormularioCNPq from "@/components/FormularioCNPq";
 import { type PropostaFormData, createEmptyPropostaForm } from "@/lib/propostaFormFields";
+import { type CNPqFormData, createEmptyCNPqForm } from "@/lib/cnpqFormFields";
 
 
 export default function EditorProposta() {
@@ -32,10 +34,11 @@ export default function EditorProposta() {
   const [proposta, setProposta] = useState<Proposta | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [campos, setCampos] = useState<PropostaFormData>(createEmptyPropostaForm());
+  const [campos, setCampos] = useState<PropostaFormData | CNPqFormData>(createEmptyPropostaForm());
+  const [isCNPq, setIsCNPq] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const hasUnsavedChangesRef = useRef(false);
-  const camposRef = useRef<PropostaFormData>(createEmptyPropostaForm());
+  const camposRef = useRef<PropostaFormData | CNPqFormData>(createEmptyPropostaForm());
   const scrollPositionKey = `scroll_${propostaId}`;
   const [activeSection, setActiveSection] = useState<string>("");
 
@@ -53,15 +56,38 @@ export default function EditorProposta() {
         }
 
         setProposta(data);
+        
+        // Verificar se é edital do CNPq
+        // A fonte pode vir diretamente do join ou do objeto editais
+        const editalFonte = (data as any).edital_fonte || 
+                           ((data as any).editais && typeof (data as any).editais === 'object' && !Array.isArray((data as any).editais) 
+                             ? (data as any).editais.fonte 
+                             : null);
+        const isCNPqEdital = editalFonte?.toLowerCase() === 'cnpq';
+        setIsCNPq(isCNPqEdital);
+        
+        console.log('Fonte do edital:', editalFonte, 'É CNPq?', isCNPqEdital);
+        
         // Garantir que os campos tenham a estrutura correta
         const camposFormulario = data.campos_formulario || {};
-        // Mesclar com estrutura vazia para garantir todos os campos existam
-        const camposCompletos = {
-          ...createEmptyPropostaForm(),
-          ...camposFormulario,
-        };
-        setCampos(camposCompletos as PropostaFormData);
-        camposRef.current = camposCompletos as PropostaFormData;
+        
+        if (isCNPqEdital) {
+          // Usar estrutura CNPq
+          const camposCompletos = {
+            ...createEmptyCNPqForm(),
+            ...camposFormulario,
+          };
+          setCampos(camposCompletos as CNPqFormData);
+          camposRef.current = camposCompletos as CNPqFormData;
+        } else {
+          // Usar estrutura padrão
+          const camposCompletos = {
+            ...createEmptyPropostaForm(),
+            ...camposFormulario,
+          };
+          setCampos(camposCompletos as PropostaFormData);
+          camposRef.current = camposCompletos as PropostaFormData;
+        }
       } catch (error) {
         console.error("Erro ao carregar proposta:", error);
         toast.error("Erro ao carregar proposta");
@@ -73,7 +99,7 @@ export default function EditorProposta() {
     loadProposta();
   }, [propostaId, user]);
 
-  const handleFormChange = (newData: PropostaFormData) => {
+  const handleFormChange = (newData: PropostaFormData | CNPqFormData) => {
     setCampos(newData);
     camposRef.current = newData;
     hasUnsavedChangesRef.current = true;
@@ -180,17 +206,19 @@ export default function EditorProposta() {
           // Para objetos, processar cada campo
           const allKeys = new Set([...Object.keys(obj), ...Object.keys(baseObj || {})]);
           allKeys.forEach(key => {
-            // Ignorar campos condicionais opcionais se não aplicáveis
-            const currentCampos = camposRef.current;
-            if (key === "grupo_pesquisa_cnpq" && currentCampos.coordenador_projeto?.participa_grupo_pesquisa_cnpq !== true) {
-              return; // Campo opcional, não contar
-            }
-            if (key === "outras_fontes_fomento" && currentCampos.detalhamento_projeto?.possui_outras_fontes_fomento !== true) {
-              return; // Campo opcional, não contar
-            }
-            if (key === "caracterizacao_contribuicao_inovacao" && 
-                currentCampos.detalhamento_projeto?.tipo_contribuicao_inovacao?.includes('nao_se_aplica')) {
-              return; // Campo opcional, não contar
+            // Ignorar campos condicionais opcionais se não aplicáveis (apenas para formulário padrão)
+            if (!isCNPq) {
+              const currentCampos = camposRef.current as any;
+              if (key === "grupo_pesquisa_cnpq" && currentCampos.coordenador_projeto?.participa_grupo_pesquisa_cnpq !== true) {
+                return; // Campo opcional, não contar
+              }
+              if (key === "outras_fontes_fomento" && currentCampos.detalhamento_projeto?.possui_outras_fontes_fomento !== true) {
+                return; // Campo opcional, não contar
+              }
+              if (key === "caracterizacao_contribuicao_inovacao" && 
+                  currentCampos.detalhamento_projeto?.tipo_contribuicao_inovacao?.includes('nao_se_aplica')) {
+                return; // Campo opcional, não contar
+              }
             }
 
             const result = countFields(obj[key] ?? null, baseObj?.[key] ?? null);
@@ -203,7 +231,7 @@ export default function EditorProposta() {
         return { total: 0, filled: 0 };
       };
 
-      const emptyForm = createEmptyPropostaForm();
+      const emptyForm = isCNPq ? createEmptyCNPqForm() : createEmptyPropostaForm();
       const currentCampos = camposRef.current;
       const { total, filled } = countFields(currentCampos, emptyForm);
       
@@ -265,8 +293,12 @@ export default function EditorProposta() {
     }
   };
 
-  // Navegação por seções
-  const sections = [
+  // Navegação por seções (diferente para CNPq)
+  const sections = isCNPq ? [
+    { id: "secao-projeto-pesquisa", label: "Projeto de Pesquisa" },
+    { id: "secao-resumo", label: "Resumo" },
+    { id: "secao-sobre-projeto", label: "Sobre o Projeto" },
+  ] : [
     { id: "secao-titulo-projeto", label: "1. Título do Projeto" },
     { id: "secao-eixos-estrategicos", label: "1.3. Eixos Estratégicos" },
     { id: "secao-instituicao-executora", label: "2. Instituição Executora" },
@@ -615,11 +647,19 @@ export default function EditorProposta() {
                 Campos do Formulário
               </h2>
 
-              <FormularioProposta 
-                data={campos} 
-                onChange={handleFormChange}
-                editalId={proposta.edital_id}
-              />
+              {isCNPq ? (
+                <FormularioCNPq 
+                  data={campos as CNPqFormData} 
+                  onChange={handleFormChange}
+                  editalId={proposta.edital_id}
+                />
+              ) : (
+                <FormularioProposta 
+                  data={campos as PropostaFormData} 
+                  onChange={handleFormChange}
+                  editalId={proposta.edital_id}
+                />
+              )}
             </div>
           </div>
 

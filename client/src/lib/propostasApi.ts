@@ -22,6 +22,7 @@ export interface Proposta {
   edital_titulo?: string;
   edital_orgao?: string;
   edital_valor?: string;
+  edital_fonte?: string;
 }
 
 /**
@@ -66,7 +67,8 @@ export async function fetchPropostaById(propostaId: string, userId: string): Pro
       editais (
         titulo,
         orgao,
-        valor_projeto
+        valor_projeto,
+        fonte
       )
     `)
     .eq("id", propostaId)
@@ -86,6 +88,7 @@ export async function fetchPropostaById(propostaId: string, userId: string): Pro
     edital_titulo: data.editais?.titulo,
     edital_orgao: data.editais?.orgao,
     edital_valor: data.editais?.valor_projeto,
+    edital_fonte: data.editais?.fonte,
   };
 }
 
