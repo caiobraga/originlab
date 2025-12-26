@@ -162,26 +162,54 @@ export class ScraperOrchestrator {
     }
     
     // Criar mapa de editais existentes (chave: numero+fonte ou titulo+fonte)
-    const existingMap = new Map<string, Edital>();
+    // Usar array para cada chave para evitar sobrescrita de editais com mesma chave
+    const existingMap = new Map<string, Edital[]>();
     existingEditais.forEach(edital => {
       const key = this.getEditalKey(edital);
       if (key) {
-        existingMap.set(key, edital);
+        if (!existingMap.has(key)) {
+          existingMap.set(key, []);
+        }
+        existingMap.get(key)!.push(edital);
+      } else {
+        // Se não tem chave, usar chave única baseada em índice
+        const fallbackKey = `no-key-${existingEditais.indexOf(edital)}`;
+        if (!existingMap.has(fallbackKey)) {
+          existingMap.set(fallbackKey, []);
+        }
+        existingMap.get(fallbackKey)!.push(edital);
       }
     });
     
     // Filtrar duplicatas dos novos editais
+    // Verificar se já existe um edital idêntico (mesma chave E mesmo título)
     const uniqueNewEditais: Edital[] = [];
     const duplicates: string[] = [];
     
     validNewEditais.forEach(edital => {
       const key = this.getEditalKey(edital);
       if (key && existingMap.has(key)) {
-        duplicates.push(`${edital.numero || edital.titulo} (${edital.fonte})`);
+        // Verificar se já existe um edital com mesmo título exato
+        const existingWithSameKey = existingMap.get(key)!;
+        const isDuplicate = existingWithSameKey.some(existing => 
+          existing.titulo === edital.titulo && existing.fonte === edital.fonte
+        );
+        
+        if (isDuplicate) {
+          duplicates.push(`${edital.numero || edital.titulo} (${edital.fonte})`);
+        } else {
+          // Mesma chave mas título diferente (pode acontecer com normalização)
+          // Adicionar mesmo assim
+          uniqueNewEditais.push(edital);
+          existingMap.get(key)!.push(edital);
+        }
       } else {
         uniqueNewEditais.push(edital);
         if (key) {
-          existingMap.set(key, edital);
+          if (!existingMap.has(key)) {
+            existingMap.set(key, []);
+          }
+          existingMap.get(key)!.push(edital);
         }
       }
     });
@@ -191,39 +219,53 @@ export class ScraperOrchestrator {
       duplicates.forEach(dup => console.log(`   - ${dup}`));
     }
     
-    // Combinar editais existentes com novos únicos
-    const allEditais = [...existingEditais, ...uniqueNewEditais];
+    // Combinar todos os editais (existente + novos únicos)
+    // Converter mapa de arrays de volta para array único
+    const allEditais: Edital[] = [];
+    existingMap.forEach(editaisArray => {
+      allEditais.push(...editaisArray);
+    });
     
-    // Remover duplicatas finais (caso haja duplicatas dentro dos existentes)
+    // Adicionar novos únicos que não foram adicionados ao mapa
+    uniqueNewEditais.forEach(edital => {
+      const key = this.getEditalKey(edital);
+      if (key && existingMap.has(key)) {
+        // Já foi adicionado ao mapa, não adicionar novamente
+        return;
+      }
+      // Não estava no mapa, adicionar
+      allEditais.push(edital);
+    });
+    
+    // Remover duplicatas finais baseadas em título+fonte exato (não normalizado)
     const finalEditais: Edital[] = [];
-    const finalMap = new Map<string, Edital>();
+    const seenTitles = new Set<string>();
     
     allEditais.forEach(edital => {
-      const key = this.getEditalKey(edital);
-      if (key) {
-        if (!finalMap.has(key)) {
-          finalMap.set(key, edital);
-          finalEditais.push(edital);
-        } else {
-          // Se já existe, manter o mais recente (com mais PDFs ou mais recente)
-          const existing = finalMap.get(key)!;
+      // Criar chave única baseada em título+fonte exatos (não normalizado)
+      const exactKey = `${edital.fonte || 'sem-fonte'}:${edital.titulo || 'sem-titulo'}`;
+      
+      if (!seenTitles.has(exactKey)) {
+        seenTitles.add(exactKey);
+        finalEditais.push(edital);
+      } else {
+        // Duplicata exata encontrada, manter o que tem mais PDFs ou é mais recente
+        const existingIndex = finalEditais.findIndex(e => 
+          e.fonte === edital.fonte && e.titulo === edital.titulo
+        );
+        
+        if (existingIndex >= 0) {
+          const existing = finalEditais[existingIndex];
           const existingPdfCount = existing.pdfUrls?.length || existing.pdfPaths?.length || 0;
           const newPdfCount = edital.pdfUrls?.length || edital.pdfPaths?.length || 0;
           
           if (newPdfCount > existingPdfCount || 
               (edital.processadoEm && existing.processadoEm && 
                edital.processadoEm > existing.processadoEm)) {
-            // Substituir pelo mais recente
-            const index = finalEditais.indexOf(existing);
-            if (index >= 0) {
-              finalEditais[index] = edital;
-              finalMap.set(key, edital);
-            }
+            // Substituir pelo mais recente/com mais PDFs
+            finalEditais[existingIndex] = edital;
           }
         }
-      } else {
-        // Se não tem chave única, adicionar mesmo assim (será filtrado depois)
-        finalEditais.push(edital);
       }
     });
     

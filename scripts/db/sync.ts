@@ -157,19 +157,94 @@ export async function syncEditaisToDatabase(): Promise<void> {
       if (edital.orgao) dbEdital.orgao = edital.orgao;
       if (edital.link) dbEdital.link = edital.link;
 
-      // Inserir ou atualizar edital (usando ON CONFLICT)
-      const { data: insertedEdital, error: insertError } = await supabase
+      // IMPORTANTE: Normalizar título para comparação (remover espaços extras, lowercase, remover acentos)
+      // Isso ajuda a detectar duplicatas mesmo com pequenas diferenças de formatação
+      const normalizeTitle = (t: string): string => {
+        if (!t) return '';
+        return t
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+          .trim()
+          .replace(/\s+/g, ' ') // Normaliza espaços múltiplos
+          .replace(/[^\w\s]/g, '') // Remove caracteres especiais exceto letras e números
+          .replace(/\b(n[oº°°]?|numero|num)\s*/gi, '') // Remove "Nº", "N°", "número", etc.
+          .replace(/\b(edital|chamada|publica)\s*/gi, '') // Remove palavras comuns
+          .trim()
+          .substring(0, 200); // Limita tamanho
+      };
+      
+      const normalizedTitulo = normalizeTitle(titulo);
+      
+      // Estratégia de upsert: sempre verificar por título normalizado + fonte primeiro
+      // Isso evita duplicatas mesmo quando o número está diferente ou ausente
+      let insertedEdital: any = null;
+      let insertError: any = null;
+
+      // Primeiro, buscar todos os editais da mesma fonte para comparar títulos normalizados
+      // Isso é necessário porque o PostgreSQL não tem função de normalização built-in
+      const { data: allEditaisSameFonte } = await supabase
         .from('editais')
-        .upsert(dbEdital, {
-          onConflict: 'numero,fonte',
-          ignoreDuplicates: false,
-        })
-        .select()
-        .single();
+        .select('id, numero, titulo')
+        .eq('fonte', edital.fonte || 'unknown');
+
+      // Encontrar edital existente com título normalizado similar
+      const existingEdital = allEditaisSameFonte?.find(e => {
+        const existingNormalized = normalizeTitle(e.titulo || '');
+        return existingNormalized === normalizedTitulo;
+      });
+
+      if (existingEdital) {
+        // Edital já existe: atualizar
+        console.log(`  🔄 Edital já existe (título: "${titulo.substring(0, 50)}..."), atualizando ID=${existingEdital.id}...`);
+        const { data: updatedEdital, error: updateError } = await supabase
+          .from('editais')
+          .update(dbEdital)
+          .eq('id', existingEdital.id)
+          .select()
+          .single();
+        
+        insertedEdital = updatedEdital;
+        insertError = updateError;
+      } else {
+        // Edital não existe: inserir ou fazer upsert por número+fonte (se tiver número)
+        if (edital.numero) {
+          // Edital com número: usar upsert com constraint numero,fonte
+          const result = await supabase
+            .from('editais')
+            .upsert(dbEdital, {
+              onConflict: 'numero,fonte',
+              ignoreDuplicates: false,
+            })
+            .select()
+            .single();
+          
+          insertedEdital = result.data;
+          insertError = result.error;
+        } else {
+          // Edital sem número: inserir novo
+          const { data: newEdital, error: newError } = await supabase
+            .from('editais')
+            .insert(dbEdital)
+            .select()
+            .single();
+          
+          insertedEdital = newEdital;
+          insertError = newError;
+        }
+      }
 
       if (insertError) {
+        console.error(`  ❌ Erro ao inserir/atualizar edital no banco:`, insertError);
         throw insertError;
       }
+
+      if (!insertedEdital) {
+        console.error(`  ❌ Edital não foi inserido/atualizado (retorno vazio)`);
+        throw new Error('Edital não foi inserido/atualizado (retorno vazio)');
+      }
+
+      console.log(`  ✅ Edital ${insertedEdital.id ? 'atualizado' : 'inserido'} no banco: ID=${insertedEdital.id || 'N/A'}, Numero=${edital.numero || 'N/A'}, Fonte=${edital.fonte || 'unknown'}`);
 
       // Upload de PDFs para o storage
       // Se temos pdfPaths (arquivos locais), usar upload normal
@@ -361,5 +436,18 @@ function parseDate(dateStr?: string): string | null {
   }
 
   return null;
+}
+
+// Executar sincronização se o script for chamado diretamente
+if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.includes('sync.ts')) {
+  syncEditaisToDatabase()
+    .then(() => {
+      console.log('\n✅ Sincronização concluída com sucesso!');
+      process.exit(0);
+    })
+    .catch((error) => {
+      console.error('\n❌ Erro durante sincronização:', error);
+      process.exit(1);
+    });
 }
 

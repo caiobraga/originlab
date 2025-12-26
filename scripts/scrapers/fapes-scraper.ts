@@ -174,8 +174,29 @@ export class FapesScraper implements Scraper {
                              (linkTextLower.includes('formulário') && linkTextLower.includes('anexo')) ||
                              (linkTextLower.includes('formulario') && linkTextLower.includes('anexo'));
               
-              // Incluir todos os PDFs, mesmo anexos
-              if (!pdfUrls.includes(linkHref)) {
+              // IMPORTANTE: Normalizar URL para comparação (remover fragmentos e query params)
+              // Isso evita duplicatas quando a mesma URL aparece com query params diferentes
+              let normalizedUrl = linkHref;
+              try {
+                const urlObj = new URL(linkHref);
+                normalizedUrl = `${urlObj.origin}${urlObj.pathname}`;
+              } catch {
+                normalizedUrl = linkHref.split('#')[0].split('?')[0];
+              }
+              
+              // Verificar se já temos esta URL (normalizada) na lista
+              const alreadyAdded = pdfUrls.some(existingUrl => {
+                try {
+                  const existingUrlObj = new URL(existingUrl);
+                  const existingNormalized = `${existingUrlObj.origin}${existingUrlObj.pathname}`;
+                  return existingNormalized === normalizedUrl;
+                } catch {
+                  return existingUrl.split('#')[0].split('?')[0] === normalizedUrl;
+                }
+              });
+              
+              // Incluir todos os PDFs, mesmo anexos, mas evitar duplicatas
+              if (!alreadyAdded) {
                 pdfUrls.push(linkHref);
               }
             });
@@ -270,11 +291,54 @@ export class FapesScraper implements Scraper {
             // Baixar PDFs e salvar localmente
             const edital = editalData.edital;
             if (edital.pdfUrls && edital.pdfUrls.length > 0) {
-              console.log(`  📥 Baixando ${edital.pdfUrls.length} PDF(s)...`);
-              const pdfPaths: string[] = [];
+              // IMPORTANTE: Remover URLs duplicadas antes de baixar
+              // Usar normalização apenas para detectar duplicatas, mas manter URLs originais para download
+              const urlMap = new Map<string, string>(); // normalized -> original
               
-              for (let pdfIdx = 0; pdfIdx < edital.pdfUrls.length; pdfIdx++) {
-                const pdfUrl = edital.pdfUrls[pdfIdx];
+              for (const url of edital.pdfUrls) {
+                if (!url || typeof url !== 'string') continue;
+                
+                // Normalizar URL para comparação (remover fragmentos, manter query params)
+                let normalized: string;
+                try {
+                  const urlObj = new URL(url);
+                  normalized = `${urlObj.origin}${urlObj.pathname}`.toLowerCase();
+                } catch {
+                  normalized = url.toLowerCase().split('#')[0].split('?')[0];
+                }
+                
+                // Se já temos uma URL com mesmo pathname, manter a primeira (ou a mais completa)
+                if (!urlMap.has(normalized) || url.length > (urlMap.get(normalized) || '').length) {
+                  urlMap.set(normalized, url);
+                }
+              }
+              
+              const uniquePdfsToDownload = Array.from(urlMap.values());
+              
+              console.log(`  📥 Baixando ${uniquePdfsToDownload.length} PDF(s) únicos (de ${edital.pdfUrls.length} URLs encontradas)...`);
+              const pdfPaths: string[] = [];
+              const successfullyDownloadedUrls: string[] = []; // URLs que foram baixadas com sucesso
+              const downloadedUrls = new Set<string>(); // Rastrear URLs já baixadas nesta execução (normalizadas)
+              
+              for (let pdfIdx = 0; pdfIdx < uniquePdfsToDownload.length; pdfIdx++) {
+                const pdfUrl = uniquePdfsToDownload[pdfIdx];
+                
+                // Normalizar para verificar duplicatas
+                let normalizedUrl: string;
+                try {
+                  const urlObj = new URL(pdfUrl);
+                  normalizedUrl = `${urlObj.origin}${urlObj.pathname}`.toLowerCase();
+                } catch {
+                  normalizedUrl = pdfUrl.toLowerCase().split('#')[0].split('?')[0];
+                }
+                
+                // Verificar se já baixamos esta URL nesta execução
+                if (downloadedUrls.has(normalizedUrl)) {
+                  console.log(`    ⏭️ URL já processada nesta execução, pulando: ${pdfUrl.substring(0, 60)}...`);
+                  continue;
+                }
+                downloadedUrls.add(normalizedUrl);
+                
                 try {
                   // Validar URL
                   let urlPath: string;
@@ -358,17 +422,82 @@ export class FapesScraper implements Scraper {
                     fs.mkdirSync(pdfDir, { recursive: true });
                   }
                   
-                  // Salvar arquivo
-                  fs.writeFileSync(pdfPath, Buffer.from(fileData.data));
-                  pdfPaths.push(pdfPath);
+                  // IMPORTANTE: Verificar se já existe PDF com mesmo conteúdo (hash) antes de salvar
+                  let fileExists = false;
+                  if (fileData.size > 0) {
+                    try {
+                      const crypto = await import('crypto');
+                      const newFileHash = crypto.createHash('md5').update(Buffer.from(fileData.data)).digest('hex');
+                      
+                      // Verificar todos os PDFs existentes no diretório
+                      const existingPdfs = fs.readdirSync(this.outputDir).filter(f => f.endsWith('.pdf'));
+                      for (const existingPdf of existingPdfs) {
+                        const existingPdfFullPath = path.join(this.outputDir, existingPdf);
+                        try {
+                          const existingPdfContent = fs.readFileSync(existingPdfFullPath);
+                          const existingPdfHash = crypto.createHash('md5').update(existingPdfContent).digest('hex');
+                          
+                          if (existingPdfHash === newFileHash) {
+                            console.log(`    📄 PDF duplicado encontrado (mesmo conteúdo): ${existingPdf} (usando existente)`);
+                            pdfPaths.push(existingPdfFullPath);
+                            successfullyDownloadedUrls.push(pdfUrl);
+                            fileExists = true;
+                            break;
+                          }
+                        } catch (e) {
+                          // Ignorar erros ao ler arquivo existente
+                        }
+                      }
+                    } catch (e) {
+                      // Se não conseguir calcular hash, continuar normalmente
+                    }
+                  }
                   
-                  console.log(`    ✅ PDF ${pdfIdx + 1}/${edital.pdfUrls.length} baixado: ${fileName} (${(fileData.size / 1024).toFixed(2)} KB)`);
+                  // Verificar se arquivo já existe pelo nome (mesmo edital, mesmo índice)
+                  if (!fileExists && fs.existsSync(pdfPath)) {
+                    const existingFile = fs.readFileSync(pdfPath);
+                    const isPdf = existingFile.length >= 4 && 
+                                  existingFile[0] === 0x25 && 
+                                  existingFile[1] === 0x50 && 
+                                  existingFile[2] === 0x44 && 
+                                  existingFile[3] === 0x46;
+                    if (isPdf && existingFile.length === fileData.size) {
+                      console.log(`    📄 PDF já existe: ${path.basename(pdfPath)}`);
+                      pdfPaths.push(pdfPath);
+                      successfullyDownloadedUrls.push(pdfUrl);
+                      fileExists = true;
+                    } else {
+                      fs.unlinkSync(pdfPath);
+                    }
+                  }
+                  
+                  if (!fileExists) {
+                    // Salvar arquivo
+                    fs.writeFileSync(pdfPath, Buffer.from(fileData.data));
+                    pdfPaths.push(pdfPath);
+                    successfullyDownloadedUrls.push(pdfUrl);
+                    console.log(`    ✅ PDF ${pdfIdx + 1}/${uniquePdfsToDownload.length} baixado: ${fileName} (${(fileData.size / 1024).toFixed(2)} KB)`);
+                  }
                   
                   // Pequeno delay entre downloads
                   await this.delay(500);
                 } catch (error) {
                   console.warn(`    ⚠️ Erro ao baixar PDF ${pdfIdx + 1}: ${error}`);
+                  // Não adicionar URL à lista de sucesso se houve erro
                 }
+              }
+              
+              // IMPORTANTE: Manter pdfUrls original, mas garantir que inclui todas as URLs baixadas
+              // Não remover URLs que não foram baixadas nesta execução (podem ser de execuções anteriores)
+              // Apenas adicionar novas URLs que foram baixadas com sucesso
+              const originalUrls = Array.isArray(edital.pdfUrls) ? edital.pdfUrls : [];
+              const allUrls = [...new Set([...originalUrls, ...successfullyDownloadedUrls])];
+              
+              if (allUrls.length > 0) {
+                edital.pdfUrls = allUrls;
+                console.log(`  ✅ pdfUrls mantido/atualizado: ${edital.pdfUrls.length} URL(s) total (${successfullyDownloadedUrls.length} nova(s) baixada(s), ${pdfPaths.length} PDF(s) em pdfPaths)`);
+              } else {
+                edital.pdfUrls = [];
               }
               
               edital.pdfPaths = pdfPaths;

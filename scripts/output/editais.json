@@ -180,5 +180,85 @@
       "/home/caio/development/sites/originlab/scripts/output/pdfs/fapes_unknown_2_1765840881267.pdf"
     ],
     "processadoEm": "2025-12-15T23:21:33.697Z"
+  },
+  {
+    "titulo": "Chamada CNPq Nº 26/2025 Auxílio à Promoção de Eventos Científicos, Tecnológicos e/ou de Inovação ¿ ARC",
+    "numero": "26/2025",
+    "descricao": "Apoiar a realização no Brasil de eventos de grande porte, de abrangência mundial, internacional ou nacional, relacionados a ciência, tecnologia e inovação, tais como encontros, congressos e outros similares. 25/11/2025 a 20/01/2026",
+    "dataPublicacao": "25/11/2025",
+    "dataEncerramento": "20/01/2026",
+    "link": "http://memoria2.cnpq.br/web/guest/chamadas-publicas?chamada=26/2025",
+    "orgao": "CNPq",
+    "fonte": "cnpq",
+    "status": "Ativo",
+    "processadoEm": "2025-12-26T02:17:48.368Z",
+    "pdfPaths": [
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/cnpq/Chamada ARC 26-2025.pdf"
+    ],
+    "pdfUrls": [
+      "http://resultado.cnpq.br/3841070739535470"
+    ]
+  },
+  {
+    "titulo": "Chamada Pública CNPq/MCTI/FNDCT Nº 25/2025 - Transporte Aquaviário e Construção  Naval",
+    "numero": "25/2025",
+    "descricao": "Apoiar projetos de pesquisa que visem contribuir significativamente para o desenvolvimento científico e tecnológico e a inovação do País, na área de Transporte Aquaviário e Construção Naval. 14/11/2025 a 29/12/2025",
+    "dataPublicacao": "14/11/2025",
+    "dataEncerramento": "29/12/2025",
+    "link": "http://resultado.cnpq.br/7944592800944638",
+    "pdfUrls": [
+      "http://resultado.cnpq.br/7944592800944638",
+      "http://resultado.cnpq.br/3841070739535470"
+    ],
+    "orgao": "CNPq",
+    "fonte": "cnpq",
+    "status": "Ativo",
+    "processadoEm": "2025-12-26T02:18:09.964Z",
+    "pdfPaths": [
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/cnpq/FAQ - Chamada 25-2025.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/cnpq/Chamada ARC 26-2025.pdf"
+    ]
+  },
+  {
+    "titulo": "CNPq/CAPES/IRD Nº 27/2025 Programa de apoio ao Centro Franco-Brasileiro de Biodiversidade Amazônica",
+    "numero": "27/2025",
+    "descricao": "Selecionar até 5 (cinco), projetos conjuntos de pesquisa entre grupos brasileiros e franceses, que visem contribuir para o desenvolvimento científico,tecnológico e a inovação do país, por meio do financiamento de projetos conjuntos de pesquisa nos seguintes temas, conforme detalhado no AnexoI: Compreensão, Monitoramento, Conservação e Documentação da Biodiversidade Amazônica; Contribuições Presentes e Passadas dos Povos Indígenas e Comunidades Locais para a Biodiversidade; Cobertura Florestal, Observação da Terra, Mudanças Ambientais Regionais e Sustentabilidade; Biodiversidade, Saúde Humana e Alimentação (Abordagem One Health); e Bioeconomia para Meios de Subsistência Inclusivos e Economias Plurais, Bem Viver e Sistemas Alimentares Saudáveis. Observação: A aderência aos temas será realizada pelo Comitê Julgador a partir da apreciação da proposta. 28/10/2025 a 20/02/2026",
+    "dataPublicacao": "28/10/2025",
+    "dataEncerramento": "20/02/2026",
+    "link": "http://memoria2.cnpq.br/web/guest/chamadas-publicas?chamada=27/2025",
+    "orgao": "CNPq",
+    "fonte": "cnpq",
+    "status": "Ativo",
+    "processadoEm": "2025-12-26T02:18:19.059Z",
+    "pdfPaths": [
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/cnpq/Chamada ARC 26-2025.pdf"
+    ],
+    "pdfUrls": [
+      "http://resultado.cnpq.br/3841070739535470"
+    ]
+  },
+  {
+    "titulo": "Chamada CNPq Nº 23/2025 Bolsas de Produtividade do CNPq",
+    "numero": "23/2025",
+    "descricao": "Conceder bolsas nas seguintes modalidades: Produtividade em Desenvolvimento Tecnológico e Extensão Inovadora (DT), Produtividade em Pesquisa (PQ) e Produtividade em Pesquisa Sênior (PQSr). 1.1 São objetivos desta chamada: a) valorizar pesquisadores que possuam produção científica, tecnológica e de inovação de destaque em suas respectivas áreas do conhecimento; b) incentivar o aumento da produção científica, tecnológica e de inovação de qualidade; c) selecionar projetos de pesquisa que sejam propostos considerando o rigor e o método científico, bem como outros conceitos fundamentais para a produção do conhecimento 13/10/2025 a 20/01/2026",
+    "dataPublicacao": "13/10/2025",
+    "dataEncerramento": "20/01/2026",
+    "link": "http://resultado.cnpq.br/9490151340919810",
+    "pdfUrls": [
+      "http://resultado.cnpq.br/9490151340919810",
+      "http://resultado.cnpq.br/1050292493520437",
+      "http://resultado.cnpq.br/7761611485433141",
+      "http://resultado.cnpq.br/3841070739535470"
+    ],
+    "orgao": "CNPq",
+    "fonte": "cnpq",
+    "status": "Ativo",
+    "processadoEm": "2025-12-26T02:18:40.427Z",
+    "pdfPaths": [
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/cnpq/Anexo I Chamada 23-2025 republicado V2.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/cnpq/Anexo_II_Chamada_23_2025.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/cnpq/FAQ - Chamada 23-2025 v.2.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/cnpq/Chamada ARC 26-2025.pdf"
+    ]
   }
 ]
