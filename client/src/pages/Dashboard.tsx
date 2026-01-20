@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { 
   ArrowLeft, Search, Filter, Globe, TrendingUp, Calendar, 
@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { UserProfile } from "@/lib/userProfile";
 import Header from "@/components/Header";
 import {
   fetchEditaisWithScores,
@@ -44,6 +45,16 @@ export default function Dashboard() {
   const [, setLocation] = useLocation();
   const { user, loading: authLoading } = useAuth();
   const { profile, loading: profileLoading } = useUserProfile();
+  
+  // Ref para rastrear se já carregou os editais e evitar recarregamentos desnecessários
+  const hasLoadedRef = useRef(false);
+  const lastUserIdRef = useRef<string | undefined>(undefined);
+  const profileRef = useRef<UserProfile | null>(null);
+  
+  // Atualizar ref do profile sempre que mudar
+  useEffect(() => {
+    profileRef.current = profile;
+  }, [profile]);
 
   // Redirecionar para login se não estiver logado
   useEffect(() => {
@@ -54,40 +65,59 @@ export default function Dashboard() {
   }, [user, authLoading, setLocation]);
 
   useEffect(() => {
-    // Só carregar editais se estiver logado e não estiver carregando autenticação
-    if (!authLoading && !profileLoading && user) {
-      loadEditais();
+    // Função para carregar editais (definida dentro do useEffect para evitar dependências)
+    const loadEditais = async () => {
+      if (!user || !profileRef.current) return;
+      
+      try {
+        setLoading(true);
+        const editaisComScores = await fetchEditaisWithScores(user.id, user, profileRef.current);
+
+        // Transformar para formato de exibição
+        const editaisFormatados: EditalDisplay[] = editaisComScores.map((edital) => {
+          const { pais, flag } = getPaisFromEdital(edital);
+          const status = getStatusFromEdital(edital);
+          const prazo = formatPrazo(edital.data_encerramento);
+
+          return {
+            ...edital,
+            prazo,
+            pais,
+            flag,
+            status,
+            elegivel: true, // Por enquanto sempre true, pode ser calculado depois
+          };
+        });
+
+        setEditais(editaisFormatados);
+      } catch (error) {
+        console.error("Erro ao carregar editais:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Só carregar editais se:
+    // 1. Não estiver carregando autenticação/perfil
+    // 2. Estiver logado e tiver perfil
+    // 3. Ainda não carregou OU o usuário mudou
+    if (!authLoading && !profileLoading && user && profile) {
+      const userIdChanged = lastUserIdRef.current !== user.id;
+      
+      // Só recarregar se ainda não carregou OU o usuário mudou
+      if (!hasLoadedRef.current || userIdChanged) {
+        hasLoadedRef.current = true;
+        lastUserIdRef.current = user.id;
+        loadEditais();
+      }
     }
-  }, [user, profile, profileLoading, authLoading]);
-
-  const loadEditais = async () => {
-    try {
-      setLoading(true);
-      const editaisComScores = await fetchEditaisWithScores(user?.id, user, profile);
-
-      // Transformar para formato de exibição
-      const editaisFormatados: EditalDisplay[] = editaisComScores.map((edital) => {
-        const { pais, flag } = getPaisFromEdital(edital);
-        const status = getStatusFromEdital(edital);
-        const prazo = formatPrazo(edital.data_encerramento);
-
-        return {
-          ...edital,
-          prazo,
-          pais,
-          flag,
-          status,
-          elegivel: true, // Por enquanto sempre true, pode ser calculado depois
-        };
-      });
-
-      setEditais(editaisFormatados);
-    } catch (error) {
-      console.error("Erro ao carregar editais:", error);
-    } finally {
-      setLoading(false);
+    
+    // Resetar flag se o usuário sair
+    if (!user) {
+      hasLoadedRef.current = false;
+      lastUserIdRef.current = undefined;
     }
-  };
+  }, [user?.id, profileLoading, authLoading]); // Removido 'profile' das dependências para evitar recarregamentos ao mudar de aba
 
   const handleVerDetalhes = (editalId: string) => {
     setLocation(`/edital/${editalId}`);
