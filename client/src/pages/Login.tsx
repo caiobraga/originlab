@@ -38,19 +38,19 @@ export default function Login() {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-blue-50 to-violet-50 px-4 py-12">
+      <main id="main-content" className="flex-1 flex items-center justify-center bg-gradient-to-br from-blue-50 to-violet-50 px-4 py-12">
         <div className="w-full max-w-md">
           <div className="bg-white rounded-lg shadow-xl p-8">
             <div className="text-center mb-8">
               <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
                 Bem-vindo de volta
               </h1>
-              <p className="text-gray-600 mt-2">
+              <p className="text-gray-700 mt-2">
                 Digite suas credenciais para acessar sua conta
               </p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6" aria-label="Formulário de login">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -62,7 +62,10 @@ export default function Login() {
                   required
                   disabled={loading}
                   className="w-full"
+                  aria-required="true"
+                  aria-describedby="email-description"
                 />
+                <span id="email-description" className="sr-only">Digite seu endereço de email</span>
               </div>
 
               <div className="space-y-2">
@@ -77,7 +80,10 @@ export default function Login() {
                   disabled={loading}
                   minLength={6}
                   className="w-full"
+                  aria-required="true"
+                  aria-describedby="password-description"
                 />
+                <span id="password-description" className="sr-only">Digite sua senha (mínimo de 6 caracteres)</span>
               </div>
 
               <Button
@@ -96,10 +102,10 @@ export default function Login() {
               </Button>
             </form>
 
-            <div className="text-center text-sm text-gray-600 mt-6">
+            <div className="text-center text-sm text-gray-700 mt-6">
               Não tem uma conta?{" "}
               <Link href="/cadastro">
-                <span className="text-blue-600 hover:text-blue-700 font-medium cursor-pointer">
+                <span className="text-blue-600 hover:text-blue-700 font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:rounded">
                   Criar conta
                 </span>
               </Link>
@@ -107,14 +113,14 @@ export default function Login() {
 
             <div className="text-center mt-4">
               <Link href="/">
-                <span className="text-sm text-gray-500 hover:text-gray-700 cursor-pointer">
+                <span className="text-sm text-gray-600 hover:text-gray-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:rounded">
                   ← Voltar para a página inicial
                 </span>
               </Link>
             </div>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

@@ -35,7 +35,7 @@ export default function Pricing() {
       name: "Premium",
       monthlyPrice: 199,
       description: "Para máxima produtividade",
-      features: ["Tudo do Pro", "IA Redatora ilimitada", "Revisão por especialista", "Suporte prioritário"],
+      features: ["Inclui todos os recursos", "IA Redatora ilimitada", "Revisão por especialista", "Suporte prioritário"],
       cta: "Começar 7 dias grátis",
       popular: false,
       color: "blue"
@@ -65,7 +65,7 @@ export default function Pricing() {
       name: "Premium",
       monthlyPrice: 499,
       description: "Para crescimento acelerado",
-      features: ["Tudo do Pro", "IA Redatora ilimitada", "Equipes até 5 pessoas", "Suporte prioritário", "+ 1% Success Fee"],
+      features: ["Inclui todos os recursos", "IA Redatora ilimitada", "Equipes até 5 pessoas", "Suporte prioritário", "+ 1% Success Fee"],
       cta: "Começar 7 dias grátis",
       popular: false,
       color: "purple"
@@ -86,7 +86,7 @@ export default function Pricing() {
       name: "Instituição",
       monthlyPrice: 4990,
       description: "Mais Popular",
-      features: ["Até 500 pesquisadores", "Tudo do Departamento", "Dashboard executivo", "Analytics avançado", "Integração acadêmica"],
+      features: ["Até 500 pesquisadores", "Inclui todos os recursos", "Dashboard executivo", "Analytics avançado", "Integração acadêmica"],
       cta: "Começar 7 dias grátis",
       popular: true,
       color: "indigo"

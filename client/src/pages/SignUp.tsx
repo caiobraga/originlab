@@ -31,6 +31,7 @@ export default function SignUp() {
   
   const [loading, setLoading] = useState(false);
   const { signUp, user } = useAuth();
+  const [location] = useLocation();
 
   // Redirect if already logged in
   useEffect(() => {
@@ -38,6 +39,15 @@ export default function SignUp() {
       setLocation("/dashboard");
     }
   }, [user, setLocation]);
+
+  // Preencher email da URL se disponível
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const emailParam = urlParams.get("email");
+    if (emailParam) {
+      setEmail(emailParam);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

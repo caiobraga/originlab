@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { 
   ArrowLeft, Search, Filter, Globe, TrendingUp, Calendar, 
@@ -498,11 +498,11 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      <div className="container py-8">
+      <main id="main-content" className="container py-8">
         {/* Page Header */}
         <div className="mb-8">
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Meu Painel</h1>
-          <p className="text-sm md:text-base text-gray-600">Oportunidades globais de fomento</p>
+          <p className="text-sm md:text-base text-gray-700">Oportunidades globais de fomento</p>
         </div>
 
         {loading ? (
@@ -514,26 +514,26 @@ export default function Dashboard() {
           <>
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md hover:border-gray-300 transition-all duration-200">
             <div className="flex items-center justify-between mb-2">
-              <Target className="w-5 h-5 text-blue-600" />
-              <TrendingUp className="w-4 h-4 text-green-600" />
+              <Target className="w-5 h-5 text-blue-600 transition-transform duration-200 hover:scale-110" />
+              <TrendingUp className="w-4 h-4 text-green-600 transition-transform duration-200 hover:scale-110" />
             </div>
             <div className="text-3xl font-bold text-gray-900">{stats.editaisAtivos}</div>
             <div className="text-sm text-gray-600">Editais disponíveis</div>
           </div>
 
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md hover:border-gray-300 transition-all duration-200">
             <div className="flex items-center justify-between mb-2">
-              <Sparkles className="w-5 h-5 text-violet-600" />
+              <Sparkles className="w-5 h-5 text-violet-600 transition-transform duration-200 hover:scale-110" />
             </div>
             <div className="text-3xl font-bold text-gray-900">{stats.matchAlto}</div>
             <div className="text-sm text-gray-600">Match acima de 90%</div>
           </div>
 
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md hover:border-gray-300 transition-all duration-200">
             <div className="flex items-center justify-between mb-2">
-              <BarChart3 className="w-5 h-5 text-orange-600" />
+              <BarChart3 className="w-5 h-5 text-orange-600 transition-transform duration-200 hover:scale-110" />
             </div>
             <div className="text-3xl font-bold text-gray-900">{stats.emAnalise}</div>
             <div className="text-sm text-gray-600">Em análise</div>
@@ -541,7 +541,7 @@ export default function Dashboard() {
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-gray-200 mb-6">
+        <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-gray-200 mb-6 hover:shadow-md transition-shadow duration-200">
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
             <div className="flex-1 min-w-0">
               <div className="relative">
@@ -557,7 +557,7 @@ export default function Dashboard() {
             <div className="flex items-center gap-2 flex-shrink-0">
               <Filter className="w-5 h-5 text-gray-400 flex-shrink-0" />
               <select
-                className="px-3 md:px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto"
+                className="px-3 md:px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto transition-all duration-200 hover:border-gray-400 cursor-pointer"
                 value={filtroRegiao}
                 onChange={(e) => setFiltroRegiao(e.target.value)}
               >
@@ -571,7 +571,7 @@ export default function Dashboard() {
             {profile && !profileLoading && profile.userType === "ambos" && (
               <div className="flex items-center gap-2 flex-shrink-0">
                 <select
-                  className="px-3 md:px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto"
+                  className="px-3 md:px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto transition-all duration-200 hover:border-gray-400 cursor-pointer"
                   value={filtroTipoEdital}
                   onChange={(e) => setFiltroTipoEdital(e.target.value as "pesquisadores" | "empresas" | "todos")}
                 >
@@ -627,51 +627,78 @@ export default function Dashboard() {
         {/* Editais List */}
         <div className="space-y-4">
           {editaisFiltrados.map((edital) => (
-            <div key={edital.id} className="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+            <div key={edital.id} className="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-gray-200 hover:shadow-md hover:border-gray-300 transition-all duration-200 cursor-pointer">
               <div className="flex flex-col md:flex-row items-start md:justify-between gap-4 mb-4">
                 <div className="flex-1 min-w-0 w-full">
                   <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-2">
                     <span className="text-xl md:text-2xl flex-shrink-0">{edital.flag}</span>
                     <h3 className="text-base md:text-lg font-bold text-gray-900 break-words flex-1 min-w-0">{edital.titulo}</h3>
-                    {/* Badges de tipo de edital */}
+                    {/* Badges de tipo de edital com separadores visuais */}
                     {(() => {
                       const isResearcher = edital.is_researcher === true;
                       const isCompany = edital.is_company === true;
+                      const badges: React.ReactNode[] = [];
                       
+                      // Badge de tipo de edital
                       if (isResearcher && isCompany) {
-                        return (
-                          <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 flex-shrink-0">
+                        badges.push(
+                          <Badge key="type" variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 flex-shrink-0">
                             <Users className="w-3 h-3 mr-1" />
                             Pesquisadores e Empresas
                           </Badge>
                         );
                       } else if (isResearcher) {
-                        return (
-                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 flex-shrink-0">
+                        badges.push(
+                          <Badge key="type" variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 flex-shrink-0">
                             <GraduationCap className="w-3 h-3 mr-1" />
                             Pesquisadores
                           </Badge>
                         );
                       } else if (isCompany) {
-                        return (
-                          <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200 flex-shrink-0">
+                        badges.push(
+                          <Badge key="type" variant="outline" className="bg-orange-50 text-orange-700 border-orange-200 flex-shrink-0">
                             <Building2 className="w-3 h-3 mr-1" />
                             Empresas
                           </Badge>
                         );
                       }
-                      return null;
+                      
+                      // Badge de status
+                      if (edital.status === "novo") {
+                        badges.push(
+                          <Badge key="status-novo" variant="outline" className="bg-green-50 text-green-700 border-green-200 flex-shrink-0">
+                            Novo
+                          </Badge>
+                        );
+                      }
+                      if (edital.status === "em_analise") {
+                        badges.push(
+                          <Badge key="status-analise" variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 flex-shrink-0">
+                            Em análise
+                          </Badge>
+                        );
+                      }
+                      
+                      // Renderizar badges com separadores visuais
+                      if (badges.length === 0) {
+                        return null;
+                      }
+                      
+                      return badges.map((badge, index) => (
+                        <React.Fragment key={index}>
+                          {index > 0 && (
+                            <span 
+                              className="text-gray-300 dark:text-gray-600 mx-1.5 text-sm font-medium select-none" 
+                              aria-hidden="true"
+                              role="separator"
+                            >
+                              •
+                            </span>
+                          )}
+                          {badge}
+                        </React.Fragment>
+                      ));
                     })()}
-                    {edital.status === "novo" && (
-                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 flex-shrink-0">
-                        Novo
-                      </Badge>
-                    )}
-                    {edital.status === "em_analise" && (
-                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 flex-shrink-0">
-                        Em análise
-                      </Badge>
-                    )}
                   </div>
                   <div className="flex flex-wrap items-center gap-2 text-xs md:text-sm text-gray-600 mb-3 break-words">
                     {edital.orgao && (
@@ -698,16 +725,16 @@ export default function Dashboard() {
                       const valorFormatado = formatValorProjeto(edital.valor_projeto || edital.valor);
                       if (valorFormatado.display !== 'Não informado') {
                         return (
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            <DollarSign className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                          <div className="flex items-center gap-2 flex-shrink-0 group/item">
+                            <DollarSign className="w-4 h-4 text-gray-400 flex-shrink-0 transition-transform duration-200 group-hover/item:scale-110 group-hover/item:text-green-600" />
                             <span className="font-semibold text-gray-900 break-words">{valorFormatado.display}</span>
                           </div>
                         );
                       }
                       return null;
                     })()}
-                    <div className="flex items-center gap-2 min-w-0 max-w-full">
-                      <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                    <div className="flex items-center gap-2 min-w-0 max-w-full group/item">
+                      <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0 transition-transform duration-200 group-hover/item:scale-110 group-hover/item:text-blue-600" />
                       <span className="text-gray-600 break-words min-w-0 overflow-hidden" title={(() => {
                         const prazoFormatado = formatPrazoInscricao(edital.prazo_inscricao);
                         if (prazoFormatado.display !== 'Não informado') {
@@ -725,8 +752,8 @@ export default function Dashboard() {
                       </span>
                     </div>
                     {edital.area && (
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <Target className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                      <div className="flex items-center gap-2 flex-shrink-0 group/item">
+                        <Target className="w-4 h-4 text-gray-400 flex-shrink-0 transition-transform duration-200 group-hover/item:scale-110 group-hover/item:text-purple-600" />
                         <span className="text-gray-600 break-words">{edital.area}</span>
                       </div>
                     )}
@@ -750,7 +777,7 @@ export default function Dashboard() {
                 <Button 
                   onClick={() => handleGerarProposta(edital.id)}
                   disabled={gerandoProposta === edital.id || !user}
-                  className="w-full sm:flex-1 bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full sm:flex-1 bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] group"
                 >
                   {gerandoProposta === edital.id ? (
                     <>
@@ -760,14 +787,14 @@ export default function Dashboard() {
                     </>
                   ) : (
                     <>
-                      <Sparkles className="w-4 h-4 mr-2" />
+                      <Sparkles className="w-4 h-4 mr-2 transition-transform duration-200 group-hover:scale-110 group-hover:rotate-12" />
                       <span className="hidden sm:inline">Gerar proposta com IA</span>
                       <span className="sm:hidden">Gerar proposta</span>
                     </>
                   )}
                 </Button>
-                <Button variant="outline" onClick={() => handleVerDetalhes(edital.id)} className="w-full sm:w-auto">
-                  <Eye className="w-4 h-4 mr-2" />
+                <Button variant="outline" onClick={() => handleVerDetalhes(edital.id)} className="w-full sm:w-auto transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] group">
+                  <Eye className="w-4 h-4 mr-2 transition-transform duration-200 group-hover:scale-110" />
                   <span className="hidden sm:inline">Ver detalhes</span>
                   <span className="sm:hidden">Detalhes</span>
                 </Button>
@@ -788,7 +815,7 @@ export default function Dashboard() {
             )}
           </>
         )}
-      </div>
+      </main>
     </div>
   );
 }

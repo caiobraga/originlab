@@ -19,6 +19,7 @@
     "db:fix-duplicate-pdfs": "tsx scripts/db/fix-duplicate-pdfs.ts",
     "db:fix-cnpq-pdfs": "tsx scripts/db/fix-cnpq-pdfs.ts",
     "db:remove-duplicate-editais": "tsx scripts/db/remove-duplicate-editais.ts",
+    "db:remove-cnpq-data": "tsx scripts/db/remove-cnpq-data.ts",
     "db:fix-pdfs": "tsx scripts/db/fix-pdfs.ts",
     "db:rename-files": "tsx scripts/db/rename-files.ts",
     "db:test-env": "tsx -e \"import './scripts/load-env'; console.log('SUPABASE_URL:', process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL); console.log('SERVICE_ROLE_KEY:', process.env.VITE_SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY ? 'Configurada' : 'Não configurada');\"",

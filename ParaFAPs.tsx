@@ -168,7 +168,7 @@ export default function ParaFAPs() {
               <ul className="space-y-3 mb-8">
                 <li className="flex items-center gap-2"><Check className="w-5 h-5 text-green-500" /> Editais ilimitados</li>
                 <li className="flex items-center gap-2"><Check className="w-5 h-5 text-green-500" /> Candidatos ilimitados</li>
-                <li className="flex items-center gap-2"><Check className="w-5 h-5 text-green-500" /> Tudo do Professional</li>
+                <li className="flex items-center gap-2"><Check className="w-5 h-5 text-green-500" /> Inclui todos os recursos</li>
                 <li className="flex items-center gap-2"><Check className="w-5 h-5 text-green-500" /> Análise avançada (ML)</li>
                 <li className="flex items-center gap-2"><Check className="w-5 h-5 text-green-500" /> API completa</li>
               </ul>

@@ -153,7 +153,7 @@ export default function ParaCorporativo() {
               <p className="text-gray-600 mb-8">/mês</p>
               <ul className="space-y-3 mb-8">
                 <li className="flex items-center gap-2"><Check className="w-5 h-5 text-green-500" /> Até 500 pesquisadores</li>
-                <li className="flex items-center gap-2"><Check className="w-5 h-5 text-green-500" /> Tudo do Departamento</li>
+                <li className="flex items-center gap-2"><Check className="w-5 h-5 text-green-500" /> Inclui todos os recursos</li>
                 <li className="flex items-center gap-2"><Check className="w-5 h-5 text-green-500" /> Dashboard executivo</li>
                 <li className="flex items-center gap-2"><Check className="w-5 h-5 text-green-500" /> Analytics avançado</li>
                 <li className="flex items-center gap-2"><Check className="w-5 h-5 text-green-500" /> Integração acadêmica</li>

@@ -12,6 +12,7 @@ interface EditalInfo {
   id: string;
   numero: string | null;
   titulo: string;
+  fonte?: string | null;
   valor_projeto?: string | null;
   prazo_inscricao?: string | null;
   localizacao?: string | null;
@@ -1144,13 +1145,18 @@ export async function processEditalInfo(
 
   console.log(`  📁 Encontrados ${pdfIds.length} PDF(s)`);
 
+  // Verificar se é edital do CNPq pela fonte
+  const isCNPqEdital = edital.fonte?.toLowerCase().includes('cnpq') || false;
+  
   // Verificar quais campos precisam ser extraídos (só extrair se for null, undefined ou "Não informado")
   const needsValorProjeto = !edital.valor_projeto || edital.valor_projeto === 'Não informado';
   const needsPrazoInscricao = !edital.prazo_inscricao || edital.prazo_inscricao === 'Não informado';
   const needsLocalizacao = !edital.localizacao || edital.localizacao === 'Não informado';
   const needsVagas = !edital.vagas || edital.vagas === 'Não informado';
-  const needsIsResearcher = edital.is_researcher === null || edital.is_researcher === undefined;
-  const needsIsCompany = edital.is_company === null || edital.is_company === undefined;
+  
+  // Para CNPq: sempre considerar como pesquisador, não perguntar sobre empresa
+  const needsIsResearcher = isCNPqEdital ? false : (edital.is_researcher === null || edital.is_researcher === undefined);
+  const needsIsCompany = isCNPqEdital ? false : (edital.is_company === null || edital.is_company === undefined);
   const needsSobrePrograma = !edital.sobre_programa || edital.sobre_programa === 'Não informado';
   const needsCriteriosElegibilidade = !edital.criterios_elegibilidade || edital.criterios_elegibilidade === 'Não informado';
   const needsTimelineEstimada = !edital.timeline_estimada || edital.timeline_estimada === null;
@@ -1202,30 +1208,38 @@ export async function processEditalInfo(
     console.log(`  ⏭️  Vagas já possui valor válido, mantendo valor existente`);
   }
   
-  if (needsIsResearcher) {
-    const result = await extractInfoFromWebhook('is_researcher', pdfIds);
-    if (typeof result === 'boolean') {
-      is_researcher = result;
-    } else {
-      is_researcher = null;
-    }
-    await new Promise(resolve => setTimeout(resolve, 2000));
+  // Para CNPq: definir automaticamente como pesquisador
+  if (isCNPqEdital) {
+    is_researcher = true;
+    is_company = false; // CNPq não é para empresas
+    console.log(`  ✅ Edital CNPq: definido automaticamente como pesquisador (is_researcher=true, is_company=false)`);
   } else {
-    is_researcher = edital.is_researcher ?? null;
-    console.log(`  ⏭️  Is Researcher já possui valor válido, mantendo valor existente`);
-  }
-  
-  if (needsIsCompany) {
-    const result = await extractInfoFromWebhook('is_company', pdfIds);
-    if (typeof result === 'boolean') {
-      is_company = result;
+    // Para outros editais, fazer a pergunta normalmente
+    if (needsIsResearcher) {
+      const result = await extractInfoFromWebhook('is_researcher', pdfIds);
+      if (typeof result === 'boolean') {
+        is_researcher = result;
+      } else {
+        is_researcher = null;
+      }
+      await new Promise(resolve => setTimeout(resolve, 2000));
     } else {
-      is_company = null;
+      is_researcher = edital.is_researcher ?? null;
+      console.log(`  ⏭️  Is Researcher já possui valor válido, mantendo valor existente`);
     }
-    await new Promise(resolve => setTimeout(resolve, 2000));
-  } else {
-    is_company = edital.is_company ?? null;
-    console.log(`  ⏭️  Is Company já possui valor válido, mantendo valor existente`);
+    
+    if (needsIsCompany) {
+      const result = await extractInfoFromWebhook('is_company', pdfIds);
+      if (typeof result === 'boolean') {
+        is_company = result;
+      } else {
+        is_company = null;
+      }
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    } else {
+      is_company = edital.is_company ?? null;
+      console.log(`  ⏭️  Is Company já possui valor válido, mantendo valor existente`);
+    }
   }
 
   // Confiar na classificação da IA - sem pós-processamento
@@ -1457,7 +1471,7 @@ export async function fetchEditaisToProcess(
 ): Promise<EditalInfo[]> {
   let query = supabase
     .from('editais')
-    .select('id, numero, titulo, valor_projeto, prazo_inscricao, localizacao, vagas, is_researcher, is_company, sobre_programa, criterios_elegibilidade, timeline_estimada, informacoes_processadas_em')
+    .select('id, numero, titulo, fonte, valor_projeto, prazo_inscricao, localizacao, vagas, is_researcher, is_company, sobre_programa, criterios_elegibilidade, timeline_estimada, informacoes_processadas_em')
     .order('criado_em', { ascending: false });
 
   // Se includeNotInformed, buscar TODOS os editais (incluindo processados)

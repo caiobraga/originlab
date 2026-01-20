@@ -547,13 +547,14 @@ export class CnpqScraper implements Scraper {
       const editaisData = await this.page!.evaluate((baseUrl) => {
         const editais: any[] = [];
         
-        // Procurar todos os elementos com classe "content"
-        const contentElements = Array.from(document.querySelectorAll('.content'));
+        // IMPORTANTE: Buscar cards de editais através dos <li> que contêm títulos de chamadas
+        // Isso garante que cada card seja isolado e não pegue links de outros cards
+        const listItems = Array.from(document.querySelectorAll('li'));
         const processedTitles = new Set<string>();
         
-        contentElements.forEach((contentEl) => {
-          // Procurar título dentro do content
-          const titleElement = contentEl.querySelector('h1, h2, h3, h4, h5, h6, .title, [class*="title"]');
+        listItems.forEach((listItem) => {
+          // Procurar título dentro do <li>
+          const titleElement = listItem.querySelector('h1, h2, h3, h4, h5, h6, .title, [class*="title"]');
           if (!titleElement) return;
           
           const headingText = titleElement.textContent?.trim() || '';
@@ -568,6 +569,11 @@ export class CnpqScraper implements Scraper {
             return;
           }
           processedTitles.add(headingText);
+          
+          // Usar o <li> como container principal, não apenas .content
+          // Isso garante isolamento entre cards
+          const cardContainer = listItem; // Container isolado para este card específico
+          const contentEl = cardContainer.querySelector('.content') || cardContainer;
           
           const edital: any = {};
           edital.titulo = headingText;
@@ -618,8 +624,8 @@ export class CnpqScraper implements Scraper {
             }
           }
           
-          // Links - procurar link dentro do content
-          const allContentLinks = contentEl.querySelectorAll('a[href]');
+          // Links - procurar link dentro do card específico
+          const allContentLinks = cardContainer.querySelectorAll('a[href]');
           const validLinks: Array<{href: string, text: string}> = [];
           
           allContentLinks.forEach((linkEl: any) => {
@@ -660,6 +666,10 @@ export class CnpqScraper implements Scraper {
             edital.link = `${baseUrl}?chamada=${edital.numero}`;
           }
           
+          // IMPORTANTE: Definir o link do edital ANTES de coletar links resultado.cnpq.br
+          // Isso permite validar se os links resultado.cnpq.br pertencem ao edital específico
+          const editalLinkId = edital.link ? edital.link.split('/').pop() || '' : '';
+          
           // PDFs - BUSCA QUALIFICADA com múltiplas estratégias
           // IMPORTANTE: Coletar também links resultado.cnpq.br (não têm .pdf mas contêm PDFs)
           const pdfLinks: string[] = [];
@@ -678,7 +688,8 @@ export class CnpqScraper implements Scraper {
                 
                 // Separar links resultado.cnpq.br dos outros
                 if (fullUrl.indexOf('resultado.cnpq.br') !== -1) {
-                  resultadoLinks.push(fullUrl);
+                  // Não adicionar diretamente aqui - usar addResultadoLink para validação
+                  addResultadoLink(href);
                 } else {
                   pdfLinks.push(fullUrl);
                 }
@@ -692,14 +703,49 @@ export class CnpqScraper implements Scraper {
             if (!seenPdfUrls.has(normalized)) {
               try {
                 const fullUrl = href.startsWith('http') ? href : new URL(href, baseUrl).href;
-                seenPdfUrls.add(normalized);
-                resultadoLinks.push(fullUrl);
+                // IMPORTANTE: Validar que o link resultado.cnpq.br seja específico deste edital
+                // Links resultado.cnpq.br devem ter um ID único (geralmente numérico longo)
+                const urlId = fullUrl.split('/').pop() || '';
+                
+                // CRÍTICO: Verificar se o link está relacionado ao edital atual
+                // Usar editalLinkId e edital.link que foram definidos antes desta função
+                let isRelatedToEdital = false;
+                if (editalLinkId && edital.link) {
+                  // Verificar se o ID do resultado.cnpq.br está relacionado ao link do edital
+                  // Ou se o link do edital contém o mesmo ID
+                  if (urlId === editalLinkId || edital.link.includes(urlId) || fullUrl.includes(editalLinkId)) {
+                    isRelatedToEdital = true;
+                  }
+                }
+                // Se não temos link do edital, não aceitar links resultado.cnpq.br
+                // Isso evita coletar links genéricos que aparecem em múltiplos editais
+                
+                // Aceitar apenas se:
+                // 1. O ID for válido (mais de 5 caracteres, geralmente numérico)
+                // 2. E estiver relacionado ao edital atual (precisamos ter link do edital E estar relacionado)
+                const isValidId = urlId.length > 5 && /^\d+$/.test(urlId);
+                const shouldAccept = isValidId && isRelatedToEdital;
+                
+                if (shouldAccept) {
+                  seenPdfUrls.add(normalized);
+                  resultadoLinks.push(fullUrl);
+                } else {
+                  // Log apenas se for um ID válido mas não relacionado (para debug)
+                  if (isValidId) {
+                    console.log(`      ⚠️ Link resultado.cnpq.br ignorado (não relacionado ao edital atual): ${fullUrl.substring(0, 80)}...`);
+                    if (edital.link) {
+                      console.log(`         Link do edital: ${edital.link.substring(0, 80)}... | ID do edital: ${editalLinkId} | ID do link: ${urlId}`);
+                    }
+                  }
+                }
               } catch (e) {}
             }
           }
           
-          // ESTRATÉGIA 1: Buscar TODOS os links no content (incluindo resultado.cnpq.br)
-          const allLinks = contentEl.querySelectorAll('a[href]');
+          // ESTRATÉGIA 1: Buscar TODOS os links no card específico (incluindo resultado.cnpq.br)
+          // CRÍTICO: Usar cardContainer (que é o listItem) para garantir isolamento entre cards
+          // Isso evita coletar links de outros editais na página
+          const allLinks = cardContainer.querySelectorAll('a[href]');
           
           // Debug: contar links encontrados
           let totalLinksFound = 0;
@@ -755,7 +801,8 @@ export class CnpqScraper implements Scraper {
           }
           
           // ESTRATÉGIA 2: Buscar botões com texto relacionado
-          const buttons = contentEl.querySelectorAll('button, a.btn, .btn, [class*="button"], [class*="btn"], [role="button"]');
+          // CRÍTICO: Usar cardContainer para garantir isolamento entre cards
+          const buttons = cardContainer.querySelectorAll('button, a.btn, .btn, [class*="button"], [class*="btn"], [role="button"]');
           buttons.forEach((btn: any) => {
             const btnText = (btn.textContent || '').toLowerCase().trim();
             if (btnText.includes('chamada') || btnText.includes('pdf') || 
@@ -779,7 +826,7 @@ export class CnpqScraper implements Scraper {
           });
           
           // ESTRATÉGIA 3: Buscar em listas (li) com texto relacionado
-          const listItems = contentEl.querySelectorAll('li, [class*="list-item"]');
+          const listItems = cardContainer.querySelectorAll('li, [class*="list-item"]');
           listItems.forEach((li: any) => {
             const liText = (li.textContent || '').toLowerCase();
             const linkInLi = li.querySelector('a[href]');
@@ -800,7 +847,7 @@ export class CnpqScraper implements Scraper {
           });
           
           // ESTRATÉGIA 4: Buscar em atributos data-*
-          const dataElements = contentEl.querySelectorAll('[data-href], [data-url], [data-pdf], [data-document], [data-link]');
+          const dataElements = cardContainer.querySelectorAll('[data-href], [data-url], [data-pdf], [data-document], [data-link]');
           dataElements.forEach((el: any) => {
             const dataHref = el.getAttribute('data-href') || 
                             el.getAttribute('data-url') || 
@@ -813,7 +860,7 @@ export class CnpqScraper implements Scraper {
           });
           
           // ESTRATÉGIA 5: Buscar em tabelas
-          const tables = contentEl.querySelectorAll('table');
+          const tables = cardContainer.querySelectorAll('table');
           tables.forEach((table: any) => {
             const tableLinks = table.querySelectorAll('a[href]');
             tableLinks.forEach((link: any) => {
@@ -830,7 +877,7 @@ export class CnpqScraper implements Scraper {
           // IMPORTANTE: Buscar também o PDF do botão "Chamada" na listagem
           // ACEITAR QUALQUER href do botão "Chamada", não apenas PDFs diretos
           const chamadaButtonPdf = (() => {
-            const chamadaButtons = contentEl.querySelectorAll('button, a.btn, .btn, [class*="button"], [class*="btn"], a, [role="button"]');
+            const chamadaButtons = cardContainer.querySelectorAll('button, a.btn, .btn, [class*="button"], [class*="btn"], a, [role="button"]');
             for (let btnIdx = 0; btnIdx < chamadaButtons.length; btnIdx++) {
               const btn = chamadaButtons[btnIdx];
               const btnText = (btn.textContent || '').toLowerCase().trim();
@@ -872,15 +919,34 @@ export class CnpqScraper implements Scraper {
           })();
           
           // Combinar links PDF diretos com links resultado.cnpq.br e PDF do botão Chamada
-          const allPdfUrls = [...pdfLinks, ...resultadoLinks];
+          const allPdfUrlsRaw = [...pdfLinks, ...resultadoLinks];
           
           // IMPORTANTE: Adicionar SEMPRE o href do botão "Chamada" à lista
           // Mesmo que não tenha .pdf ou /documents/, pode ser um PDF sem extensão ou uma página com PDF
-          if (chamadaButtonPdf && !allPdfUrls.includes(chamadaButtonPdf)) {
-            allPdfUrls.unshift(chamadaButtonPdf);
+          if (chamadaButtonPdf && !allPdfUrlsRaw.includes(chamadaButtonPdf)) {
+            allPdfUrlsRaw.unshift(chamadaButtonPdf);
             console.log(`      📎 Link do botão "Chamada" encontrado na listagem: ${chamadaButtonPdf.substring(0, 60)}...`);
             console.log(`      ✅ Link do botão "Chamada" adicionado à lista de downloads`);
           }
+          
+          // CRÍTICO: Filtrar links resultado.cnpq.br para garantir que pertencem ao edital específico
+          const editalLinkIdForInitial = edital.link ? edital.link.split('/').pop() || '' : '';
+          const allPdfUrls = allPdfUrlsRaw.filter((url: string) => {
+            if (url.includes('resultado.cnpq.br')) {
+              const urlId = url.split('/').pop() || '';
+              if (editalLinkIdForInitial && edital.link && edital.link.includes('resultado.cnpq.br')) {
+                const isValid = urlId === editalLinkIdForInitial;
+                if (!isValid) {
+                  console.log(`      ⚠️ Filtrando link resultado.cnpq.br da extração inicial: ${url.substring(0, 80)}... (ID esperado: ${editalLinkIdForInitial}, encontrado: ${urlId})`);
+                }
+                return isValid;
+              }
+              // Se o link do edital não é resultado.cnpq.br, não aceitar links resultado.cnpq.br genéricos
+              console.log(`      ⚠️ Filtrando link resultado.cnpq.br genérico da extração inicial: ${url.substring(0, 80)}...`);
+              return false;
+            }
+            return true; // Aceitar outros tipos de links
+          });
           
           // NOTA: Não adicionar campos de debug ao edital - eles não devem ser salvos no JSON
           
@@ -961,7 +1027,30 @@ export class CnpqScraper implements Scraper {
         
         // SEMPRE navegar para página de detalhes para buscar TODOS os PDFs
         // (mesmo que já tenhamos encontrado alguns na listagem, pode haver mais)
-        const pdfsFromListagem = Array.isArray(edital.pdfUrls) ? edital.pdfUrls : [];
+        // CRÍTICO: Filtrar links resultado.cnpq.br da listagem para garantir que pertencem ao edital específico
+        const editalLinkIdForFilter = edital.link ? edital.link.split('/').pop() || '' : '';
+        const rawPdfsFromListagem = Array.isArray(edital.pdfUrls) ? edital.pdfUrls : [];
+        
+        // Filtrar links resultado.cnpq.br que não pertencem ao edital específico
+        const pdfsFromListagem = rawPdfsFromListagem.filter((url: any) => {
+          if (!url || typeof url !== 'string') return false;
+          if (url.includes('resultado.cnpq.br')) {
+            const urlId = url.split('/').pop() || '';
+            // Aceitar apenas se o ID corresponder ao link do edital
+            if (editalLinkIdForFilter && edital.link && edital.link.includes('resultado.cnpq.br')) {
+              const isValid = urlId === editalLinkIdForFilter;
+              if (!isValid) {
+                console.log(`  ⚠️ Filtrando link resultado.cnpq.br da listagem que não pertence ao edital: ${url.substring(0, 80)}... (ID esperado: ${editalLinkIdForFilter}, encontrado: ${urlId})`);
+              }
+              return isValid;
+            }
+            // Se o link do edital não é resultado.cnpq.br, não aceitar links resultado.cnpq.br genéricos da listagem
+            console.log(`  ⚠️ Filtrando link resultado.cnpq.br genérico da listagem: ${url.substring(0, 80)}...`);
+            return false;
+          }
+          return true; // Aceitar outros tipos de links
+        });
+        
         const resultadoLinksFromListagem = pdfsFromListagem.filter((url: any) => 
           url && typeof url === 'string' && url.includes('resultado.cnpq.br')
         );
@@ -1266,30 +1355,35 @@ export class CnpqScraper implements Scraper {
         
         // IMPORTANTE: Buscar o botão "Chamada" também na página de listagem (antes de navegar para detalhes)
         // Isso garante que encontramos o PDF mesmo quando não navegamos para página de detalhes
+        // CRÍTICO: Validar que o botão encontrado pertence ao edital específico
         if (edital.link && edital.link.includes('resultado.cnpq.br')) {
-          console.log(`  🔍 Buscando botão "Chamada" na página de listagem...`);
+          console.log(`  🔍 Buscando botão "Chamada" na página de listagem para edital: ${edital.link.substring(0, 60)}...`);
           try {
+            // Extrair o ID do link do edital para validação
+            const editalLinkId = edital.link.split('/').pop() || '';
+            
             // Buscar botão "Chamada" no card do edital atual
-            const chamadaButtonPdfFromListagem = await this.page!.evaluate((editalLink, baseUrl) => {
+            const chamadaButtonPdfFromListagem = await this.page!.evaluate((editalLinkId, editalLink, baseUrl) => {
               // Buscar o card do edital que contém o link
-              const allCards = document.querySelectorAll('.portlet-content, .portlet-body, [class*="chamada"], [class*="edital"]');
+              const allCards = document.querySelectorAll('.portlet-content, .portlet-body, [class*="chamada"], [class*="edital"], .content');
               for (let cardIdx = 0; cardIdx < allCards.length; cardIdx++) {
                 const card = allCards[cardIdx];
                 const cardLinks = card.querySelectorAll('a[href]');
                 let hasEditalLink = false;
                 
-                // Verificar se este card contém o link do edital
+                // Verificar se este card contém o link do edital (usar ID completo para validação rigorosa)
                 for (let linkIdx = 0; linkIdx < cardLinks.length; linkIdx++) {
                   const link = cardLinks[linkIdx];
                   const href = (link as any).href || link.getAttribute('href') || '';
-                  if (href && href.includes(editalLink.split('/').pop() || '')) {
+                  // Validar que o link contém o ID completo do edital
+                  if (href && editalLinkId && href.includes(editalLinkId)) {
                     hasEditalLink = true;
                     break;
                   }
                 }
                 
                 if (hasEditalLink) {
-                  // Buscar botão "Chamada" neste card
+                  // Buscar botão "Chamada" neste card E validar que o link do botão corresponde ao edital
                   const chamadaButtons = card.querySelectorAll('button, a.btn, .btn, [class*="button"], [class*="btn"], a, [role="button"]');
                   for (let btnIdx = 0; btnIdx < chamadaButtons.length; btnIdx++) {
                     const btn = chamadaButtons[btnIdx];
@@ -1301,7 +1395,10 @@ export class CnpqScraper implements Scraper {
                       if (btnHref && btnHref.indexOf('http') !== -1 && !btnHref.includes('javascript:')) {
                         try {
                           const fullUrl = btnHref.indexOf('http') === 0 ? btnHref : new URL(btnHref, baseUrl).href;
-                          if (!fullUrl.includes('/web/guest/chamadas') && 
+                          // CRÍTICO: Validar que o link do botão corresponde ao ID do edital
+                          const buttonLinkId = fullUrl.split('/').pop() || '';
+                          if (buttonLinkId === editalLinkId && 
+                              !fullUrl.includes('/web/guest/chamadas') && 
                               !fullUrl.includes('/web/guest/apresentacao')) {
                             return fullUrl;
                           }
@@ -1315,7 +1412,10 @@ export class CnpqScraper implements Scraper {
                         if (linkHref && linkHref.indexOf('http') !== -1) {
                           try {
                             const fullUrl = linkHref.indexOf('http') === 0 ? linkHref : new URL(linkHref, baseUrl).href;
-                            if (!fullUrl.includes('/web/guest/chamadas')) {
+                            // CRÍTICO: Validar que o link do botão corresponde ao ID do edital
+                            const buttonLinkId = fullUrl.split('/').pop() || '';
+                            if (buttonLinkId === editalLinkId && 
+                                !fullUrl.includes('/web/guest/chamadas')) {
                               return fullUrl;
                             }
                           } catch (e) {}
@@ -1326,14 +1426,23 @@ export class CnpqScraper implements Scraper {
                 }
               }
               return null;
-            }, edital.link, this.editaisUrl);
+            }, editalLinkId, edital.link, this.editaisUrl);
             
             if (chamadaButtonPdfFromListagem) {
-              console.log(`  ✅ Botão "Chamada" encontrado na listagem: ${chamadaButtonPdfFromListagem.substring(0, 60)}...`);
-              if (!otherLinks.includes(chamadaButtonPdfFromListagem)) {
-                otherLinks.push(chamadaButtonPdfFromListagem);
-                console.log(`  ✅ Link do botão "Chamada" adicionado à lista de downloads`);
+              // Validação adicional: garantir que o link encontrado corresponde ao edital
+              const foundLinkId = chamadaButtonPdfFromListagem.split('/').pop() || '';
+              if (foundLinkId === editalLinkId) {
+                console.log(`  ✅ Botão "Chamada" encontrado na listagem (validado): ${chamadaButtonPdfFromListagem.substring(0, 60)}...`);
+                if (!otherLinks.includes(chamadaButtonPdfFromListagem)) {
+                  otherLinks.push(chamadaButtonPdfFromListagem);
+                  console.log(`  ✅ Link do botão "Chamada" adicionado à lista de downloads`);
+                }
+              } else {
+                console.log(`  ⚠️ Botão "Chamada" encontrado mas não corresponde ao edital atual (ID esperado: ${editalLinkId}, encontrado: ${foundLinkId})`);
+                console.log(`  ⚠️ Ignorando link: ${chamadaButtonPdfFromListagem.substring(0, 60)}...`);
               }
+            } else {
+              console.log(`  ℹ️ Botão "Chamada" não encontrado na listagem para este edital`);
             }
           } catch (e: any) {
             console.log(`  ⚠️ Erro ao buscar botão "Chamada" na listagem: ${e.message}`);
@@ -1985,6 +2094,23 @@ export class CnpqScraper implements Scraper {
               if (resultadoLinks.length > 0) {
                 console.log(`  🔍 Encontrados ${resultadoLinks.length} link(s) resultado.cnpq.br - buscando TODOS os links dentro deles...`);
                 
+                // IMPORTANTE: Filtrar apenas links resultado.cnpq.br que sejam específicos deste edital
+                // Links resultado.cnpq.br devem estar relacionados ao link do edital atual
+                const editalLinkId = edital.link ? edital.link.split('/').pop() || '' : '';
+                const filteredResultadoLinks = resultadoLinks.filter(url => {
+                  // Se temos um link do edital, verificar se o resultado.cnpq.br está relacionado
+                  if (editalLinkId && url.includes(editalLinkId)) {
+                    return true;
+                  }
+                  // Se não temos link do edital, aceitar apenas se o URL não for um padrão genérico conhecido
+                  // O link 9306271143696267 parece ser específico de um edital, então vamos validar melhor
+                  const urlId = url.split('/').pop() || '';
+                  // Aceitar apenas se o ID do URL não for um padrão genérico ou se estiver na lista de links do edital
+                  return urlId.length > 5; // IDs válidos geralmente têm mais de 5 caracteres
+                });
+                
+                console.log(`  🔍 Após filtro: ${filteredResultadoLinks.length} link(s) resultado.cnpq.br específicos deste edital`);
+                
                 // Coletar TODOS os links encontrados (incluindo outros resultado.cnpq.br e documentos)
                 const allFoundLinks: string[] = [];
                 const visitedUrls = new Set<string>();
@@ -2128,8 +2254,19 @@ export class CnpqScraper implements Scraper {
                     
                     for (const linkInfo of pageLinks) {
                       if (linkInfo.type === 'resultado' && !visitedUrls.has(linkInfo.url)) {
-                        newResultadoLinks.push(linkInfo.url);
-                        console.log(`      🔗 Encontrado link resultado.cnpq.br: ${linkInfo.url.substring(0, 80)}... (${linkInfo.text})`);
+                        // IMPORTANTE: Validar que o link resultado.cnpq.br seja específico deste edital
+                        const urlId = linkInfo.url.split('/').pop() || '';
+                        // Aceitar apenas se o ID for válido (mais de 5 caracteres, geralmente numérico)
+                        // E se estiver relacionado ao link do edital atual
+                        const isValidResultadoLink = urlId.length > 5 && /^\d+$/.test(urlId);
+                        const isRelatedToEdital = editalLinkId ? linkInfo.url.includes(editalLinkId) : true;
+                        
+                        if (isValidResultadoLink && isRelatedToEdital) {
+                          newResultadoLinks.push(linkInfo.url);
+                          console.log(`      🔗 Encontrado link resultado.cnpq.br: ${linkInfo.url.substring(0, 80)}... (${linkInfo.text})`);
+                        } else {
+                          console.log(`      ⚠️ Link resultado.cnpq.br ignorado (não específico deste edital): ${linkInfo.url.substring(0, 80)}...`);
+                        }
                       } else if (linkInfo.type === 'pdf') {
                         newPdfLinks.push(linkInfo.url);
                         console.log(`      📎 Encontrado PDF: ${linkInfo.url.substring(0, 80)}... (${linkInfo.text})`);
@@ -2159,8 +2296,8 @@ export class CnpqScraper implements Scraper {
                   }
                 };
                 
-                // Processar cada link resultado.cnpq.br encontrado
-                for (const resultadoUrl of resultadoLinks) {
+                // Processar cada link resultado.cnpq.br encontrado (apenas os filtrados)
+                for (const resultadoUrl of filteredResultadoLinks) {
                   await followResultadoLinks(resultadoUrl, 0);
                 }
                 
@@ -2175,14 +2312,50 @@ export class CnpqScraper implements Scraper {
               // - PDFs da listagem original
               // - PDFs encontrados nas páginas resultado.cnpq.br (se houver)
               // - PDFs encontrados na página de detalhes
+              // CRÍTICO: Filtrar links resultado.cnpq.br para garantir que pertencem ao edital específico
+              const editalLinkId = edital.link ? edital.link.split('/').pop() || '' : '';
+              
               const allPdfUrls = [...new Set([
                 ...pdfsFromListagem,
                 ...pdfsFromResultadoPagesBackup,
                 ...otherLinks
-              ])];
+              ])].filter((url: string) => {
+                // Se é um link resultado.cnpq.br, validar que pertence ao edital
+                if (url.includes('resultado.cnpq.br')) {
+                  const urlId = url.split('/').pop() || '';
+                  
+                  // Se temos um link do edital que também é resultado.cnpq.br, validar que o ID corresponde exatamente
+                  if (editalLinkId && edital.link && edital.link.includes('resultado.cnpq.br')) {
+                    // Validação rigorosa: o ID deve corresponder exatamente OU estar na lista de links relacionados
+                    const isValid = urlId === editalLinkId;
+                    if (!isValid) {
+                      console.log(`  ⚠️ Filtrando link resultado.cnpq.br que não pertence ao edital: ${url.substring(0, 80)}... (ID esperado: ${editalLinkId}, encontrado: ${urlId})`);
+                    }
+                    return isValid;
+                  }
+                  
+                  // Se o link do edital não é resultado.cnpq.br, aceitar apenas se o link estiver na lista de links relacionados
+                  // (por exemplo, anexos que foram encontrados na página de detalhes)
+                  if (editalLinkId && edital.link && !edital.link.includes('resultado.cnpq.br')) {
+                    // Aceitar apenas se o link foi encontrado na página de detalhes (otherLinks)
+                    // Não aceitar links genéricos da listagem
+                    const isFromDetails = otherLinks.includes(url);
+                    if (!isFromDetails) {
+                      console.log(`  ⚠️ Filtrando link resultado.cnpq.br genérico da listagem: ${url.substring(0, 80)}...`);
+                    }
+                    return isFromDetails;
+                  }
+                  
+                  // Se não temos link do edital válido, não aceitar links resultado.cnpq.br genéricos
+                  console.log(`  ⚠️ Filtrando link resultado.cnpq.br (sem link do edital válido): ${url.substring(0, 80)}...`);
+                  return false;
+                }
+                // Aceitar outros tipos de links (PDFs diretos, etc.)
+                return true;
+              });
               
               if (allPdfUrls.length > 0) {
-                console.log(`  ✅ Total de PDFs encontrados: ${allPdfUrls.length}`);
+                console.log(`  ✅ Total de PDFs encontrados (após filtro): ${allPdfUrls.length}`);
                 console.log(`     - Da listagem: ${pdfsFromListagem.length}`);
                 if (pdfsFromResultadoPagesBackup.length > 0) {
                   console.log(`     - Das páginas resultado.cnpq.br: ${pdfsFromResultadoPagesBackup.length}`);
@@ -2348,8 +2521,24 @@ export class CnpqScraper implements Scraper {
           console.log(`  ✅ pdfUrls inicializado com ${edital.pdfUrls.length} PDF(s)`);
         } else {
           // Mesmo se já tem pdfUrls, garantir que inclui o link do botão "Chamada" se estiver em otherLinks
+          // CRÍTICO: Aplicar filtro também aqui para evitar links resultado.cnpq.br genéricos
+          const editalLinkIdForUpdate = edital.link ? edital.link.split('/').pop() || '' : '';
           const currentUrls = Array.isArray(edital.pdfUrls) ? edital.pdfUrls : [];
-          const missingFromOtherLinks = otherLinks.filter(url => !currentUrls.includes(url));
+          const missingFromOtherLinks = otherLinks.filter(url => {
+            if (!currentUrls.includes(url)) {
+              // Se é um link resultado.cnpq.br, validar que pertence ao edital
+              if (url.includes('resultado.cnpq.br')) {
+                const urlId = url.split('/').pop() || '';
+                if (editalLinkIdForUpdate && edital.link && edital.link.includes('resultado.cnpq.br')) {
+                  return urlId === editalLinkIdForUpdate;
+                }
+                // Se o link do edital não é resultado.cnpq.br, não aceitar links resultado.cnpq.br genéricos
+                return false;
+              }
+              return true; // Aceitar outros tipos de links
+            }
+            return false;
+          });
           if (missingFromOtherLinks.length > 0) {
             edital.pdfUrls = [...new Set([...currentUrls, ...missingFromOtherLinks])];
             console.log(`  ✅ Adicionados ${missingFromOtherLinks.length} PDF(s) do botão "Chamada" a pdfUrls`);
@@ -2729,7 +2918,26 @@ export class CnpqScraper implements Scraper {
           // Não remover URLs que não foram baixadas nesta execução (podem ser de execuções anteriores)
           // Apenas adicionar novas URLs que foram baixadas com sucesso
           const originalUrls = Array.isArray(edital.pdfUrls) ? edital.pdfUrls : [];
-          const allUrls = [...new Set([...originalUrls, ...successfullyDownloadedUrls])];
+          const allUrlsRaw = [...new Set([...originalUrls, ...successfullyDownloadedUrls])];
+          
+          // CRÍTICO: Filtrar links resultado.cnpq.br para garantir que pertencem ao edital específico
+          const editalLinkIdForFinal = edital.link ? edital.link.split('/').pop() || '' : '';
+          const allUrls = allUrlsRaw.filter((url: string) => {
+            if (url.includes('resultado.cnpq.br')) {
+              const urlId = url.split('/').pop() || '';
+              if (editalLinkIdForFinal && edital.link && edital.link.includes('resultado.cnpq.br')) {
+                const isValid = urlId === editalLinkIdForFinal;
+                if (!isValid) {
+                  console.log(`  ⚠️ Filtrando link resultado.cnpq.br após download: ${url.substring(0, 80)}... (ID esperado: ${editalLinkIdForFinal}, encontrado: ${urlId})`);
+                }
+                return isValid;
+              }
+              // Se o link do edital não é resultado.cnpq.br, não aceitar links resultado.cnpq.br genéricos
+              console.log(`  ⚠️ Filtrando link resultado.cnpq.br genérico após download: ${url.substring(0, 80)}...`);
+              return false;
+            }
+            return true; // Aceitar outros tipos de links
+          });
           
           if (allUrls.length > 0) {
             edital.pdfUrls = allUrls;

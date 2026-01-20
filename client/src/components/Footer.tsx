@@ -1,11 +1,77 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { APP_TITLE } from "@/const";
-import { Mail, Linkedin, Twitter, Github } from "lucide-react";
+import { Mail, Linkedin, Twitter, Github, Loader2, CheckCircle2 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
+import { useLocation } from "wouter";
 
 export default function Footer() {
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [, setLocation] = useLocation();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!email || !email.includes("@")) {
+      toast.error("Por favor, insira um email válido");
+      return;
+    }
+
+    setLoading(true);
+    setSuccess(false);
+
+    try {
+      // Salvar lead no Supabase (tabela leads)
+      const { error: leadError } = await supabase
+        .from("leads")
+        .insert({
+          email: email.toLowerCase().trim(),
+          source: "landing_page_footer",
+        });
+
+      // Se der erro porque a tabela não existe ou por permissão, não é crítico
+      // O importante é redirecionar para cadastro
+      if (leadError) {
+        const errorMsg = leadError.message || "";
+        const isTableNotFound = 
+          errorMsg.includes("relation") || 
+          errorMsg.includes("does not exist") ||
+          errorMsg.includes("permission") ||
+          errorMsg.includes("policy");
+        
+        if (!isTableNotFound) {
+          console.warn("Erro ao salvar lead (não crítico):", leadError);
+        }
+        // Mesmo com erro, continuar com o fluxo
+      } else {
+        console.log("Lead salvo com sucesso:", email);
+      }
+
+      setSuccess(true);
+      toast.success("Redirecionando para cadastro...");
+      
+      // Redirecionar para cadastro após 1 segundo
+      setTimeout(() => {
+        setLocation(`/cadastro?email=${encodeURIComponent(email)}`);
+      }, 1000);
+    } catch (error) {
+      console.error("Erro ao processar email:", error);
+      // Mesmo com erro, redirecionar para cadastro
+      toast.success("Redirecionando para cadastro...");
+      setTimeout(() => {
+        setLocation(`/cadastro?email=${encodeURIComponent(email)}`);
+      }, 500);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <footer className="bg-gray-900 text-white">
+    <footer className="bg-gray-900 text-white" role="contentinfo">
       {/* CTA Section */}
       <div className="bg-gradient-to-r from-blue-600 to-violet-600 py-16">
         <div className="container text-center">
@@ -16,19 +82,43 @@ export default function Footer() {
             Comece gratuitamente e descubra oportunidades de fomento feitas para você
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center max-w-md mx-auto">
+          <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-4 justify-center items-center max-w-md mx-auto" aria-label="Formulário de cadastro de email">
+            <label htmlFor="footer-email" className="sr-only">Email</label>
             <Input 
+              id="footer-email"
               type="email" 
               placeholder="Seu melhor email" 
               className="bg-white text-gray-900 border-0 h-12"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={loading || success}
+              required
+              aria-required="true"
+              aria-describedby="footer-email-description"
             />
+            <span id="footer-email-description" className="sr-only">Digite seu endereço de email para receber atualizações</span>
             <Button 
+              type="submit"
               size="lg" 
-              className="bg-gray-900 hover:bg-gray-800 text-white px-8 whitespace-nowrap"
+              className="bg-gray-900 hover:bg-gray-800 text-white px-8 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+              disabled={loading || success}
+              aria-label={loading ? "Processando cadastro" : success ? "Redirecionando para cadastro" : "Cadastrar gratuitamente"}
             >
-              Cadastrar Grátis
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" />
+                  Processando...
+                </>
+              ) : success ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4 mr-2" aria-hidden="true" />
+                  Redirecionando...
+                </>
+              ) : (
+                "Cadastrar Grátis"
+              )}
             </Button>
-          </div>
+          </form>
         </div>
       </div>
 

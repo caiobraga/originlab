@@ -39,7 +39,7 @@ const plans = [
     period: "/mês",
     description: "Para startups e corporações inovadoras",
     features: [
-      "Tudo do Pro",
+      "Inclui todos os recursos",
       "Multiusuário (até 10)",
       "Acompanhamento dedicado",
       "Relatórios executivos",
@@ -55,7 +55,7 @@ const plans = [
     period: "",
     description: "White label para universidades e FAPs",
     features: [
-      "Tudo do Empresas",
+      "Inclui todos os recursos",
       "White label customizado",
       "Usuários ilimitados",
       "Infraestrutura dedicada",

@@ -12,7 +12,7 @@ export function EditalCard({ edital, user }: EditalCardProps) {
   const relevanceInfo = getEditalRelevanceInfo(edital, user);
 
   return (
-    <div className="border rounded-lg p-6 hover:shadow-lg transition-shadow">
+    <div className="border rounded-lg p-6 shadow-md hover:shadow-xl transition-shadow duration-200">
       <div className="flex justify-between items-start mb-4">
         <div>
           <h3 className="text-xl font-bold text-gray-900 mb-2">{edital.titulo}</h3>
