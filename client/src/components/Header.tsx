@@ -214,27 +214,16 @@ export default function Header() {
               </>
             ) : (
               !loading && (
-                <>
-                  <Link href="/login">
-                    <Button 
-                      variant="outline" 
-                      className="hidden md:inline-flex"
-                      size="sm"
-                    >
-                      <LogIn className="w-4 h-4 mr-2" />
-                      Entrar
-                    </Button>
-                  </Link>
-                  <Link href="/cadastro">
-                    <Button 
-                      className="hidden md:inline-flex bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white"
-                      size="sm"
-                    >
-                      <span className="hidden lg:inline">Criar Conta Grátis</span>
-                      <span className="lg:hidden">Cadastrar</span>
-                    </Button>
-                  </Link>
-                </>
+                <Link href="/login">
+                  <Button 
+                    variant="outline" 
+                    className="hidden md:inline-flex"
+                    size="sm"
+                  >
+                    <LogIn className="w-4 h-4 mr-2" />
+                    Entrar
+                  </Button>
+                </Link>
               )
             )}
             
@@ -323,24 +312,15 @@ export default function Header() {
                       </div>
                     ) : (
                       !loading && (
-                        <div className="flex flex-col gap-3">
-                          <Link href="/login">
-                            <Button 
-                              variant="outline" 
-                              className="w-full"
-                            >
-                              <LogIn className="w-4 h-4 mr-2" />
-                              Entrar
-                            </Button>
-                          </Link>
-                          <Link href="/cadastro">
-                            <Button 
-                              className="w-full bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white"
-                            >
-                              Criar Conta Grátis
-                            </Button>
-                          </Link>
-                        </div>
+                        <Link href="/login">
+                          <Button 
+                            variant="outline" 
+                            className="w-full"
+                          >
+                            <LogIn className="w-4 h-4 mr-2" />
+                            Entrar
+                          </Button>
+                        </Link>
                       )
                     )}
                   </div>

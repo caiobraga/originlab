@@ -7,6 +7,8 @@ export interface UserProfile {
   lattesId?: string;
   userType: "pesquisador" | "pessoa-empresa" | "ambos";
   hasCnpj?: boolean;
+  dataCollectionConsent?: boolean;
+  consentVersion?: string;
 }
 
 /**
@@ -46,6 +48,15 @@ export async function saveUserProfile(
       const lattesLimpo = profile.lattesId.replace(/\D/g, "");
       if (lattesLimpo && lattesLimpo.length === 16) {
         profileData.lattes_id = lattesLimpo;
+      }
+    }
+
+    // Adicionar consentimento de coleta de dados (LGPD)
+    if (profile.dataCollectionConsent !== undefined) {
+      profileData.data_collection_consent = profile.dataCollectionConsent;
+      if (profile.dataCollectionConsent) {
+        profileData.consent_date = new Date().toISOString();
+        profileData.consent_version = profile.consentVersion || "1.0";
       }
     }
 
@@ -138,6 +149,9 @@ export async function saveUserProfile(
           p_lattes_id: profileData.lattes_id || null,
           p_user_type: profileData.user_type,
           p_has_cnpj: profileData.has_cnpj || false,
+          p_data_collection_consent: profileData.data_collection_consent || false,
+          p_consent_version: profileData.consent_version || null,
+          p_consent_date: profileData.consent_date || null,
         });
 
         if (functionError) {
@@ -195,6 +209,9 @@ export async function saveUserProfile(
               p_lattes_id: profileData.lattes_id || null,
               p_user_type: profileData.user_type,
               p_has_cnpj: profileData.has_cnpj || false,
+              p_data_collection_consent: profileData.data_collection_consent || false,
+              p_consent_version: profileData.consent_version || null,
+              p_consent_date: profileData.consent_date || null,
             });
 
             if (functionError) {

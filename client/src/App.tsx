@@ -15,6 +15,7 @@ import Dashboard from "./pages/Dashboard";
 import Demo from "./pages/Demo";
 import Profile from "./pages/Profile";
 import EditProfile from "./pages/EditProfile";
+import CookieBanner from "./components/CookieBanner";
 
 function Router() {
   return (
@@ -52,6 +53,7 @@ function App() {
           <TooltipProvider>
             <Toaster />
             <Router />
+            <CookieBanner />
           </TooltipProvider>
         </ThemeProvider>
       </AuthProvider>

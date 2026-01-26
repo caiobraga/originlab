@@ -48,13 +48,38 @@ export default function EditalDetails() {
   const [loadingScores, setLoadingScores] = useState(false);
   const [linkCopiado, setLinkCopiado] = useState(false);
   const [gerandoProposta, setGerandoProposta] = useState(false);
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { profile } = useUserProfile();
   const [, setLocation] = useLocation();
 
-  // Buscar dados do edital
+  // Redirecionar para login se não estiver autenticado
+  useEffect(() => {
+    if (!authLoading && !user) {
+      toast.info("Faça login para ver os detalhes completos do edital");
+      setLocation(`/login?redirect=/edital/${editalId}`);
+    }
+  }, [user, authLoading, editalId, setLocation]);
+
+  // Não renderizar conteúdo se não estiver autenticado
+  if (!authLoading && !user) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600">Redirecionando para login...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Buscar dados do edital (apenas se estiver autenticado)
   useEffect(() => {
     async function fetchEdital() {
+      // Não buscar se não estiver autenticado
+      if (!user || authLoading) {
+        return;
+      }
+
       try {
         setLoading(true);
         const { data, error } = await supabase
@@ -77,15 +102,15 @@ export default function EditalDetails() {
       }
     }
 
-    if (editalId) {
+    if (editalId && user) {
       fetchEdital();
     }
-  }, [editalId]);
+  }, [editalId, user, authLoading]);
 
-  // Buscar PDFs do edital
+  // Buscar PDFs do edital (apenas se estiver autenticado)
   useEffect(() => {
     async function fetchPdfs() {
-      if (!editalId) return;
+      if (!editalId || !user || authLoading) return;
       
       try {
         setLoadingPdfs(true);
@@ -158,10 +183,10 @@ export default function EditalDetails() {
       }
     }
 
-    if (editalId) {
+    if (editalId && user) {
       fetchPdfs();
     }
-  }, [editalId, edital]);
+  }, [editalId, edital, user, authLoading]);
 
   // Buscar scores do edital
   useEffect(() => {

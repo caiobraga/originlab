@@ -5,11 +5,13 @@ import { Button } from "@/components/ui/button";
 import { 
   Calendar, DollarSign, Target, CheckCircle2, 
   GraduationCap, Building2, Users, Eye, Loader2,
-  TrendingUp, Clock, Sparkles, ArrowRight
+  TrendingUp, Clock, Sparkles, ArrowRight, Lock
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { formatValorProjeto, formatPrazoInscricao } from "@/lib/editalFormatters";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 interface EditalDisplay {
   id: string;
@@ -32,6 +34,8 @@ export default function IntelligentPanel() {
   const [editais, setEditais] = useState<EditalDisplay[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<FilterType>("todos");
+  const { user } = useAuth();
+  const [, setLocation] = useLocation();
 
   useEffect(() => {
     loadEditais();
@@ -375,15 +379,30 @@ export default function IntelligentPanel() {
                   )}
 
                   {/* Botão */}
-                  <Link href={`/edital/${edital.id}`}>
-                    <Button 
-                      variant="outline" 
-                      className="w-full transition-all duration-200 hover:scale-[1.02] group"
-                    >
-                      <Eye className="w-4 h-4 mr-2 transition-transform duration-200 group-hover:scale-110" />
-                      Ver detalhes
-                    </Button>
-                  </Link>
+                  <Button 
+                    variant="outline" 
+                    className="w-full transition-all duration-200 hover:scale-[1.02] group"
+                    onClick={() => {
+                      if (!user) {
+                        toast.info("Faça login para ver os detalhes completos do edital");
+                        setLocation(`/login?redirect=/edital/${edital.id}`);
+                      } else {
+                        setLocation(`/edital/${edital.id}`);
+                      }
+                    }}
+                  >
+                    {user ? (
+                      <>
+                        <Eye className="w-4 h-4 mr-2 transition-transform duration-200 group-hover:scale-110" />
+                        Ver detalhes
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="w-4 h-4 mr-2 transition-transform duration-200 group-hover:scale-110" />
+                        Fazer login para ver detalhes
+                      </>
+                    )}
+                  </Button>
                 </div>
               </Card>
             ))}

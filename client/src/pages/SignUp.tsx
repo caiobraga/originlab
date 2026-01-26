@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/contexts/AuthContext";
 import { Spinner } from "@/components/ui/spinner";
 import Header from "@/components/Header";
@@ -28,6 +29,9 @@ export default function SignUp() {
   // Campos específicos de pessoa física/empresa
   const [hasCnpj, setHasCnpj] = useState<string>("nao");
   const [cnpj, setCnpj] = useState("");
+  
+  // Consentimento de coleta de dados (LGPD)
+  const [dataCollectionConsent, setDataCollectionConsent] = useState(false);
   
   const [loading, setLoading] = useState(false);
   const { signUp, user } = useAuth();
@@ -72,6 +76,12 @@ export default function SignUp() {
       return;
     }
 
+    // Validação de consentimento (LGPD)
+    if (!dataCollectionConsent) {
+      toast.error("É necessário consentir com a coleta de dados para criar uma conta");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -87,6 +97,8 @@ export default function SignUp() {
         lattesId: ((userType === "pesquisador" || userType === "ambos") && lattesLimpo) ? lattesLimpo : undefined,
         userType: userType,
         hasCnpj: (userType === "pessoa-empresa" || userType === "ambos") && hasCnpj === "sim",
+        dataCollectionConsent: dataCollectionConsent,
+        consentVersion: "1.0", // Versão atual do termo de consentimento
       };
 
       console.log("Dados do perfil a serem salvos:", profileData);
@@ -399,6 +411,42 @@ export default function SignUp() {
                   </div>
                 </TabsContent>
 
+                {/* Consentimento de coleta de dados (LGPD) */}
+                <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <Checkbox
+                      id="data-consent"
+                      checked={dataCollectionConsent}
+                      onCheckedChange={(checked) => setDataCollectionConsent(checked === true)}
+                      disabled={loading}
+                      className="mt-1"
+                      aria-required="true"
+                    />
+                    <div className="flex-1">
+                      <Label 
+                        htmlFor="data-consent" 
+                        className="text-sm font-medium text-gray-900 dark:text-gray-100 cursor-pointer"
+                      >
+                        Consentimento para coleta de dados pessoais (LGPD)
+                      </Label>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                        Eu concordo com a coleta e processamento dos meus dados pessoais (CPF, CNPJ, email, etc.) 
+                        pela Origem.Lab para fins de prestação de serviços, melhoria da plataforma e comunicação. 
+                        Posso revogar este consentimento a qualquer momento através das configurações da minha conta. 
+                        Para mais informações, consulte nossa{" "}
+                        <Link 
+                          href="/politica-privacidade" 
+                          className="text-blue-600 dark:text-blue-400 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
+                          aria-label="Ler política de privacidade"
+                        >
+                          política de privacidade
+                        </Link>
+                        .
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 <Button
                   type="submit"
                   className="w-full bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white mt-6"
@@ -407,7 +455,8 @@ export default function SignUp() {
                     !cpf ||
                     (password !== confirmPassword && confirmPassword !== "") ||
                     (userType === "pesquisador" && !lattesId) ||
-                    (userType === "pessoa-empresa" && hasCnpj === "sim" && !cnpj)
+                    (userType === "pessoa-empresa" && hasCnpj === "sim" && !cnpj) ||
+                    !dataCollectionConsent
                   }
                 >
                   {loading ? (

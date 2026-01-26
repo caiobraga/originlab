@@ -52,13 +52,15 @@ export default function Hero() {
               </Link>
             ) : (
               <>
-                <Button 
-                  size="lg" 
-                  className="bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white px-8 py-6 text-lg shadow-lg hover:shadow-xl transition-all"
-                >
-                  Descubra seus editais ideais
-                  <ArrowRight className="ml-2 w-5 h-5" />
-                </Button>
+                <Link href="/cadastro">
+                  <Button 
+                    size="lg" 
+                    className="bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white px-8 py-6 text-lg shadow-lg hover:shadow-xl transition-all"
+                  >
+                    Descubra seus editais ideais
+                    <ArrowRight className="ml-2 w-5 h-5" />
+                  </Button>
+                </Link>
                 
                 <Button 
                   size="lg" 

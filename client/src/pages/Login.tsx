@@ -8,16 +8,32 @@ import { Spinner } from "@/components/ui/spinner";
 import Header from "@/components/Header";
 
 export default function Login() {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const { signIn, user } = useAuth();
 
+  // Obter URL de redirecionamento da query string
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const redirect = urlParams.get("redirect");
+    if (redirect) {
+      // Armazenar temporariamente para usar após login
+      sessionStorage.setItem("loginRedirect", redirect);
+    }
+  }, []);
+
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
-      setLocation("/dashboard");
+      const redirect = sessionStorage.getItem("loginRedirect");
+      if (redirect) {
+        sessionStorage.removeItem("loginRedirect");
+        setLocation(redirect);
+      } else {
+        setLocation("/dashboard");
+      }
     }
   }, [user, setLocation]);
 
@@ -27,7 +43,14 @@ export default function Login() {
 
     try {
       await signIn(email, password);
-      setLocation("/dashboard");
+      // O redirecionamento será feito pelo useEffect quando user mudar
+      const redirect = sessionStorage.getItem("loginRedirect");
+      if (redirect) {
+        sessionStorage.removeItem("loginRedirect");
+        setLocation(redirect);
+      } else {
+        setLocation("/dashboard");
+      }
     } catch (error) {
       // Error is already handled in AuthContext
     } finally {
