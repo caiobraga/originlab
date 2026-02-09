@@ -61,11 +61,19 @@ export default function Hero() {
                     <ArrowRight className="ml-2 w-5 h-5" />
                   </Button>
                 </Link>
-                
+                <Link href="/onboarding">
+                  <Button 
+                    size="lg" 
+                    variant="outline" 
+                    className="px-8 py-6 text-lg border-2 border-gray-300 hover:border-blue-500 hover:bg-blue-50"
+                  >
+                    Começar em 2 minutos
+                  </Button>
+                </Link>
                 <Button 
                   size="lg" 
-                  variant="outline" 
-                  className="px-8 py-6 text-lg border-2 border-gray-300 hover:border-blue-500 hover:bg-blue-50"
+                  variant="ghost" 
+                  className="px-8 py-6 text-lg text-gray-600 hover:text-gray-800 hover:bg-gray-100"
                   onClick={() => setIsDemoModalOpen(true)}
                 >
                   Ver demonstração

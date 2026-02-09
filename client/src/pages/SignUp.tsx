@@ -12,6 +12,12 @@ import Header from "@/components/Header";
 import { saveUserProfile } from "@/lib/userProfile";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import {
+  getStoredReferralCode,
+  clearStoredReferralCode,
+  getReferrerByCode,
+  recordReferralConversion,
+} from "@/lib/referralApi";
 
 export default function SignUp() {
   const [, setLocation] = useLocation();
@@ -187,6 +193,23 @@ export default function SignUp() {
           }
         } catch (verifyError) {
           console.warn("⚠️ Erro ao verificar perfil:", verifyError);
+        }
+      }
+
+      // Registrar referência se veio de um link de indicação
+      const referralCode = getStoredReferralCode();
+      if (referralCode) {
+        try {
+          const referrerId = await getReferrerByCode(referralCode);
+          if (referrerId && referrerId !== signUpData.user.id) {
+            const recorded = await recordReferralConversion(referrerId, signUpData.user.id);
+            if (recorded) {
+              toast.success("Indicação registrada! Você e quem te indicou ganham créditos.");
+            }
+          }
+          clearStoredReferralCode();
+        } catch (refError) {
+          console.warn("Erro ao registrar referência:", refError);
         }
       }
       
@@ -479,9 +502,14 @@ export default function SignUp() {
                 </Link>
               </div>
 
-              <div className="text-center mt-4">
+              <div className="text-center mt-4 space-y-2">
+                <Link href="/referencia">
+                  <span className="block text-sm text-green-600 hover:text-green-700 font-medium cursor-pointer">
+                    Indique e Ganhe R$ 50
+                  </span>
+                </Link>
                 <Link href="/">
-                  <span className="text-sm text-gray-500 hover:text-gray-700 cursor-pointer">
+                  <span className="block text-sm text-gray-500 hover:text-gray-700 cursor-pointer">
                     ← Voltar para a página inicial
                   </span>
                 </Link>

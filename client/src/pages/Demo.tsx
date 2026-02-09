@@ -1,15 +1,86 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { ArrowLeft, Search, Filter, Calendar, DollarSign, Building2, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
+import { toast } from "sonner";
+
+const mockEditais = [
+  {
+    id: 1,
+    title: "FAPESP - Pesquisa Inovativa em Pequenas Empresas (PIPE)",
+    agency: "FAPESP",
+    value: "R$ 1.000.000",
+    valueNumeric: 1000000,
+    deadline: "30/12/2025",
+    deadlineDays: 30,
+    area: "Tecnologia",
+    match: 95,
+    probability: 87,
+    description: "Apoio a pesquisa científica e tecnológica em micro, pequenas e médias empresas",
+  },
+  {
+    id: 2,
+    title: "FINEP - Subvenção Econômica à Inovação",
+    agency: "FINEP",
+    value: "R$ 3.500.000",
+    valueNumeric: 3500000,
+    deadline: "15/01/2026",
+    deadlineDays: 45,
+    area: "Tecnologia",
+    match: 92,
+    probability: 82,
+    description: "Recursos não reembolsáveis para desenvolvimento de produtos e processos inovadores",
+  },
+  {
+    id: 3,
+    title: "CNPq - Chamada Universal",
+    agency: "CNPq",
+    value: "R$ 150.000",
+    valueNumeric: 150000,
+    deadline: "20/11/2025",
+    deadlineDays: 20,
+    area: "Saúde",
+    match: 88,
+    probability: 75,
+    description: "Apoio a projetos de pesquisa científica, tecnológica e de inovação",
+  },
+  {
+    id: 4,
+    title: "BNDES - Fundo Clima",
+    agency: "BNDES",
+    value: "R$ 5.000.000",
+    valueNumeric: 5000000,
+    deadline: "28/02/2026",
+    deadlineDays: 60,
+    area: "Energia",
+    match: 85,
+    probability: 78,
+    description: "Financiamento para projetos de mitigação e adaptação às mudanças climáticas",
+  },
+  {
+    id: 5,
+    title: "SEBRAE - ALI - Agentes Locais de Inovação",
+    agency: "SEBRAE",
+    value: "R$ 50.000",
+    valueNumeric: 50000,
+    deadline: "10/12/2025",
+    deadlineDays: 15,
+    area: "Tecnologia",
+    match: 82,
+    probability: 90,
+    description: "Consultoria gratuita em inovação para micro e pequenas empresas",
+  },
+];
 
 export default function Demo() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedArea, setSelectedArea] = useState<string>("all");
   const [selectedValue, setSelectedValue] = useState<string>("all");
+  const [selectedDeadline, setSelectedDeadline] = useState<string>("all");
   const [showScheduleForm, setShowScheduleForm] = useState(false);
+  const [selectedEdital, setSelectedEdital] = useState<typeof mockEditais[0] | null>(null);
 
   const areas = [
     { id: "all", label: "Todas as áreas" },
@@ -28,83 +99,44 @@ export default function Demo() {
     { id: "very-high", label: "Acima de R$ 2M" },
   ];
 
-  const mockEditais = [
-    {
-      id: 1,
-      title: "FAPESP - Pesquisa Inovativa em Pequenas Empresas (PIPE)",
-      agency: "FAPESP",
-      value: "R$ 1.000.000",
-      deadline: "30/12/2025",
-      area: "Tecnologia",
-      match: 95,
-      probability: 87,
-      description: "Apoio a pesquisa científica e tecnológica em micro, pequenas e médias empresas",
-    },
-    {
-      id: 2,
-      title: "FINEP - Subvenção Econômica à Inovação",
-      agency: "FINEP",
-      value: "R$ 3.500.000",
-      deadline: "15/01/2026",
-      area: "Tecnologia",
-      match: 92,
-      probability: 82,
-      description: "Recursos não reembolsáveis para desenvolvimento de produtos e processos inovadores",
-    },
-    {
-      id: 3,
-      title: "CNPq - Chamada Universal",
-      agency: "CNPq",
-      value: "R$ 150.000",
-      deadline: "20/11/2025",
-      area: "Saúde",
-      match: 88,
-      probability: 75,
-      description: "Apoio a projetos de pesquisa científica, tecnológica e de inovação",
-    },
-    {
-      id: 4,
-      title: "BNDES - Fundo Clima",
-      agency: "BNDES",
-      value: "R$ 5.000.000",
-      deadline: "28/02/2026",
-      area: "Energia",
-      match: 85,
-      probability: 78,
-      description: "Financiamento para projetos de mitigação e adaptação às mudanças climáticas",
-    },
-    {
-      id: 5,
-      title: "SEBRAE - ALI - Agentes Locais de Inovação",
-      agency: "SEBRAE",
-      value: "R$ 50.000",
-      deadline: "10/12/2025",
-      area: "Tecnologia",
-      match: 82,
-      probability: 90,
-      description: "Consultoria gratuita em inovação para micro e pequenas empresas",
-    },
+  const deadlineOptions = [
+    { id: "all", label: "Todos os prazos" },
+    { id: "30", label: "Até 30 dias" },
+    { id: "30-60", label: "30-60 dias" },
+    { id: "60+", label: "Mais de 60 dias" },
   ];
 
-  const filteredEditais = mockEditais.filter((edital) => {
-    const matchesSearch =
-      searchTerm === "" ||
-      edital.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      edital.agency.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesArea = selectedArea === "all" || edital.area === areas.find(a => a.id === selectedArea)?.label;
-    return matchesSearch && matchesArea;
-  });
+  const filteredEditais = useMemo(() => {
+    return mockEditais.filter((edital) => {
+      const matchesSearch =
+        searchTerm === "" ||
+        edital.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        edital.agency.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        edital.description.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesArea = selectedArea === "all" || edital.area === areas.find((a) => a.id === selectedArea)?.label;
+      const matchesValue =
+        selectedValue === "all" ||
+        (selectedValue === "low" && edital.valueNumeric <= 100000) ||
+        (selectedValue === "medium" && edital.valueNumeric > 100000 && edital.valueNumeric <= 500000) ||
+        (selectedValue === "high" && edital.valueNumeric > 500000 && edital.valueNumeric <= 2000000) ||
+        (selectedValue === "very-high" && edital.valueNumeric > 2000000);
+      const matchesDeadline =
+        selectedDeadline === "all" ||
+        (selectedDeadline === "30" && edital.deadlineDays <= 30) ||
+        (selectedDeadline === "30-60" && edital.deadlineDays > 30 && edital.deadlineDays <= 60) ||
+        (selectedDeadline === "60+" && edital.deadlineDays > 60);
+      return matchesSearch && matchesArea && matchesValue && matchesDeadline;
+    });
+  }, [searchTerm, selectedArea, selectedValue, selectedDeadline]);
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/">
-            <a className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors">
-              <ArrowLeft className="w-5 h-5" />
-              <span className="font-medium">Voltar</span>
-            </a>
+          <Link href="/" className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors">
+            <ArrowLeft className="w-5 h-5" />
+            <span className="font-medium">Voltar</span>
           </Link>
           <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
             Origem.Lab - Demo Interativa
@@ -136,6 +168,21 @@ export default function Demo() {
             <h3 className="text-lg font-semibold text-gray-900">Filtros</h3>
           </div>
 
+          <div className="flex flex-wrap gap-3 mb-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setSearchTerm("");
+                setSelectedArea("all");
+                setSelectedValue("all");
+                setSelectedDeadline("all");
+                toast.info("Filtros limpos");
+              }}
+            >
+              Limpar filtros
+            </Button>
+          </div>
           <div className="grid md:grid-cols-3 gap-4">
             {/* Search */}
             <div className="md:col-span-3">
@@ -192,11 +239,16 @@ export default function Demo() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Prazo
               </label>
-              <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                <option>Todos os prazos</option>
-                <option>Até 30 dias</option>
-                <option>30-60 dias</option>
-                <option>Mais de 60 dias</option>
+              <select
+                value={selectedDeadline}
+                onChange={(e) => setSelectedDeadline(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                {deadlineOptions.map((opt) => (
+                  <option key={opt.id} value={opt.id}>
+                    {opt.label}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
@@ -214,7 +266,23 @@ export default function Demo() {
           </div>
 
           <div className="space-y-4">
-            {filteredEditais.map((edital) => (
+            {filteredEditais.length === 0 ? (
+              <div className="bg-white rounded-lg shadow-sm p-12 text-center border border-gray-200">
+                <p className="text-gray-600 mb-4">Nenhum edital encontrado com esses filtros.</p>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setSelectedArea("all");
+                    setSelectedValue("all");
+                    setSelectedDeadline("all");
+                  }}
+                >
+                  Limpar filtros e ver todos
+                </Button>
+              </div>
+            ) : (
+              filteredEditais.map((edital) => (
               <div
                 key={edital.id}
                 className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow border border-gray-200"
@@ -258,18 +326,84 @@ export default function Demo() {
                 </div>
 
                 <div className="flex gap-3">
-                  <Button variant="default" className="bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700">
+                  <Button
+                    variant="default"
+                    className="bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700"
+                    onClick={() => setSelectedEdital(edital)}
+                  >
                     Ver Detalhes
                   </Button>
-                  <Button variant="outline">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      toast.success("Crie sua conta para gerar propostas com IA!", {
+                        description: "O recurso de IA Redatora está disponível no plano Pro.",
+                      });
+                    }}
+                  >
                     Gerar Proposta com IA
                   </Button>
                 </div>
               </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </div>
+
+      {/* Edital Detail Modal */}
+      {selectedEdital && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          onClick={() => setSelectedEdital(null)}
+        >
+          <div
+            className="relative w-full max-w-2xl bg-white rounded-xl shadow-2xl p-6 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setSelectedEdital(null)}
+              className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              aria-label="Fechar"
+            >
+              <ArrowLeft className="w-5 h-5 text-gray-600 rotate-180" />
+            </button>
+            <div className="flex gap-3 mb-4">
+              <Badge className="bg-green-100 text-green-800">{selectedEdital.match}% match</Badge>
+              <Badge className="bg-blue-100 text-blue-800">{selectedEdital.probability}% aprovação</Badge>
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">{selectedEdital.title}</h2>
+            <p className="text-gray-600 mb-6">{selectedEdital.description}</p>
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-gray-500" />
+                <span>{selectedEdital.agency}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <DollarSign className="w-4 h-4 text-gray-500" />
+                <span>{selectedEdital.value}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-gray-500" />
+                <span>Prazo: {selectedEdital.deadline}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Target className="w-4 h-4 text-gray-500" />
+                <span>{selectedEdital.area}</span>
+              </div>
+            </div>
+            <Button
+              className="w-full bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700"
+              onClick={() => {
+                setSelectedEdital(null);
+                toast.success("Crie sua conta para acessar o painel completo!");
+              }}
+            >
+              Criar conta para acessar
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Schedule Form Modal */}
       {showScheduleForm && (

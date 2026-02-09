@@ -4,7 +4,7 @@ import {
   ArrowLeft, Search, Filter, Globe, TrendingUp, Calendar, 
   DollarSign, Target, CheckCircle2, Clock, AlertCircle,
   Send, Eye, Sparkles, BarChart3, User, Loader2,
-  GraduationCap, Building2, Users
+  GraduationCap, Building2, Users, Share2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -530,10 +530,30 @@ export default function Dashboard() {
       <Header />
       <main id="main-content" className="container py-8">
         {/* Page Header */}
-        <div className="mb-8">
+        <div className="mb-6">
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Meu Painel</h1>
           <p className="text-sm md:text-base text-gray-700">Oportunidades globais de fomento</p>
         </div>
+
+        {/* Referral Banner */}
+        <Link href="/referencia" className="block mb-6">
+          <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl p-4 text-white hover:from-green-600 hover:to-emerald-700 transition-all duration-200 shadow-sm hover:shadow-md">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+                  <Share2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="font-semibold">Indique e Ganhe R$ 50</p>
+                  <p className="text-sm text-green-100">Compartilhe seu link exclusivo e ganhe créditos por cada amigo que se cadastrar</p>
+                </div>
+              </div>
+              <span className="text-sm font-medium underline underline-offset-2 sm:no-underline">
+                Ver meu link →
+              </span>
+            </div>
+          </div>
+        </Link>
 
         {loading ? (
           <div className="flex items-center justify-center py-20">

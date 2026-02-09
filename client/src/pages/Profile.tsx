@@ -20,7 +20,8 @@ import {
   AlertCircle,
   ExternalLink,
   RefreshCw,
-  CheckCircle2
+  CheckCircle2,
+  Share2
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -258,6 +259,28 @@ export default function Profile() {
                 </div>
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Programa de Referência */}
+        <Card className="mb-6 border-2 border-green-200 bg-gradient-to-br from-green-50 to-emerald-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Share2 className="w-5 h-5 text-green-600" />
+              Indique e Ganhe
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-700 mb-4">
+              Compartilhe a Origem.Lab com amigos e ganhe R$ 50 em créditos por cada cadastro. 
+              Use seu link exclusivo para começar.
+            </p>
+            <Link href="/referencia">
+              <Button className="bg-green-600 hover:bg-green-700 text-white">
+                <Share2 className="w-4 h-4 mr-2" />
+                Ver meu link de referência
+              </Button>
+            </Link>
           </CardContent>
         </Card>
 

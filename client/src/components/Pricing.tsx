@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Check, Sparkles } from "lucide-react";
+import { Link } from "wouter";
 
 const plans = [
   {
@@ -127,6 +128,14 @@ export default function Pricing() {
           <p className="text-gray-600">
             <span className="font-semibold text-gray-900">Success Fee:</span> 3% sobre projetos aprovados em todos os planos
           </p>
+        </div>
+
+        {/* Referral */}
+        <div className="mt-6 text-center">
+          <Link href="/referencia" className="inline-flex items-center gap-2 text-green-600 hover:text-green-700 font-medium transition-colors">
+            <span>Indique amigos e ganhe R$ 50 em créditos</span>
+            <span>→</span>
+          </Link>
         </div>
       </div>
     </section>

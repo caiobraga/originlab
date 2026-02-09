@@ -61,6 +61,66 @@ export async function fetchEditaisFromSupabase(): Promise<DatabaseEdital[]> {
   }
 }
 
+/** Mapeamento área onboarding -> termos para filtrar editais */
+const AREA_FILTER_MAP: Record<string, string[]> = {
+  tech: ["tecnologia", "tecnológico", "inovação", "software", "digital", "ti"],
+  health: ["saúde", "health", "medicina", "biotecnologia", "farmácia"],
+  agro: ["agro", "agronegócio", "agricultura", "rural", "agrícola"],
+  energy: ["energia", "energético", "sustentável", "renovável"],
+  bio: ["bio", "biotecnologia", "biologia", "genética"],
+  other: [],
+};
+
+/**
+ * Busca estatísticas de editais para onboarding (não requer autenticação)
+ */
+export async function fetchEditaisStatsForOnboarding(area?: string): Promise<{
+  total: number;
+  naArea: number;
+  valorTotal: number;
+  prazoMedioDias: number;
+}> {
+  try {
+    const editais = await fetchEditaisFromSupabase();
+    const hoje = new Date();
+
+    const termos = area ? AREA_FILTER_MAP[area] || [] : [];
+    const naArea = termos.length === 0
+      ? editais
+      : editais.filter((e) => {
+          const areaText = (e.area || e.descricao || "").toLowerCase();
+          return termos.some((t) => areaText.includes(t));
+        });
+
+    let valorTotal = 0;
+    for (const e of naArea) {
+      const val = e.valor_projeto || e.valor;
+      if (val && typeof val === "string") {
+        const match = val.match(/[\d.,]+/);
+        if (match) {
+          const num = parseFloat(match[0].replace(/\./g, "").replace(",", "."));
+          if (!isNaN(num)) valorTotal += num;
+        }
+      }
+    }
+
+    const prazos = naArea
+      .map((e) => e.data_encerramento ? Math.ceil((new Date(e.data_encerramento).getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24)) : 0)
+      .filter((d) => d > 0);
+    const prazoMedioDias = prazos.length > 0 ? Math.round(prazos.reduce((a, b) => a + b, 0) / prazos.length) : 30;
+
+    return {
+      total: editais.length,
+      naArea: naArea.length,
+      valorTotal,
+      prazoMedioDias,
+    };
+  } catch (error) {
+    console.error("Erro ao buscar stats de editais:", error);
+    return { total: 0, naArea: 0, valorTotal: 0, prazoMedioDias: 30 };
+  }
+}
+
 /**
  * Busca score existente no banco de dados
  */

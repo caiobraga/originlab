@@ -1,7 +1,7 @@
 import { useState } from "react";
 import * as React from "react";
 import { Button } from "@/components/ui/button";
-import { Menu, LogIn, LogOut, FileText, User, LayoutDashboard, ChevronDown, Sparkles } from "lucide-react";
+import { Menu, LogIn, LogOut, FileText, User, LayoutDashboard, ChevronDown, Sparkles, Share2 } from "lucide-react";
 import { APP_TITLE } from "@/const";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
@@ -97,6 +97,10 @@ export default function Header() {
                 Depoimentos
                 <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-blue-600 transition-all duration-200 group-hover:w-full" aria-hidden="true"></span>
               </a>
+              <Link href="/referencia" className="text-sm font-medium text-gray-700 hover:text-blue-600 transition-all duration-200 hover:scale-105 relative group focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:rounded">
+                Indique e Ganhe
+                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-blue-600 transition-all duration-200 group-hover:w-full" aria-hidden="true"></span>
+              </Link>
             </nav>
           )}
 
@@ -137,6 +141,22 @@ export default function Header() {
                 >
                   <FileText className="w-4 h-4 mr-2 transition-transform duration-200 group-hover:scale-110" aria-hidden="true" />
                   Minhas Propostas
+                </Button>
+              </Link>
+              <Link href="/referencia">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={cn(
+                    "h-9 px-3 text-sm font-medium transition-all duration-200 group",
+                    isActive("/referencia")
+                      ? "bg-green-50 text-green-600 hover:bg-green-50 hover:text-green-600"
+                      : "text-gray-700 hover:text-green-600 hover:bg-gray-50 hover:scale-105"
+                  )}
+                  aria-current={isActive("/referencia") ? "page" : undefined}
+                >
+                  <Share2 className="w-4 h-4 mr-2 transition-transform duration-200 group-hover:scale-110" aria-hidden="true" />
+                  Indique e Ganhe
                 </Button>
               </Link>
             </nav>
@@ -197,6 +217,14 @@ export default function Header() {
                         >
                           <User className="w-4 h-4 transition-transform duration-200 group-hover:scale-110" aria-hidden="true" />
                           Meu Perfil
+                        </button>
+                        <button
+                          onClick={() => handleNavigate("/referencia")}
+                          className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-all duration-200 cursor-pointer text-left hover:translate-x-1 group focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset"
+                          role="menuitem"
+                        >
+                          <Share2 className="w-4 h-4 transition-transform duration-200 group-hover:scale-110" aria-hidden="true" />
+                          Indique e Ganhe
                         </button>
                         <div className="h-px bg-gray-200 my-1" aria-hidden="true" />
                         <button
@@ -299,6 +327,15 @@ export default function Header() {
                           >
                             <User className="w-4 h-4 mr-2" />
                             Meu Perfil
+                          </Button>
+                        </Link>
+                        <Link href="/referencia">
+                          <Button 
+                            variant={isActive("/referencia") ? "secondary" : "ghost"}
+                            className="w-full justify-start"
+                          >
+                            <Share2 className="w-4 h-4 mr-2" />
+                            Indique e Ganhe
                           </Button>
                         </Link>
                         <Button 

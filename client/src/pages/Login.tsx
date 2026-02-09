@@ -134,9 +134,14 @@ export default function Login() {
               </Link>
             </div>
 
-            <div className="text-center mt-4">
+            <div className="text-center mt-4 space-y-2">
+              <Link href="/referencia">
+                <span className="block text-sm text-green-600 hover:text-green-700 font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:rounded">
+                  Indique e Ganhe R$ 50
+                </span>
+              </Link>
               <Link href="/">
-                <span className="text-sm text-gray-600 hover:text-gray-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:rounded">
+                <span className="block text-sm text-gray-600 hover:text-gray-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:rounded">
                   ← Voltar para a página inicial
                 </span>
               </Link>

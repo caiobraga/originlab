@@ -5,7 +5,7 @@ import { APP_TITLE } from "@/const";
 import { Mail, Linkedin, Twitter, Github, Loader2, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 
 export default function Footer() {
   const [email, setEmail] = useState("");
@@ -142,10 +142,10 @@ export default function Footer() {
           <div>
             <h3 className="font-semibold mb-4">Produto</h3>
             <ul className="space-y-2 text-sm text-gray-400">
-              <li><a href="#" className="hover:text-white transition-colors">Como Funciona</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Planos</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Demonstração</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">API</a></li>
+              <li><a href="#como-funciona" className="hover:text-white transition-colors">Como Funciona</a></li>
+              <li><a href="#planos" className="hover:text-white transition-colors">Planos</a></li>
+              <li><Link href="/demo" className="hover:text-white transition-colors">Demonstração</Link></li>
+              <li><Link href="/referencia" className="hover:text-white transition-colors">Programa de Referência</Link></li>
             </ul>
           </div>
 

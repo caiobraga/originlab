@@ -11,8 +11,11 @@ import SignUp from "./pages/SignUp";
 import EditalDetails from "./pages/EditalDetails";
 import MinhasPropostas from "./pages/MinhasPropostas";
 import EditorProposta from "./pages/EditorProposta";
+import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
 import Demo from "./pages/Demo";
+import Referencia from "./pages/Referencia";
+import RefRedirect from "./pages/RefRedirect";
 import Profile from "./pages/Profile";
 import EditProfile from "./pages/EditProfile";
 import CookieBanner from "./components/CookieBanner";
@@ -23,10 +26,13 @@ function Router() {
       <Route path={"/"} component={Home} />
       <Route path={"/login"} component={Login} />
       <Route path={"/cadastro"} component={SignUp} />
+      <Route path={"/onboarding"} component={Onboarding} />
       <Route path={"/dashboard"} component={Dashboard} />
       <Route path={"/perfil"} component={Profile} />
       <Route path={"/perfil/editar"} component={EditProfile} />
       <Route path={"/demo"} component={Demo} />
+      <Route path={"/referencia"} component={Referencia} />
+      <Route path={"/ref/:code"} component={RefRedirect} />
       <Route path={"/edital/:id"} component={EditalDetails} />
       <Route path={"/minhas-propostas"} component={MinhasPropostas} />
       <Route path={"/propostas/:id"} component={EditorProposta} />
