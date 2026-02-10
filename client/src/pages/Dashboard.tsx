@@ -1027,7 +1027,7 @@ export default function Dashboard() {
                 <p className="text-gray-600">
                   {editaisRaw.length === 0
                     ? "Nenhum edital encontrado no banco de dados."
-                    : "Nenhum edital encontrado com os filtros selecionados."}
+                    : "Nenhum edital encontrado. Tente marcar \"Mostrar editais inativos\" ou ajustar os filtros."}
                 </p>
               </div>
             )}
