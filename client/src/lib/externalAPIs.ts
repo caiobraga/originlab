@@ -25,6 +25,16 @@ export interface LattesData {
     titulo: string;
     ano?: string;
   }>;
+  /** Resumo de produções para scores (ex: "15 artigos, 3 projetos") */
+  resumoProducoes?: string;
+  /** Instituição(ões) de vínculo atual */
+  vinculoInstitucional?: string[];
+  /** Localização profissional (UF/cidade) para elegibilidade regional */
+  enderecoProfissional?: { cidade?: string; uf?: string; pais?: string };
+  /** Tipo de vínculo quando identificável (celetista, estatutário, etc.) */
+  tipoVinculo?: string;
+  /** Indício de colaboração internacional (ex: projetos com França) */
+  colaboracaoInternacional?: string;
   ultimaAtualizacao?: string;
   elegibilidade?: {
     possuiDoutorado: boolean;
@@ -90,132 +100,111 @@ export interface CPFData {
 }
 
 /**
- * Busca informações do Currículo Lattes
- * Nota: A API oficial do Lattes não é pública, então tentamos extrair do HTML público
+ * Envia um PDF de currículo para extração de dados.
+ * POST /api/lattes/parse-pdf com o arquivo em base64.
+ */
+export async function parseCurriculumFromPdf(file: File): Promise<LattesData | null> {
+  try {
+    const buffer = await file.arrayBuffer();
+    const bytes = new Uint8Array(buffer);
+    let binary = "";
+    for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+    const pdfBase64 = btoa(binary);
+    const base = typeof window !== "undefined" ? "" : process.env.VITE_APP_URL || "http://localhost:3000";
+    const response = await fetch(`${base}/api/lattes/parse-pdf`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pdfBase64 }),
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error((err as { error?: string }).error || "Falha ao processar PDF");
+    }
+    const raw = (await response.json()) as Record<string, unknown>;
+    const eleg = raw.elegibilidade as Record<string, unknown> | undefined;
+    return {
+      id: String(raw.id ?? "pdf"),
+      nome: String(raw.nome ?? "Currículo"),
+      resumo: raw.resumo != null ? String(raw.resumo) : undefined,
+      areasAtuacao: Array.isArray(raw.areasAtuacao) ? (raw.areasAtuacao as string[]) : undefined,
+      formacao: Array.isArray(raw.formacao)
+        ? (raw.formacao as Array<{ nivel: string; curso: string; instituicao: string; anoConclusao?: string }>)
+        : undefined,
+      resumoProducoes: raw.resumoProducoes != null ? String(raw.resumoProducoes) : undefined,
+      vinculoInstitucional: Array.isArray(raw.vinculoInstitucional) ? (raw.vinculoInstitucional as string[]) : undefined,
+      enderecoProfissional:
+        raw.enderecoProfissional != null && typeof raw.enderecoProfissional === "object"
+          ? (raw.enderecoProfissional as { cidade?: string; uf?: string; pais?: string })
+          : undefined,
+      linkLattes: raw.linkLattes != null ? String(raw.linkLattes) : undefined,
+      elegibilidade: eleg
+        ? {
+            possuiDoutorado: Boolean(eleg.possuiDoutorado),
+            possuiMestrado: Boolean(eleg.possuiMestrado),
+            possuiGraduacao: Boolean(eleg.possuiGraduacao),
+            anosExperiencia: eleg.anosExperiencia != null ? Number(eleg.anosExperiencia) : undefined,
+            podeParticiparEditais: Boolean(eleg.podeParticiparEditais),
+            observacoes: Array.isArray(eleg.observacoes) ? (eleg.observacoes as string[]) : undefined,
+          }
+        : undefined,
+    };
+  } catch (err) {
+    console.warn("Erro ao extrair currículo do PDF:", err);
+    return null;
+  }
+}
+
+/**
+ * Busca informações do Currículo Lattes.
+ * Usa o endpoint do nosso backend (/api/lattes/:id) que faz o fetch no servidor (evita CORS do CNPq).
  */
 export async function fetchLattesData(lattesId: string): Promise<LattesData | null> {
   try {
-    // Formatar ID Lattes (remover formatação se houver)
     const id = lattesId.replace(/\D/g, "");
-    
     if (id.length !== 16) {
       throw new Error("ID Lattes inválido");
     }
 
-    const linkLattes = `https://buscatextual.cnpq.br/buscatextual/visualizacv.do?id=${id}`;
+    const base = typeof window !== "undefined" ? "" : process.env.VITE_APP_URL || "http://localhost:3000";
+    const response = await fetch(`${base}/api/lattes/${id}`, { method: "GET" });
 
-    // Tentar buscar dados do Lattes via página pública
-    // Nota: A API oficial do CNPq não é pública, então tentamos extrair do HTML
-    try {
-      const response = await fetch(linkLattes, {
-        method: 'GET',
-        headers: {
-          'Accept': 'text/html',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        },
-      });
-
-      if (response.ok) {
-        const html = await response.text();
-        
-        // Extrair nome do pesquisador (geralmente em uma tag específica)
-        const nomeMatch = html.match(/<h2[^>]*>([^<]+)<\/h2>/i) || 
-                          html.match(/Nome:\s*([^<\n]+)/i) ||
-                          html.match(/<span[^>]*class="[^"]*nome[^"]*"[^>]*>([^<]+)<\/span>/i);
-        const nome = nomeMatch ? nomeMatch[1].trim() : `Pesquisador ${id.slice(0, 4)}`;
-
-        // Extrair áreas de atuação (tentativa básica)
-        const areasMatch = html.match(/Área[^:]*:\s*([^<\n]+)/gi);
-        const areasAtuacao: string[] = [];
-        if (areasMatch) {
-          areasMatch.forEach(match => {
-            const area = match.replace(/Área[^:]*:\s*/i, '').trim();
-            if (area && !areasAtuacao.includes(area)) {
-              areasAtuacao.push(area);
+    if (response.ok) {
+      const raw = (await response.json()) as Record<string, unknown>;
+      const eleg = raw.elegibilidade as Record<string, unknown> | undefined;
+      return {
+        id: String(raw.id ?? id),
+        nome: String(raw.nome ?? `Pesquisador ${id.slice(0, 4)}`),
+        resumo: raw.resumo != null ? String(raw.resumo) : undefined,
+        areasAtuacao: Array.isArray(raw.areasAtuacao) ? (raw.areasAtuacao as string[]) : undefined,
+        formacao: Array.isArray(raw.formacao)
+          ? (raw.formacao as Array<{ nivel: string; curso: string; instituicao: string; anoConclusao?: string }>)
+          : undefined,
+        resumoProducoes: raw.resumoProducoes != null ? String(raw.resumoProducoes) : undefined,
+        vinculoInstitucional: Array.isArray(raw.vinculoInstitucional) ? (raw.vinculoInstitucional as string[]) : undefined,
+        enderecoProfissional:
+          raw.enderecoProfissional != null && typeof raw.enderecoProfissional === "object"
+            ? (raw.enderecoProfissional as { cidade?: string; uf?: string; pais?: string })
+            : undefined,
+        tipoVinculo: raw.tipoVinculo != null ? String(raw.tipoVinculo) : undefined,
+        colaboracaoInternacional: raw.colaboracaoInternacional != null ? String(raw.colaboracaoInternacional) : undefined,
+        linkLattes: raw.linkLattes != null ? String(raw.linkLattes) : undefined,
+        elegibilidade: eleg
+          ? {
+              possuiDoutorado: Boolean(eleg.possuiDoutorado),
+              possuiMestrado: Boolean(eleg.possuiMestrado),
+              possuiGraduacao: Boolean(eleg.possuiGraduacao),
+              anosExperiencia: eleg.anosExperiencia != null ? Number(eleg.anosExperiencia) : undefined,
+              podeParticiparEditais: Boolean(eleg.podeParticiparEditais),
+              observacoes: Array.isArray(eleg.observacoes) ? (eleg.observacoes as string[]) : undefined,
             }
-          });
-        }
-
-        // Verificar formação (buscar por doutorado, mestrado, graduação)
-        const possuiDoutorado = /doutorado|ph\.?d|doctorado/i.test(html);
-        const possuiMestrado = /mestrado|master/i.test(html);
-        const possuiGraduacao = /graduação|bacharelado|licenciatura/i.test(html);
-
-        // Verificar status acadêmico atual (cursos em andamento)
-        // Buscar por padrões como "doutorando", "em curso", "em andamento", etc.
-        const doutorando = /doutorando|doutorado\s+em\s+curso|ph\.?d\s+student|doctorado\s+en\s+curso/i.test(html);
-        const mestrando = /mestrando|mestrado\s+em\s+curso|master\s+student|mestrado\s+en\s+curso/i.test(html);
-        const graduando = /graduando|graduação\s+em\s+curso|bacharelado\s+em\s+curso|licenciatura\s+em\s+curso|undergraduate|estudante\s+de\s+graduação/i.test(html);
-        const posGraduando = /pós-graduando|pós-graduação\s+em\s+curso|especialização\s+em\s+curso/i.test(html);
-        
-        // Verificar também por padrões de datas futuras ou "em andamento"
-        const emAndamentoPattern = /(doutorado|mestrado|graduação|bacharelado|licenciatura).*?(em\s+curso|em\s+andamento|in\s+progress|atual)/i;
-        const temCursoEmAndamento = emAndamentoPattern.test(html);
-
-        // Tentar extrair anos de experiência (aproximado)
-        const anosExperiencia = calcularAnosExperiencia(html);
-
-        // LÓGICA DE ELEGIBILIDADE PARA LATTES:
-        // Um pesquisador é elegível para editais se:
-        // - Possui pelo menos uma formação (Doutorado OU Mestrado OU Graduação)
-        // 
-        // Observações são adicionadas quando:
-        // - Não possui pós-graduação (alguns editais exigem)
-        // - Tem pouca experiência (< 2 anos)
-        const observacoes: string[] = [];
-        if (!possuiDoutorado && !possuiMestrado) {
-          observacoes.push("Alguns editais podem exigir pós-graduação");
-        }
-        if (anosExperiencia !== null && anosExperiencia < 2) {
-          observacoes.push("Pesquisador com pouca experiência");
-        }
-
-        // Cálculo final de elegibilidade:
-        // - Precisa ter pelo menos graduação (mínimo para participar de editais)
-        const podeParticiparEditais = possuiDoutorado || possuiMestrado || possuiGraduacao;
-
-        return {
-          id: id,
-          nome,
-          resumo: "Informações extraídas do Currículo Lattes público",
-          areasAtuacao: areasAtuacao.length > 0 ? areasAtuacao : undefined,
-          statusAcademico: {
-            doutorando: doutorando || (temCursoEmAndamento && possuiDoutorado && !possuiMestrado),
-            mestrando: mestrando || (temCursoEmAndamento && possuiMestrado && !possuiDoutorado),
-            graduando: graduando || (temCursoEmAndamento && possuiGraduacao && !possuiMestrado && !possuiDoutorado),
-            posGraduando: posGraduando,
-          },
-          formacao: [
-            possuiDoutorado && { nivel: "Doutorado", curso: "Informação extraída", instituicao: "Lattes", anoConclusao: undefined, emAndamento: doutorando },
-            possuiMestrado && { nivel: "Mestrado", curso: "Informação extraída", instituicao: "Lattes", anoConclusao: undefined, emAndamento: mestrando },
-            possuiGraduacao && { nivel: "Graduação", curso: "Informação extraída", instituicao: "Lattes", anoConclusao: undefined, emAndamento: graduando },
-          ].filter(Boolean) as Array<{
-            nivel: string;
-            curso: string;
-            instituicao: string;
-            anoConclusao?: string;
-            emAndamento?: boolean;
-          }>,
-          producoes: [],
-          ultimaAtualizacao: new Date().toISOString(),
-          linkLattes,
-          elegibilidade: {
-            possuiDoutorado,
-            possuiMestrado,
-            possuiGraduacao,
-            anosExperiencia: anosExperiencia || undefined,
-            podeParticiparEditais,
-            observacoes: observacoes.length > 0 ? observacoes : undefined,
-          },
-        };
-      }
-    } catch (fetchError) {
-      console.warn("Não foi possível buscar dados do Lattes via HTML:", fetchError);
+          : undefined,
+      };
     }
 
-    // Fallback: retornar dados básicos
+    // Resposta não-ok: usar fallback
+    const linkLattes = `http://lattes.cnpq.br/${id}`;
     return {
-      id: id,
+      id,
       nome: `Pesquisador ${id.slice(0, 4)}`,
       resumo: "ID Lattes válido. Para informações completas, acesse o link abaixo.",
       linkLattes,
@@ -227,9 +216,23 @@ export async function fetchLattesData(lattesId: string): Promise<LattesData | nu
         observacoes: ["Informações completas disponíveis no site do Lattes"],
       },
     };
-  } catch (error) {
-    console.error("Erro ao buscar dados do Lattes:", error);
-    return null;
+  } catch (err) {
+    console.warn("Erro ao buscar dados do Lattes:", err);
+    const id = lattesId.replace(/\D/g, "");
+    const linkLattes = id.length === 16 ? `http://lattes.cnpq.br/${id}` : undefined;
+    return {
+      id: id || lattesId,
+      nome: id.length === 16 ? `Pesquisador ${id.slice(0, 4)}` : "Pesquisador",
+      resumo: "ID Lattes válido. Para informações completas, acesse o link abaixo.",
+      linkLattes,
+      elegibilidade: {
+        possuiDoutorado: false,
+        possuiMestrado: false,
+        possuiGraduacao: false,
+        podeParticiparEditais: true,
+        observacoes: ["Informações completas disponíveis no site do Lattes"],
+      },
+    };
   }
 }
 

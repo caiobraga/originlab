@@ -7,6 +7,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import { Spinner } from "@/components/ui/spinner";
 import Header from "@/components/Header";
 import { saveUserProfile } from "@/lib/userProfile";
@@ -29,9 +30,6 @@ export default function SignUp() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [cpf, setCpf] = useState("");
   
-  // Campos específicos do pesquisador
-  const [lattesId, setLattesId] = useState("");
-  
   // Campos específicos de pessoa física/empresa
   const [hasCnpj, setHasCnpj] = useState<string>("nao");
   const [cnpj, setCnpj] = useState("");
@@ -41,14 +39,14 @@ export default function SignUp() {
   
   const [loading, setLoading] = useState(false);
   const { signUp, user } = useAuth();
+  const { profile, loading: profileLoading } = useUserProfile();
   const [location] = useLocation();
 
-  // Redirect if already logged in
+  // Se já estiver logado: após carregar perfil, ir ao onboarding (se não completou) ou ao dashboard
   useEffect(() => {
-    if (user) {
-      setLocation("/dashboard");
-    }
-  }, [user, setLocation]);
+    if (!user || profileLoading) return;
+    setLocation(profile?.onboardingCompleted ? "/dashboard" : "/onboarding?new=1");
+  }, [user, profileLoading, profile?.onboardingCompleted, setLocation]);
 
   // Preencher email da URL se disponível
   useEffect(() => {
@@ -72,11 +70,6 @@ export default function SignUp() {
       return;
     }
 
-    if (userType === "pesquisador" && !lattesId) {
-      toast.error("ID Lattes é obrigatório para pesquisadores");
-      return;
-    }
-
     if (userType === "pessoa-empresa" && hasCnpj === "sim" && !cnpj) {
       toast.error("CNPJ é obrigatório quando você possui CNPJ");
       return;
@@ -91,16 +84,13 @@ export default function SignUp() {
     setLoading(true);
 
     try {
-      // Preparar dados do perfil - limpar formatação do CPF, CNPJ e Lattes ID
-      const cpfLimpo = cpf.replace(/\D/g, ""); // Remove formatação
-      const cnpjLimpo = cnpj.replace(/\D/g, ""); // Remove formatação
-      const lattesLimpo = lattesId.replace(/\D/g, ""); // Remove formatação
+      // Preparar dados do perfil - limpar formatação do CPF e CNPJ
+      const cpfLimpo = cpf.replace(/\D/g, "");
+      const cnpjLimpo = cnpj.replace(/\D/g, "");
       
-      // Preparar dados do perfil para salvar
       const profileData = {
         cpf: cpfLimpo || undefined,
         cnpj: (userType === "pessoa-empresa" || userType === "ambos") && hasCnpj === "sim" && cnpjLimpo ? cnpjLimpo : undefined,
-        lattesId: ((userType === "pesquisador" || userType === "ambos") && lattesLimpo) ? lattesLimpo : undefined,
         userType: userType,
         hasCnpj: (userType === "pessoa-empresa" || userType === "ambos") && hasCnpj === "sim",
         dataCollectionConsent: dataCollectionConsent,
@@ -147,31 +137,39 @@ export default function SignUp() {
         console.error("Mensagem do erro:", profileError?.message);
         console.error("Detalhes completos:", JSON.stringify(profileError, null, 2));
         
-        // Sempre tentar salvar no metadata como fallback
+        // Fallback: salvar no user_metadata só se houver sessão (evita AuthSessionMissingError)
         try {
-          console.log("Tentando salvar no user_metadata como fallback...");
-          const metadataProfile: any = {
-            userType: profileData.userType,
-            hasCnpj: profileData.hasCnpj || false,
-          };
-          if (profileData.cpf) metadataProfile.cpf = profileData.cpf;
-          if (profileData.cnpj) metadataProfile.cnpj = profileData.cnpj;
-          if (profileData.lattesId) metadataProfile.lattesId = profileData.lattesId;
-
-          const { error: metadataError } = await supabase.auth.updateUser({
-            data: { profile: metadataProfile },
-          });
-          
-          if (metadataError) {
-            console.error("Erro ao salvar no metadata:", metadataError);
-            toast.warning("Conta criada, mas houve um problema ao salvar o perfil. Você pode atualizar depois.");
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) {
+            toast.success("Conta criada! Confirme seu email para acessar. Você poderá completar o perfil após o login.");
           } else {
-            console.log("✅ Perfil salvo no user_metadata como fallback");
-            toast.success("Conta criada com sucesso! Verifique seu email para confirmar.");
+            console.log("Tentando salvar no user_metadata como fallback...");
+            const metadataProfile: any = {
+              userType: profileData.userType,
+              hasCnpj: profileData.hasCnpj || false,
+            };
+            if (profileData.cpf) metadataProfile.cpf = profileData.cpf;
+            if (profileData.cnpj) metadataProfile.cnpj = profileData.cnpj;
+
+            const { error: metadataError } = await supabase.auth.updateUser({
+              data: { profile: metadataProfile },
+            });
+            if (metadataError) {
+              console.error("Erro ao salvar no metadata:", metadataError);
+              toast.warning("Conta criada, mas houve um problema ao salvar o perfil. Você pode atualizar depois.");
+            } else {
+              console.log("✅ Perfil salvo no user_metadata como fallback");
+              toast.success("Conta criada com sucesso! Verifique seu email para confirmar.");
+            }
           }
-        } catch (metadataError) {
-          console.error("Erro ao salvar no metadata também:", metadataError);
-          toast.warning("Conta criada, mas houve um problema ao salvar o perfil. Você pode atualizar depois.");
+        } catch (metadataError: unknown) {
+          const isSessionMissing = metadataError && typeof (metadataError as Error).name === 'string' && ((metadataError as Error).name === 'AuthSessionMissingError' || (metadataError as Error).message?.includes('session missing'));
+          if (isSessionMissing) {
+            toast.success("Conta criada! Confirme seu email para acessar. Você poderá completar o perfil após o login.");
+          } else {
+            console.error("Erro ao salvar no metadata também:", metadataError);
+            toast.warning("Conta criada, mas houve um problema ao salvar o perfil. Você pode atualizar depois.");
+          }
         }
       }
       
@@ -213,8 +211,12 @@ export default function SignUp() {
         }
       }
       
-      // After signup, redirect to login
-      setLocation("/login");
+      // Após cadastro, redirecionar para onboarding (ou perfil se já tiver sessão)
+      if (signUpData.session) {
+        setLocation("/onboarding?new=1");
+      } else {
+        setLocation("/login");
+      }
     } catch (error: any) {
       console.error("Erro completo no signup:", error);
       toast.error(error.message || "Erro ao criar conta. Tente novamente.");
@@ -330,20 +332,7 @@ export default function SignUp() {
 
                 {/* Aba Pesquisador */}
                 <TabsContent value="pesquisador" className="space-y-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="lattesId">ID Lattes</Label>
-                    <Input
-                      id="lattesId"
-                      type="text"
-                      placeholder="0000000000000000"
-                      value={lattesId}
-                      onChange={(e) => setLattesId(e.target.value.replace(/\D/g, ""))}
-                      required
-                      disabled={loading}
-                      className="w-full"
-                    />
-                    <p className="text-xs text-gray-500">Número do seu ID Lattes (apenas números)</p>
-                  </div>
+                  <p className="text-sm text-gray-600">Você pode enviar um PDF do currículo (opcional) na sua página de perfil após o cadastro.</p>
                 </TabsContent>
 
                 {/* Aba Pessoa Física/Empresa */}
@@ -389,19 +378,7 @@ export default function SignUp() {
                     </p>
                   </div>
                   
-                  <div className="space-y-2">
-                    <Label htmlFor="lattesId-ambos">ID Lattes (Opcional)</Label>
-                    <Input
-                      id="lattesId-ambos"
-                      type="text"
-                      placeholder="0000000000000000"
-                      value={lattesId}
-                      onChange={(e) => setLattesId(e.target.value.replace(/\D/g, ""))}
-                      disabled={loading}
-                      className="w-full"
-                    />
-                    <p className="text-xs text-gray-500">Número do seu ID Lattes (apenas números) - opcional</p>
-                  </div>
+                  <p className="text-sm text-gray-600">Você pode enviar um PDF do currículo (opcional) na sua página de perfil.</p>
 
                   <div className="space-y-4">
                     <Label>Você possui CNPJ?</Label>
@@ -477,7 +454,6 @@ export default function SignUp() {
                     loading || 
                     !cpf ||
                     (password !== confirmPassword && confirmPassword !== "") ||
-                    (userType === "pesquisador" && !lattesId) ||
                     (userType === "pessoa-empresa" && hasCnpj === "sim" && !cnpj) ||
                     !dataCollectionConsent
                   }

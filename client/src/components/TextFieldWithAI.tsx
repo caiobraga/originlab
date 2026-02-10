@@ -15,7 +15,8 @@ interface TextFieldWithAIProps {
   rows?: number;
   wordLimit?: number | null;
   fieldDescription: string;
-  editalId: string;
+  editalId?: string;
+  propostaId?: string;
   className?: string;
 }
 
@@ -28,16 +29,22 @@ export default function TextFieldWithAI({
   wordLimit,
   fieldDescription,
   editalId,
+  propostaId,
   className,
 }: TextFieldWithAIProps) {
   const [isImproving, setIsImproving] = useState(false);
   const wordCount = countWords(value);
   const isOverLimit = wordLimit ? wordCount > wordLimit : false;
   const isEmpty = !value || !value.trim();
+  const canImprove = !!(editalId || propostaId);
 
   const handleImprove = async () => {
     if (isEmpty) {
       toast.error("O campo deve ter algum conteúdo para ser melhorado");
+      return;
+    }
+    if (!canImprove) {
+      toast.error("Edital ou proposta não identificada. Recarregue a página e tente novamente.");
       return;
     }
 
@@ -45,6 +52,7 @@ export default function TextFieldWithAI({
     try {
       const improvedText = await improveText({
         edital_id: editalId,
+        proposta_id: propostaId,
         field_name: label,
         field_description: fieldDescription,
         current_text: value,
@@ -95,7 +103,7 @@ export default function TextFieldWithAI({
         variant="outline"
         size="sm"
         onClick={handleImprove}
-        disabled={isEmpty || isImproving}
+        disabled={isEmpty || isImproving || !canImprove}
         className="w-full"
       >
         {isImproving ? (

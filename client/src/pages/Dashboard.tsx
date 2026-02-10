@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useLocation } from "wouter";
 import { 
   ArrowLeft, Search, Filter, Globe, TrendingUp, Calendar, 
   DollarSign, Target, CheckCircle2, Clock, AlertCircle,
   Send, Eye, Sparkles, BarChart3, User, Loader2,
-  GraduationCap, Building2, Users, Share2
+  GraduationCap, Building2, Users, Share2, RefreshCw
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,12 +17,12 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 import { UserProfile } from "@/lib/userProfile";
 import Header from "@/components/Header";
 import {
-  fetchEditaisWithScores,
   EditalWithScores,
   formatPrazo,
   getPaisFromEdital,
   getStatusFromEdital,
 } from "@/lib/editaisApi";
+import { useEditaisList, useEditaisScores } from "@/hooks/useEditaisDashboard";
 import { formatValorProjeto, formatPrazoInscricao } from "@/lib/editalFormatters";
 import { gerarPropostaComIA } from "@/lib/propostasApi";
 
@@ -39,22 +39,18 @@ export default function Dashboard() {
   const [busca, setBusca] = useState("");
   const [mostrarInativos, setMostrarInativos] = useState(false); // Opção para mostrar editais inativos
   const [filtroTipoEdital, setFiltroTipoEdital] = useState<"pesquisadores" | "empresas" | "todos">("todos"); // Filtro para tipo ambos
-  const [editais, setEditais] = useState<EditalDisplay[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [gerandoProposta, setGerandoProposta] = useState<string | null>(null); // ID do edital sendo processado
+  const INCREMENTO_PAGINACAO = 5;
+  const [visibleCount, setVisibleCount] = useState(15); // Paginação infinita: exibir 15 iniciais, depois +5 ao rolar
+  const [gerandoProposta, setGerandoProposta] = useState<string | null>(null);
+  const [forceRecalcScores, setForceRecalcScores] = useState(false);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
   const [, setLocation] = useLocation();
   const { user, loading: authLoading } = useAuth();
   const { profile, loading: profileLoading } = useUserProfile();
-  
-  // Ref para rastrear se já carregou os editais e evitar recarregamentos desnecessários
-  const hasLoadedRef = useRef(false);
-  const lastUserIdRef = useRef<string | undefined>(undefined);
-  const profileRef = useRef<UserProfile | null>(null);
-  
-  // Atualizar ref do profile sempre que mudar
-  useEffect(() => {
-    profileRef.current = profile;
-  }, [profile]);
+
+  // 1. Lista em cache (5 min) - carregamento rápido
+  const editaisListQuery = useEditaisList(user?.id);
+  const editaisRaw = editaisListQuery.data ?? [];
 
   // Redirecionar para login se não estiver logado
   useEffect(() => {
@@ -64,60 +60,23 @@ export default function Dashboard() {
     }
   }, [user, authLoading, setLocation]);
 
+  // Primeiro acesso: redirecionar para onboarding se ainda não completou (usa perfil do banco)
   useEffect(() => {
-    // Função para carregar editais (definida dentro do useEffect para evitar dependências)
-    const loadEditais = async () => {
-      if (!user || !profileRef.current) return;
-      
-      try {
-        setLoading(true);
-        const editaisComScores = await fetchEditaisWithScores(user.id, user, profileRef.current);
-
-        // Transformar para formato de exibição
-        const editaisFormatados: EditalDisplay[] = editaisComScores.map((edital) => {
-          const { pais, flag } = getPaisFromEdital(edital);
-          const status = getStatusFromEdital(edital);
-          const prazo = formatPrazo(edital.data_encerramento);
-
-          return {
-            ...edital,
-            prazo,
-            pais,
-            flag,
-            status,
-            elegivel: true, // Por enquanto sempre true, pode ser calculado depois
-          };
-        });
-
-        setEditais(editaisFormatados);
-      } catch (error) {
-        console.error("Erro ao carregar editais:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    // Só carregar editais se:
-    // 1. Não estiver carregando autenticação/perfil
-    // 2. Estiver logado e tiver perfil
-    // 3. Ainda não carregou OU o usuário mudou
-    if (!authLoading && !profileLoading && user && profile) {
-      const userIdChanged = lastUserIdRef.current !== user.id;
-      
-      // Só recarregar se ainda não carregou OU o usuário mudou
-      if (!hasLoadedRef.current || userIdChanged) {
-        hasLoadedRef.current = true;
-        lastUserIdRef.current = user.id;
-        loadEditais();
-      }
+    if (authLoading || !user || profileLoading) return;
+    if (!profile?.onboardingCompleted) {
+      setLocation("/onboarding?new=1");
     }
-    
-    // Resetar flag se o usuário sair
-    if (!user) {
-      hasLoadedRef.current = false;
-      lastUserIdRef.current = undefined;
-    }
-  }, [user?.id, profileLoading, authLoading]); // Removido 'profile' das dependências para evitar recarregamentos ao mudar de aba
+  }, [user, authLoading, profileLoading, profile?.onboardingCompleted, setLocation]);
+
+  // Resetar paginação quando filtros mudarem
+  useEffect(() => {
+    setVisibleCount(15);
+  }, [busca, filtroRegiao, filtroTipoEdital, mostrarInativos]);
+
+  // Paginação infinita: carregar mais 5 editais quando o sentinel entrar na tela
+  const handleLoadMore = useCallback(() => {
+    setVisibleCount((prev) => prev + INCREMENTO_PAGINACAO);
+  }, []);
 
   const handleVerDetalhes = (editalId: string) => {
     setLocation(`/edital/${editalId}`);
@@ -156,28 +115,99 @@ export default function Dashboard() {
 
   // Função helper para verificar se um edital ainda está ativo
   // IMPORTANTE: Um edital é considerado ativo se QUALQUER um dos seguintes critérios for verdadeiro:
-  // 1. Tem fase ativa na Timeline Estimada
-  // 2. Status explícito é "Ativo" ou "Aberto"
-  // 3. Não tem data_encerramento OU data_encerramento é no futuro
-  // 4. Tem prazo_inscricao válido no futuro
-  // 5. Não tem nenhuma informação de encerramento (assumir ativo por padrão)
+  /** Extrai a data mais recente (prazo fim) de prazo_inscricao para comparar com hoje */
+  const extrairDataMaisRecentePrazo = (prazo: string | null | undefined): Date | null => {
+    if (!prazo || prazo === 'Não informado') return null;
+    const parseDateFromString = (str: string): Date | null => {
+      const s = String(str).trim();
+      const d = new Date(s);
+      if (!isNaN(d.getTime())) return d;
+      const iso = s.match(/(\d{4})-(\d{2})-(\d{2})/);
+      if (iso) return new Date(`${iso[1]}-${iso[2]}-${iso[3]}`);
+      const br = s.match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/);
+      if (br) return new Date(`${br[3]}-${br[2].padStart(2,'0')}-${br[1].padStart(2,'0')}`);
+      return null;
+    };
+    /** Procura qualquer data em um texto (último recurso) */
+    const extrairQualquerDataDoTexto = (texto: string): Date[] => {
+      const datas: Date[] = [];
+      const iso = texto.match(/\d{4}-\d{2}-\d{2}/g);
+      if (iso) iso.forEach((m) => { const d = parseDateFromString(m); if (d) datas.push(d); });
+      const br = texto.match(/\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{4}/g);
+      if (br) br.forEach((m) => { const d = parseDateFromString(m); if (d) datas.push(d); });
+      return datas;
+    };
+    try {
+      let parsed: any;
+      if (typeof prazo === 'string' && prazo.trim().startsWith('{')) {
+        parsed = JSON.parse(prazo);
+      } else if (typeof prazo === 'object') {
+        parsed = prazo;
+      } else {
+        const d = parseDateFromString(String(prazo).trim());
+        if (d) return d;
+        const quaisquer = extrairQualquerDataDoTexto(String(prazo));
+        return quaisquer.length ? new Date(Math.max(...quaisquer.map((x) => x.getTime()))) : null;
+      }
+      const datas: Date[] = [];
+      if (parsed.prazos && Array.isArray(parsed.prazos)) {
+        for (const p of parsed.prazos) {
+          const str = typeof p === 'string' ? p : (p.fim || p.prazo);
+          if (str) {
+            const d = parseDateFromString(String(str));
+            if (d) datas.push(d);
+          }
+        }
+      } else if (parsed.fim) {
+        const d = parseDateFromString(String(parsed.fim));
+        if (d) datas.push(d);
+      } else if (parsed.prazo) {
+        const d = parseDateFromString(String(parsed.prazo));
+        if (d) datas.push(d);
+      }
+      if (datas.length === 0) {
+        const texto = JSON.stringify(parsed);
+        const quaisquer = extrairQualquerDataDoTexto(texto);
+        return quaisquer.length ? new Date(Math.max(...quaisquer.map((x) => x.getTime()))) : null;
+      }
+      return new Date(Math.max(...datas.map((d: Date) => d.getTime())));
+    } catch {
+      const str = String(prazo);
+      const quaisquer = extrairQualquerDataDoTexto(str);
+      return quaisquer.length ? new Date(Math.max(...quaisquer.map((x) => x.getTime()))) : null;
+    }
+  };
+
+  // Regra principal: prazo de submissão da proposta inferior à data atual = inativo.
+  // Também: data_encerramento passou, status encerrado ou timeline fechada = inativo.
   const isEditalAtivo = (edital: EditalDisplay): boolean => {
     const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0); // Resetar horas para comparar apenas datas
+    hoje.setHours(0, 0, 0, 0);
 
-    // Critério 1: Verificar status explícito primeiro (mais confiável)
     const statusLower = (edital.status || '').toLowerCase().trim();
-    if (statusLower === 'ativo' || statusLower === 'aberto' || statusLower === 'aberta') {
-      return true; // Status explícito indica ativo
-    }
     if (statusLower === 'encerrado' || statusLower === 'finalizado' || statusLower === 'fechado') {
-      // Mesmo com status encerrado, verificar se tem fase ativa na timeline
-      // (pode ter sido encerrado mas ainda tem fase ativa)
-    } else {
-      // Se status não indica encerrado explicitamente, continuar verificando outros critérios
+      return false; // Status explícito de encerrado
     }
 
-    // Critério 2: Verificar Timeline Estimada
+    // Prazo de submissão da proposta inferior à data atual → inativo
+    const dataPrazoProposta = extrairDataMaisRecentePrazo(edital.prazo_inscricao);
+    if (dataPrazoProposta) {
+      const fimDoDiaPrazo = new Date(dataPrazoProposta);
+      fimDoDiaPrazo.setHours(23, 59, 59, 999);
+      // Se hoje é depois do fim do dia do prazo, prazo já venceu → inativo
+      if (hoje.getTime() > fimDoDiaPrazo.getTime()) return false;
+      return true; // Prazo ainda válido (hoje no dia do prazo ou no futuro)
+    }
+
+    // data_encerramento inferior à data atual → inativo
+    if (edital.data_encerramento) {
+      const encerramento = new Date(edital.data_encerramento);
+      encerramento.setHours(23, 59, 59, 999);
+      if (hoje.getTime() > encerramento.getTime()) return false;
+      return true;
+    }
+
+    // Critério 3: Verificar Timeline Estimada
     // IMPORTANTE: Se tem timeline_estimada, ela é a fonte de verdade principal
     // Se nenhuma fase está ativa, o edital NÃO está ativo (a menos que outros critérios indiquem o contrário)
     if (edital.timeline_estimada && edital.timeline_estimada.fases && Array.isArray(edital.timeline_estimada.fases)) {
@@ -446,13 +476,32 @@ export default function Dashboard() {
       return false;
     }
     
-    // Se chegou até aqui, não encontrou evidência clara de encerramento
-    // Considerar como ativo (não tem timeline ou timeline está vazia)
+    // Se tem data_encerramento e já passou, inativo (verificação final)
+    if (edital.data_encerramento) {
+      const enc = new Date(edital.data_encerramento);
+      enc.setHours(23, 59, 59, 999);
+      if (hoje.getTime() > enc.getTime()) return false;
+    }
+
+    // Se tem prazo_inscricao mas não parseamos no início, tentar de novo (ex.: formato em texto)
+    if (edital.prazo_inscricao && String(edital.prazo_inscricao).trim() && edital.prazo_inscricao !== 'Não informado') {
+      const dataPrazo = extrairDataMaisRecentePrazo(edital.prazo_inscricao);
+      if (dataPrazo) {
+        const fimDoDia = new Date(dataPrazo);
+        fimDoDia.setHours(23, 59, 59, 999);
+        if (hoje.getTime() > fimDoDia.getTime()) return false;
+      }
+    }
+
+    // Sem evidência clara de encerramento e sem timeline: considerar ativo
     return true;
   };
 
+  // Adicionar pais/flag para filtros (getPaisFromEdital)
+  const editaisComPais = editaisRaw.map((e) => ({ ...e, ...getPaisFromEdital(e) }));
+
   // Filtrar editais baseado no perfil do usuário e outros filtros
-  const editaisFiltrados = editais.filter((edital) => {
+  const editaisFiltrados = editaisComPais.filter((edital) => {
     // Filtrar editais que já passaram da data de encerramento (a menos que mostrarInativos esteja ativo)
     if (!mostrarInativos && !isEditalAtivo(edital)) {
       return false;
@@ -514,10 +563,67 @@ export default function Dashboard() {
     return matchBusca && matchRegiao;
   });
 
+  // Paginação: apenas os visíveis (scores calculados sob demanda)
+  const visibleEditais = editaisFiltrados.slice(0, visibleCount);
+  const scoresQuery = useEditaisScores(
+    visibleEditais,
+    user?.id,
+    user ?? null,
+    profile ?? null,
+    forceRecalcScores
+  );
+  const editaisComScores = scoresQuery.data ?? [];
+
+  // Enquanto os scores carregam (n8n), mostrar placeholder com texto "Carregando probabilidade"
+  const scoresLoading = scoresQuery.isLoading && editaisComScores.length === 0;
+  const baseParaDisplay = editaisComScores.length > 0 ? editaisComScores : visibleEditais.map((e) => ({
+    ...e,
+    match: 50,
+    probabilidade: 50,
+    justificativa: null as string | null,
+  }));
+
+  const editais: EditalDisplay[] = baseParaDisplay.map((edital) => {
+    const { pais, flag } = getPaisFromEdital(edital);
+    const status = getStatusFromEdital(edital);
+    const prazo = formatPrazo(edital.data_encerramento);
+    return {
+      ...edital,
+      prazo,
+      pais,
+      flag,
+      status,
+      elegivel: true,
+    };
+  });
+
+  // Mostrar loading só na primeira carga; se der erro, não travar em loading e mostrar retry
+  const listLoading = editaisListQuery.isLoading && editaisRaw.length === 0;
+  const listError = editaisListQuery.isError;
+  const loading = listLoading && !listError;
+  const hasMore = visibleCount < editaisFiltrados.length;
+
+  useEffect(() => {
+    const sentinel = loadMoreRef.current;
+    if (!sentinel || !editaisFiltrados.length) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry?.isIntersecting && hasMore && !scoresQuery.isLoading) {
+          handleLoadMore();
+        }
+      },
+      { rootMargin: "200px", threshold: 0.1 }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, scoresQuery.isLoading, handleLoadMore, editaisFiltrados.length]);
+
   const stats = {
     editaisAtivos: editaisFiltrados.length,
-    emAnalise: editaisFiltrados.filter((e) => e.status === "em_analise").length,
-    matchAlto: editaisFiltrados.filter((e) => e.match >= 90).length,
+    emAnalise: editaisFiltrados.filter((e) => getStatusFromEdital(e) === "em_analise").length,
+    matchAlto: editais.filter((e) => e.match >= 90).length,
   };
 
   // Não renderizar se não estiver logado (está redirecionando)
@@ -530,9 +636,34 @@ export default function Dashboard() {
       <Header />
       <main id="main-content" className="container py-8">
         {/* Page Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Meu Painel</h1>
-          <p className="text-sm md:text-base text-gray-700">Oportunidades globais de fomento</p>
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Meu Painel</h1>
+            <p className="text-sm md:text-base text-gray-700">Oportunidades globais de fomento</p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setForceRecalcScores(true);
+              toast.info("Recalculando scores dos editais visíveis...");
+            }}
+            disabled={scoresQuery.isLoading || visibleEditais.length === 0}
+            className="shrink-0"
+          >
+            {scoresQuery.isFetching && forceRecalcScores ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Recalculando...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Recalcular scores
+              </>
+            )}
+          </Button>
         </div>
 
         {/* Referral Banner */}
@@ -559,6 +690,14 @@ export default function Dashboard() {
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
             <span className="ml-3 text-gray-600">Carregando editais...</span>
+          </div>
+        ) : listError && editaisRaw.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 px-4">
+            <AlertCircle className="w-12 h-12 text-amber-500 mb-4" />
+            <p className="text-gray-700 text-center mb-4">Não foi possível carregar os editais. Verifique sua conexão e tente novamente.</p>
+            <Button onClick={() => editaisListQuery.refetch()} variant="outline">
+              Tentar novamente
+            </Button>
           </div>
         ) : (
           <>
@@ -676,7 +815,7 @@ export default function Dashboard() {
 
         {/* Editais List */}
         <div className="space-y-4">
-          {editaisFiltrados.map((edital) => (
+          {editais.map((edital) => (
             <div key={edital.id} className="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-gray-200 hover:shadow-md hover:border-gray-300 transition-all duration-200 cursor-pointer">
               <div className="flex flex-col md:flex-row items-start md:justify-between gap-4 mb-4">
                 <div className="flex-1 min-w-0 w-full">
@@ -811,13 +950,33 @@ export default function Dashboard() {
                 </div>
 
                 <div className="flex flex-row md:flex-col items-center md:items-end gap-3 md:gap-3 w-full md:w-auto justify-between md:justify-start">
-                  {/* Match Score */}
+                  {/* Match / Probabilidade - carregando ou valores */}
                   <div className="text-center md:text-right">
-                    <div className="flex items-center gap-2 mb-1 justify-center md:justify-end">
-                      <div className="text-2xl md:text-3xl font-bold text-blue-600">{edital.match}%</div>
-                      <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5 text-green-600 flex-shrink-0" />
-                    </div>
-                    <div className="text-xs text-gray-600">Match</div>
+                    {scoresLoading ? (
+                      <>
+                        <div className="flex items-center gap-2 mb-1 justify-center md:justify-end">
+                          <Loader2 className="w-6 h-6 animate-spin text-blue-600 flex-shrink-0" aria-hidden />
+                          <span className="text-sm font-medium text-gray-500">Carregando probabilidade</span>
+                        </div>
+                        <div className="text-xs text-gray-500">Match e aprovação</div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-2 mb-1 justify-center md:justify-end">
+                          <div className="text-2xl md:text-3xl font-bold text-blue-600">{edital.match}%</div>
+                          <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5 text-green-600 flex-shrink-0" />
+                        </div>
+                        <div className="text-xs text-gray-600">Match</div>
+                        <div className="text-xs text-violet-600 font-medium mt-0.5">{edital.probabilidade}% aprovação</div>
+                        {edital.justificativa != null && edital.justificativa !== "" ? (
+                          <p className="text-xs text-gray-500 mt-1 line-clamp-2 max-w-[140px] sm:max-w-[160px] md:max-w-[180px] break-words" title={edital.justificativa}>
+                            {edital.justificativa}
+                          </p>
+                        ) : (
+                          <p className="text-xs text-gray-400 italic mt-1">Justificativa não disponível</p>
+                        )}
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -853,11 +1012,20 @@ export default function Dashboard() {
           ))}
         </div>
 
+            {/* Sentinel para paginação infinita: ao rolar até aqui, carrega mais 5 editais */}
+            {hasMore && (
+              <div ref={loadMoreRef} className="flex justify-center py-6 min-h-[60px]" aria-hidden="true">
+                {scoresQuery.isLoading && (
+                  <Loader2 className="w-6 h-6 animate-spin text-blue-600" aria-label="Carregando mais editais" />
+                )}
+              </div>
+            )}
+
             {editaisFiltrados.length === 0 && !loading && (
               <div className="text-center py-12">
                 <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-600">
-                  {editais.length === 0
+                  {editaisRaw.length === 0
                     ? "Nenhum edital encontrado no banco de dados."
                     : "Nenhum edital encontrado com os filtros selecionados."}
                 </p>

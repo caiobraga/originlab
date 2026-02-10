@@ -9,21 +9,20 @@ import Footer from "@/components/Footer";
 import AIHumanSection from "@/components/AIHumanSection";
 import IntelligentPanel from "@/components/IntelligentPanel";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserProfile } from "@/hooks/useUserProfile";
 
 export default function Home() {
   const [, setLocation] = useLocation();
   const { user, loading: authLoading } = useAuth();
+  const { profile, loading: profileLoading } = useUserProfile();
 
-  // Redirecionar para dashboard se estiver logado
+  // Se estiver logado: após carregar perfil, ir ao onboarding (se não completou) ou ao dashboard
   useEffect(() => {
-    if (!authLoading && user) {
-      setLocation("/dashboard");
-      return;
-    }
-  }, [user, authLoading, setLocation]);
+    if (authLoading || !user || profileLoading) return;
+    setLocation(profile?.onboardingCompleted ? "/dashboard" : "/onboarding?new=1");
+  }, [user, authLoading, profileLoading, profile?.onboardingCompleted, setLocation]);
 
-  // Não renderizar conteúdo se estiver redirecionando
-  if (!authLoading && user) {
+  if (!authLoading && user && !profileLoading) {
     return null;
   }
 

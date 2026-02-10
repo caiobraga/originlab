@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
@@ -43,6 +44,15 @@ function Router() {
   );
 }
 
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutos - dados considerados frescos
+      cacheTime: 10 * 60 * 1000, // 10 minutos - mantém cache em memória (v4)
+    },
+  },
+});
+
 // NOTE: About Theme
 // - First choose a default theme according to your design style (dark or light bg), than change color palette in index.css
 //   to keep consistent foreground/background color across components
@@ -51,6 +61,7 @@ function Router() {
 function App() {
   return (
     <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <ThemeProvider
           defaultTheme="light"
@@ -63,6 +74,7 @@ function App() {
           </TooltipProvider>
         </ThemeProvider>
       </AuthProvider>
+      </QueryClientProvider>
     </ErrorBoundary>
   );
 }

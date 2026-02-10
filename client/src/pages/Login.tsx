@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
+import { getUserProfile } from "@/lib/userProfile";
 import { Spinner } from "@/components/ui/spinner";
 import Header from "@/components/Header";
 
@@ -24,17 +25,21 @@ export default function Login() {
     }
   }, []);
 
-  // Redirect if already logged in
+  // Redirect if already logged in (usa perfil do banco para saber se onboarding foi concluído)
   useEffect(() => {
-    if (user) {
-      const redirect = sessionStorage.getItem("loginRedirect");
-      if (redirect) {
-        sessionStorage.removeItem("loginRedirect");
-        setLocation(redirect);
-      } else {
-        setLocation("/dashboard");
-      }
+    if (!user) return;
+    const redirect = sessionStorage.getItem("loginRedirect");
+    if (redirect) {
+      sessionStorage.removeItem("loginRedirect");
+      setLocation(redirect);
+      return;
     }
+    let cancelled = false;
+    getUserProfile(user).then((profile) => {
+      if (cancelled) return;
+      setLocation(profile?.onboardingCompleted ? "/dashboard" : "/onboarding?new=1");
+    });
+    return () => { cancelled = true; };
   }, [user, setLocation]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -43,14 +48,7 @@ export default function Login() {
 
     try {
       await signIn(email, password);
-      // O redirecionamento será feito pelo useEffect quando user mudar
-      const redirect = sessionStorage.getItem("loginRedirect");
-      if (redirect) {
-        sessionStorage.removeItem("loginRedirect");
-        setLocation(redirect);
-      } else {
-        setLocation("/dashboard");
-      }
+      // Redirecionamento será feito pelo useEffect quando user estiver disponível
     } catch (error) {
       // Error is already handled in AuthContext
     } finally {

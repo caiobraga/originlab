@@ -12,9 +12,10 @@ interface FormularioPropostaProps {
   data: PropostaFormData;
   onChange: (data: PropostaFormData) => void;
   editalId: string;
+  propostaId?: string;
 }
 
-export default function FormularioProposta({ data, onChange, editalId }: FormularioPropostaProps) {
+export default function FormularioProposta({ data, onChange, editalId, propostaId }: FormularioPropostaProps) {
   const updateField = <K extends keyof PropostaFormData>(
     field: K,
     value: PropostaFormData[K]
@@ -486,6 +487,7 @@ export default function FormularioProposta({ data, onChange, editalId }: Formula
                 wordLimit={null}
                 fieldDescription="Informar as habilidades e competências necessárias do coordenador que assegurem a realização do projeto."
                 editalId={editalId}
+                propostaId={propostaId}
               />
             </div>
           </div>
@@ -763,6 +765,7 @@ export default function FormularioProposta({ data, onChange, editalId }: Formula
               wordLimit={500}
               fieldDescription="Resumo do projeto que será publicado pela FAPES. Deve conter objetivo geral, caminho percorrido para desenvolvimento e resultados esperados."
               editalId={editalId}
+                propostaId={propostaId}
             />
 
             <div className="space-y-2">
@@ -789,6 +792,7 @@ export default function FormularioProposta({ data, onChange, editalId }: Formula
               wordLimit={2500}
               fieldDescription="Descreva o problema científico/tecnológico a ser abordado, contextualizando e justificando a importância da proposta com base em bibliografias científicas atualizadas."
               editalId={editalId}
+                propostaId={propostaId}
             />
 
             <TextFieldWithAI
@@ -806,6 +810,7 @@ export default function FormularioProposta({ data, onChange, editalId }: Formula
               wordLimit={null}
               fieldDescription="Descreva a importância da realização dessa pesquisa em sua região e seu potencial para fortalecer a linha de pesquisa."
               editalId={editalId}
+                propostaId={propostaId}
             />
 
             <TextFieldWithAI
@@ -819,6 +824,7 @@ export default function FormularioProposta({ data, onChange, editalId }: Formula
               wordLimit={1000}
               fieldDescription="Descreva o avanço científico, tecnológico ou inovação proporcionado pelo projeto."
               editalId={editalId}
+                propostaId={propostaId}
             />
 
             <TextFieldWithAI
@@ -832,6 +838,7 @@ export default function FormularioProposta({ data, onChange, editalId }: Formula
               wordLimit={null}
               fieldDescription="Relate a experiência e qualificação do coordenador/proponente e dos pesquisadores principais quanto à quantidade e regularidade da produção científica/tecnológica e formação de recursos humanos nos últimos 10 anos."
               editalId={editalId}
+                propostaId={propostaId}
             />
 
             <TextFieldWithAI
@@ -845,6 +852,7 @@ export default function FormularioProposta({ data, onChange, editalId }: Formula
               wordLimit={100}
               fieldDescription="Descreva as aspirações amplas e abrangentes ou resultados desejados que fornecem direção e propósito ao projeto."
               editalId={editalId}
+                propostaId={propostaId}
             />
 
             <div className="space-y-2">
@@ -908,6 +916,7 @@ export default function FormularioProposta({ data, onChange, editalId }: Formula
               wordLimit={3000}
               fieldDescription="Descreva de forma categorizada o trabalho que será executado no projeto, incluindo metodologia aplicada, etapas e entregas, gestão e conclusão do projeto."
               editalId={editalId}
+                propostaId={propostaId}
             />
 
             <TextFieldWithAI
@@ -925,6 +934,7 @@ export default function FormularioProposta({ data, onChange, editalId }: Formula
               wordLimit={1000}
               fieldDescription="Descreva a interdisciplinaridade/multidisciplinaridade do projeto, intercâmbio institucional/interinstitucional e possibilidade de parcerias estaduais, nacionais e internacionais."
               editalId={editalId}
+                propostaId={propostaId}
             />
 
             {/* 3.10 Promoção e Divulgação */}
@@ -949,6 +959,7 @@ export default function FormularioProposta({ data, onChange, editalId }: Formula
                   wordLimit={300}
                   fieldDescription="Descreva o público-alvo para promoção, popularização e divulgação científica e tecnológica, considerando a necessidade de popularização da ciência."
                   editalId={editalId}
+                propostaId={propostaId}
                 />
                 <TextFieldWithAI
                   id="estrategias_traducao"
@@ -971,6 +982,7 @@ export default function FormularioProposta({ data, onChange, editalId }: Formula
                   wordLimit={1000}
                   fieldDescription="Descreva as estratégias para comunicar e disseminar os resultados da pesquisa, incluindo adaptação da linguagem, desenvolvimento de materiais de apoio e capacitação."
                   editalId={editalId}
+                propostaId={propostaId}
                 />
                 <TextFieldWithAI
                   id="estrategias_disseminacao"
@@ -993,6 +1005,7 @@ export default function FormularioProposta({ data, onChange, editalId }: Formula
                   wordLimit={null}
                   fieldDescription="Descreva as estratégias de disseminação do conhecimento, incluindo canais de comunicação, parcerias, eventos, workshops e plataformas online."
                   editalId={editalId}
+                propostaId={propostaId}
                 />
               </div>
             </div>
@@ -1012,6 +1025,7 @@ export default function FormularioProposta({ data, onChange, editalId }: Formula
               wordLimit={1000}
               fieldDescription="Detalhe os benefícios e resultados esperados com o desenvolvimento do projeto, promovendo o desenvolvimento socioeconômico e ambiental local. Inclua produtos científicos, formação de recursos humanos, tecnologias e patentes."
               editalId={editalId}
+                propostaId={propostaId}
             />
 
             {/* 3.12 Impactos Esperados */}

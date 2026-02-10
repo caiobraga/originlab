@@ -8,24 +8,38 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useAuth } from "@/contexts/AuthContext";
 import { Spinner } from "@/components/ui/spinner";
 import Header from "@/components/Header";
-import { saveUserProfile, getUserProfile, UserProfile } from "@/lib/userProfile";
+import { saveUserProfile, getUserProfile } from "@/lib/userProfile";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
+
+const AREA_OPTIONS = [
+  { id: "tech", label: "Tecnologia" },
+  { id: "health", label: "Saúde" },
+  { id: "agro", label: "Agronegócio" },
+  { id: "energy", label: "Energia" },
+  { id: "bio", label: "Biotecnologia" },
+  { id: "other", label: "Outra" },
+] as const;
+
+function formatTelefoneDisplay(v: string): string {
+  const n = v.replace(/\D/g, "").slice(0, 11);
+  if (n.length <= 2) return n ? `(${n}` : "";
+  if (n.length <= 6) return `(${n.slice(0, 2)}) ${n.slice(2)}`;
+  return `(${n.slice(0, 2)}) ${n.slice(2, 6)}-${n.slice(6)}`;
+}
 
 export default function EditProfile() {
   const [, setLocation] = useLocation();
   const { user, loading: authLoading } = useAuth();
   const [userType, setUserType] = useState<"pesquisador" | "pessoa-empresa" | "ambos">("pesquisador");
   
-  // Campos comuns
   const [cpf, setCpf] = useState("");
-  const [lattesId, setLattesId] = useState("");
-  
-  // Campos específicos de pessoa física/empresa
   const [hasCnpj, setHasCnpj] = useState<string>("nao");
   const [cnpj, setCnpj] = useState("");
-  
+  const [telefone, setTelefone] = useState("");
+  const [area, setArea] = useState<string>("");
+
   const [loading, setLoading] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(true);
 
@@ -50,8 +64,9 @@ export default function EditProfile() {
         setUserType(existingProfile.userType || "pesquisador");
         setCpf(existingProfile.cpf || "");
         setCnpj(existingProfile.cnpj || "");
-        setLattesId(existingProfile.lattesId || "");
         setHasCnpj(existingProfile.hasCnpj ? "sim" : "nao");
+        setTelefone(existingProfile.phone ? formatTelefoneDisplay(existingProfile.phone) : "");
+        setArea(existingProfile.area || "");
       }
     } catch (error) {
       console.error("Erro ao carregar perfil:", error);
@@ -64,11 +79,6 @@ export default function EditProfile() {
     e.preventDefault();
     
     // Validações específicas
-    if (userType === "pesquisador" && !lattesId) {
-      toast.error("ID Lattes é obrigatório para pesquisadores");
-      return;
-    }
-
     if (userType === "pessoa-empresa" && hasCnpj === "sim" && !cnpj) {
       toast.error("CNPJ é obrigatório quando você possui CNPJ");
       return;
@@ -87,13 +97,13 @@ export default function EditProfile() {
         return;
       }
 
-      // Salvar dados adicionais no perfil do usuário
       await saveUserProfile(user.id, {
         cpf: cpf,
         cnpj: (userType === "pessoa-empresa" || userType === "ambos") && hasCnpj === "sim" ? cnpj : undefined,
-        lattesId: (userType === "pesquisador" || userType === "ambos") ? lattesId : undefined,
         userType: userType,
         hasCnpj: (userType === "pessoa-empresa" || userType === "ambos") && hasCnpj === "sim",
+        phone: telefone.replace(/\D/g, "") || undefined,
+        area: area || undefined,
       });
 
       toast.success("Perfil atualizado com sucesso!");
@@ -186,22 +196,41 @@ export default function EditProfile() {
                   />
                 </div>
 
+                <div className="space-y-2">
+                  <Label htmlFor="telefone">Telefone (opcional)</Label>
+                  <Input
+                    id="telefone"
+                    type="tel"
+                    placeholder="(00) 00000-0000"
+                    value={telefone}
+                    onChange={(e) => setTelefone(formatTelefoneDisplay(e.target.value))}
+                    disabled={loading}
+                    maxLength={16}
+                    className="w-full"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Área de atuação (opcional)</Label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {AREA_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setArea(area === opt.id ? "" : opt.id)}
+                        className={`p-3 rounded-lg border-2 text-left text-sm font-medium transition-all ${
+                          area === opt.id ? "border-violet-600 bg-violet-50 text-violet-800" : "border-gray-200 hover:border-gray-300"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Aba Pesquisador */}
                 <TabsContent value="pesquisador" className="space-y-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="lattesId">ID Lattes *</Label>
-                    <Input
-                      id="lattesId"
-                      type="text"
-                      placeholder="0000000000000000"
-                      value={lattesId}
-                      onChange={(e) => setLattesId(e.target.value.replace(/\D/g, ""))}
-                      required
-                      disabled={loading}
-                      className="w-full"
-                    />
-                    <p className="text-xs text-gray-500">Número do seu ID Lattes (apenas números)</p>
-                  </div>
+                  <p className="text-sm text-gray-600">Você pode enviar um PDF do currículo (opcional) na sua página de perfil.</p>
                 </TabsContent>
 
                 {/* Aba Pessoa Física/Empresa */}
@@ -247,19 +276,7 @@ export default function EditProfile() {
                     </p>
                   </div>
                   
-                  <div className="space-y-2">
-                    <Label htmlFor="lattesId-ambos">ID Lattes (Opcional)</Label>
-                    <Input
-                      id="lattesId-ambos"
-                      type="text"
-                      placeholder="0000000000000000"
-                      value={lattesId}
-                      onChange={(e) => setLattesId(e.target.value.replace(/\D/g, ""))}
-                      disabled={loading}
-                      className="w-full"
-                    />
-                    <p className="text-xs text-gray-500">Número do seu ID Lattes (apenas números) - opcional</p>
-                  </div>
+                  <p className="text-sm text-gray-600">Você pode enviar um PDF do currículo (opcional) na sua página de perfil.</p>
 
                   <div className="space-y-4">
                     <Label>Você possui CNPJ?</Label>
@@ -298,9 +315,7 @@ export default function EditProfile() {
                   disabled={
                     loading || 
                     !cpf ||
-                    (userType === "pesquisador" && !lattesId) ||
                     (userType === "pessoa-empresa" && hasCnpj === "sim" && !cnpj)
-                    // Tipo "ambos" não tem validações obrigatórias específicas
                   }
                 >
                   {loading ? (

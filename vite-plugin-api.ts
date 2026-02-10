@@ -22,8 +22,10 @@ export function apiPlugin(): Plugin {
         const { default: calculateEditalScoresRouter } = await import('./server/api/calculate-edital-scores.js');
         const { default: generatePropostaRouter } = await import('./server/api/generate-proposta.js');
         const { default: improveTextRouter } = await import('./server/api/improve-text.js');
+        const { default: fetchLattesRouter } = await import('./server/api/fetch-lattes.js');
         
         app.use('/api', extractEditalInfoRouter);
+        app.use('/api', fetchLattesRouter);
         app.use('/api', calculateEditalScoresRouter);
         app.use('/api', generatePropostaRouter);
         app.use('/api', improveTextRouter);
@@ -36,6 +38,7 @@ export function apiPlugin(): Plugin {
         console.log('   - /api/calculate-edital-scores');
         console.log('   - /api/generate-proposta');
         console.log('   - /api/improve-text');
+        console.log('   - /api/lattes/:id');
       } catch (error) {
         console.error('❌ Erro ao configurar API endpoints:', error);
       }

@@ -8,9 +8,10 @@ interface FormularioCNPqProps {
   data: CNPqFormData;
   onChange: (data: CNPqFormData) => void;
   editalId: string;
+  propostaId?: string;
 }
 
-export default function FormularioCNPq({ data, onChange, editalId }: FormularioCNPqProps) {
+export default function FormularioCNPq({ data, onChange, editalId, propostaId }: FormularioCNPqProps) {
   const updateField = <K extends keyof CNPqFormData>(
     field: K,
     value: CNPqFormData[K]
@@ -147,11 +148,12 @@ export default function FormularioCNPq({ data, onChange, editalId }: FormularioC
           </Label>
           <TextFieldWithAI
             id="resumo_proposta"
+            label="Resumo da Proposta"
             value={data.resumo.resumo_proposta}
             onChange={(value) => updateNestedField('resumo', 'resumo_proposta', value)}
             editalId={editalId}
-            fieldName="resumo_proposta"
-            maxLength={2000}
+            propostaId={propostaId}
+            fieldDescription="Resumo da proposta para submissão ao CNPq (até 2000 caracteres)."
             className="mt-1"
             placeholder="Digite o resumo da proposta"
           />
@@ -190,11 +192,13 @@ export default function FormularioCNPq({ data, onChange, editalId }: FormularioC
             </Label>
             <TextFieldWithAI
               id={key}
+              label={label}
               value={data.sobre_projeto[key as keyof typeof data.sobre_projeto]}
               onChange={(value) => updateNestedField('sobre_projeto', key, value)}
               editalId={editalId}
-              fieldName={key}
-              maxLength={4000}
+              propostaId={propostaId}
+              fieldDescription={`Resposta para a questão ${number} do formulário CNPq.`}
+              rows={6}
               className="mt-1 min-h-[150px]"
               placeholder={`Digite a resposta para a questão ${number}`}
             />

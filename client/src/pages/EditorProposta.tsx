@@ -652,12 +652,14 @@ export default function EditorProposta() {
                   data={campos as CNPqFormData} 
                   onChange={handleFormChange}
                   editalId={proposta.edital_id}
+                  propostaId={propostaId}
                 />
               ) : (
                 <FormularioProposta 
                   data={campos as PropostaFormData} 
                   onChange={handleFormChange}
                   editalId={proposta.edital_id}
+                  propostaId={propostaId}
                 />
               )}
             </div>

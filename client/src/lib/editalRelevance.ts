@@ -1,5 +1,5 @@
 import { User } from "@supabase/supabase-js";
-import { extractCPF, extractCNPJ, extractLattesId, getUserType, hasCNPJ } from "./userProfile";
+import { extractCPF, extractCNPJ, getUserType, hasCNPJ } from "./userProfile";
 
 export interface Edital {
   numero: string;
@@ -28,7 +28,8 @@ export function isEditalRelevantForUser(edital: Edital, user: User | null): bool
   const userType = getUserType(user);
   const cpf = extractCPF(user);
   const cnpj = extractCNPJ(user);
-  const lattesId = extractLattesId(user);
+  const curriculumData = user.user_metadata?.profile?.curriculumData;
+  const hasCurriculum = !!curriculumData;
   const userHasCnpj = hasCNPJ(user);
 
   // Se o edital tem requisitos específicos, verificar
@@ -57,8 +58,8 @@ export function isEditalRelevantForUser(edital: Edital, user: User | null): bool
       return false;
     }
 
-    // Verificar Lattes ID (geralmente necessário para pesquisadores)
-    if (req.lattesId && !lattesId) {
+    // Verificar currículo (PDF)
+    if (req.lattesId && !hasCurriculum) {
       return false;
     }
   }
@@ -68,8 +69,8 @@ export function isEditalRelevantForUser(edital: Edital, user: User | null): bool
   const tituloLower = edital.titulo.toLowerCase();
   const descricaoLower = edital.descricao?.toLowerCase() || "";
 
-  // Pesquisadores geralmente precisam de Lattes ID
-  if (userType === "pesquisador" && !lattesId) {
+  // Pesquisadores podem ter currículo (PDF, opcional)
+  if (userType === "pesquisador" && !hasCurriculum) {
     // Se o edital menciona pesquisa, ciência, etc., pode ser relevante mas requer Lattes
     if (
       tituloLower.includes("pesquisa") ||
@@ -130,7 +131,8 @@ export function getEditalRelevanceInfo(edital: Edital, user: User | null): {
   const userType = getUserType(user);
   const cpf = extractCPF(user);
   const cnpj = extractCNPJ(user);
-  const lattesId = extractLattesId(user);
+  const curriculumData = user.user_metadata?.profile?.curriculumData;
+  const hasCurriculum = !!curriculumData;
   const userHasCnpj = hasCNPJ(user);
 
   // Verificar requisitos específicos
@@ -156,21 +158,21 @@ export function getEditalRelevanceInfo(edital: Edital, user: User | null): {
       warnings.push("Este edital requer CNPJ cadastrado");
     }
 
-    if (req.lattesId && !lattesId) {
-      warnings.push("Este edital requer ID Lattes cadastrado");
+    if (req.lattesId && !hasCurriculum) {
+      warnings.push("Este edital requer currículo em PDF cadastrado na página de perfil");
     }
   }
 
   // Análise baseada no título
   const tituloLower = edital.titulo.toLowerCase();
   
-  if (userType === "pesquisador" && !lattesId) {
+  if (userType === "pesquisador" && !hasCurriculum) {
     if (
       tituloLower.includes("pesquisa") ||
       tituloLower.includes("ciência") ||
       tituloLower.includes("inovação")
     ) {
-      warnings.push("Este edital pode requerer ID Lattes");
+      warnings.push("Este edital pode requerer currículo (envie um PDF na página de perfil)");
     }
   }
 

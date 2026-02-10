@@ -1,6 +1,41 @@
 import { supabase } from "./supabase";
 import { User } from "@supabase/supabase-js";
 
+/** Chama upsert_user_profile com retry quando o backend retorna "User does not exist" (race pós-signUp). */
+async function callUpsertRpcWithRetry(rpcParams: {
+  p_user_id: string;
+  p_cpf: string | null;
+  p_cnpj: string | null;
+  p_lattes_id: string | null;
+  p_user_type: string;
+  p_has_cnpj: boolean;
+}): Promise<{ data: unknown; error: { code: string; message: string } | null }> {
+  const { data, error } = await supabase.rpc('upsert_user_profile', rpcParams);
+  if (!error) return { data, error: null };
+  const isRaceCondition =
+    error.code === 'P0001' ||
+    error.code === '23503' ||
+    (error.message && (error.message.includes('User does not exist') || error.message.includes('foreign key') || error.message.includes('violates foreign key')));
+  if (isRaceCondition) {
+    console.warn("⚠️ User not yet visible (race após signUp). Aguardando 2s e tentando novamente...");
+    await new Promise((r) => setTimeout(r, 2000));
+    const retry = await supabase.rpc('upsert_user_profile', rpcParams);
+    return { data: retry.data, error: retry.error };
+  }
+  return { data, error };
+}
+
+/** Dados extraídos do currículo (PDF ou Lattes), usado para exibição e elegibilidade. */
+export type CurriculumData = {
+  id?: string;
+  nome?: string;
+  resumo?: string;
+  areasAtuacao?: string[];
+  formacao?: Array<{ nivel: string; curso: string; instituicao: string; anoConclusao?: string }>;
+  elegibilidade?: { possuiDoutorado?: boolean; possuiMestrado?: boolean; possuiGraduacao?: boolean; podeParticiparEditais?: boolean; observacoes?: string[] };
+  [key: string]: unknown;
+};
+
 export interface UserProfile {
   cpf?: string;
   cnpj?: string;
@@ -9,6 +44,14 @@ export interface UserProfile {
   hasCnpj?: boolean;
   dataCollectionConsent?: boolean;
   consentVersion?: string;
+  /** Dados do currículo extraídos de PDF (persistido em user_metadata). */
+  curriculumData?: CurriculumData | null;
+  /** Indica se o usuário já passou pelo onboarding (primeiro login). Controla redirecionamento para /onboarding. */
+  onboardingCompleted?: boolean;
+  /** Telefone (apenas números), coletado no onboarding. */
+  phone?: string;
+  /** Área de atuação principal (ex: tech, health), coletada no onboarding. */
+  area?: string;
 }
 
 /**
@@ -59,6 +102,13 @@ export async function saveUserProfile(
         profileData.consent_version = profile.consentVersion || "1.0";
       }
     }
+
+    // Telefone e área (onboarding)
+    if (profile.phone !== undefined) {
+      const phoneLimpo = profile.phone.replace(/\D/g, "").slice(0, 20);
+      if (phoneLimpo) profileData.phone = phoneLimpo;
+    }
+    if (profile.area !== undefined) profileData.area = profile.area || null;
 
     console.log("Salvando perfil na tabela profiles para userId:", userId);
     console.log("Dados do perfil:", profileData);
@@ -130,58 +180,32 @@ export async function saveUserProfile(
       console.log("Inserindo novo perfil...");
       
       // Durante signup, geralmente não há sessão ativa ainda
-      // Sempre tentar usar a função SECURITY DEFINER primeiro
+      // Sempre tentar usar a função SECURITY DEFINER primeiro (evita RLS no insert)
       if (!session || session.user.id !== userId) {
-        console.log("Sem sessão ativa ou sessão diferente, usando função upsert_user_profile...");
-        console.log("Parâmetros da função:", {
+        const rpcParams = {
           p_user_id: userId,
-          p_cpf: profileData.cpf || null,
-          p_cnpj: profileData.cnpj || null,
-          p_lattes_id: profileData.lattes_id || null,
+          p_cpf: profileData.cpf ?? null,
+          p_cnpj: profileData.cnpj ?? null,
+          p_lattes_id: profileData.lattes_id ?? null,
           p_user_type: profileData.user_type,
-          p_has_cnpj: profileData.has_cnpj || false,
-        });
-        
-        const { data: functionResult, error: functionError } = await supabase.rpc('upsert_user_profile', {
-          p_user_id: userId,
-          p_cpf: profileData.cpf || null,
-          p_cnpj: profileData.cnpj || null,
-          p_lattes_id: profileData.lattes_id || null,
-          p_user_type: profileData.user_type,
-          p_has_cnpj: profileData.has_cnpj || false,
-          p_data_collection_consent: profileData.data_collection_consent || false,
-          p_consent_version: profileData.consent_version || null,
-          p_consent_date: profileData.consent_date || null,
-        });
-
-        if (functionError) {
-          console.error("❌ Erro ao usar função upsert_user_profile:", functionError);
-          console.error("Código do erro:", functionError.code);
-          console.error("Mensagem do erro:", functionError.message);
-          console.error("Detalhes:", functionError.details);
-          console.error("Hint:", functionError.hint);
-          
-          // Se a função não existe, tentar método direto
-          if (functionError.code === '42883' || functionError.message?.includes('does not exist')) {
+          p_has_cnpj: profileData.has_cnpj === true,
+        };
+        const functionResult = await callUpsertRpcWithRetry(rpcParams);
+        if (functionResult.error) {
+          if (functionResult.error.code === '42883' || functionResult.error.message?.includes('does not exist')) {
             console.warn("⚠️ Função upsert_user_profile não encontrada. Tentando método direto...");
             const { data, error } = await supabase
               .from('profiles')
               .insert(profileData)
               .select()
               .single();
-
-            if (error) {
-              console.error("Erro ao inserir perfil (método direto):", error);
-              throw error;
-            }
+            if (error) throw error;
             result = data;
-            console.log("✅ Perfil criado com sucesso (método direto):", result);
           } else {
-            // Para outros erros da função, lançar exceção
-            throw functionError;
+            throw functionResult.error;
           }
         } else {
-          result = functionResult;
+          result = functionResult.data;
           console.log("✅ Perfil criado com sucesso via função upsert_user_profile:", result);
         }
       } else {
@@ -198,28 +222,20 @@ export async function saveUserProfile(
           console.error("Código do erro:", error.code);
           console.error("Mensagem do erro:", error.message);
           
-          // Se for erro de RLS, tentar usar a função
+          // Se for erro de RLS, tentar usar a função (com retry para "User does not exist")
           if (error.code === '42501' || error.message?.includes('permission') || error.message?.includes('policy') || error.message?.includes('RLS')) {
             console.warn("Erro de RLS detectado. Tentando usar função upsert_user_profile...");
-            
-            const { data: functionResult, error: functionError } = await supabase.rpc('upsert_user_profile', {
+            const rpcParams = {
               p_user_id: userId,
-              p_cpf: profileData.cpf || null,
-              p_cnpj: profileData.cnpj || null,
-              p_lattes_id: profileData.lattes_id || null,
+              p_cpf: profileData.cpf ?? null,
+              p_cnpj: profileData.cnpj ?? null,
+              p_lattes_id: profileData.lattes_id ?? null,
               p_user_type: profileData.user_type,
-              p_has_cnpj: profileData.has_cnpj || false,
-              p_data_collection_consent: profileData.data_collection_consent || false,
-              p_consent_version: profileData.consent_version || null,
-              p_consent_date: profileData.consent_date || null,
-            });
-
-            if (functionError) {
-              console.error("Erro ao usar função upsert_user_profile:", functionError);
-              throw functionError;
-            }
-            
-            result = functionResult;
+              p_has_cnpj: profileData.has_cnpj === true,
+            };
+            const functionResult = await callUpsertRpcWithRetry(rpcParams);
+            if (functionResult.error) throw functionResult.error;
+            result = functionResult.data;
             console.log("Perfil criado com sucesso via função:", result);
           } else {
             throw error;
@@ -231,9 +247,12 @@ export async function saveUserProfile(
       }
     }
 
-    // Também salvar no user_metadata como backup/compatibilidade
+    // Também salvar no user_metadata como backup/compatibilidade (preservar curriculumData)
     try {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      const existingProfile = (currentUser?.user_metadata?.profile as Record<string, unknown>) || {};
       const metadataProfile: any = {
+        ...existingProfile,
         userType: profile.userType,
         hasCnpj: profile.hasCnpj || false,
       };
@@ -254,6 +273,33 @@ export async function saveUserProfile(
     console.error("Erro ao salvar perfil do usuário:", error);
     throw error;
   }
+}
+
+/**
+ * Salva os dados do currículo (extraídos de PDF) no user_metadata e na tabela profiles.
+ * Assim a página de perfil e getUserProfile passam a ler do banco e não dependem de sessão atualizada.
+ */
+export async function saveCurriculumToMetadata(curriculumData: CurriculumData): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const current = (user.user_metadata?.profile as Record<string, unknown>) || {};
+  await supabase.auth.updateUser({
+    data: { profile: { ...current, curriculumData } },
+  });
+
+  const { error: upsertError } = await supabase
+    .from("profiles")
+    .upsert(
+      { user_id: user.id, curriculum_data: curriculumData as Record<string, unknown> },
+      { onConflict: "user_id" }
+    );
+
+  if (upsertError) {
+    console.warn("Currículo salvo no metadata; falha ao salvar profiles.curriculum_data:", upsertError);
+  }
+
+  await supabase.auth.refreshSession();
 }
 
 /**
@@ -294,14 +340,20 @@ export async function getUserProfile(user: User | null): Promise<UserProfile | n
       return getProfileFromMetadata(user);
     }
 
-    // Se encontrou perfil na tabela, retornar
+    // Se encontrou perfil na tabela, retornar (curriculumData: primeiro do banco, depois user_metadata)
     if (profile) {
+      const metadataProfile = user?.user_metadata?.profile;
+      const curriculumFromDb = profile.curriculum_data != null && typeof profile.curriculum_data === "object";
       return {
         cpf: profile.cpf || undefined,
         cnpj: profile.cnpj || undefined,
         lattesId: profile.lattes_id || undefined,
         userType: (profile.user_type as "pesquisador" | "pessoa-empresa" | "ambos") || "pesquisador",
         hasCnpj: profile.has_cnpj || false,
+        curriculumData: (curriculumFromDb ? (profile.curriculum_data as CurriculumData) : metadataProfile?.curriculumData) ?? undefined,
+        onboardingCompleted: profile.onboarding_completed ?? Boolean(metadataProfile?.onboarding_completed),
+        phone: profile.phone ?? undefined,
+        area: profile.area ?? undefined,
       };
     }
 
@@ -311,6 +363,57 @@ export async function getUserProfile(user: User | null): Promise<UserProfile | n
     console.error("Erro inesperado ao buscar perfil:", error);
     // Fallback para user_metadata em caso de erro
     return getProfileFromMetadata(user);
+  }
+}
+
+/**
+ * Marca o onboarding como concluído no perfil (tabela profiles).
+ * Usado ao concluir ou pular o onboarding para não exibir novamente.
+ * Usa upsert para criar o perfil se ainda não existir.
+ */
+export async function setOnboardingCompleted(userId: string): Promise<void> {
+  const { error } = await supabase
+    .from("profiles")
+    .upsert(
+      { user_id: userId, onboarding_completed: true },
+      { onConflict: "user_id" }
+    );
+  if (error) {
+    console.error("Erro ao marcar onboarding como concluído:", error);
+    throw error;
+  }
+}
+
+/** Dados que podem ser atualizados a partir do onboarding. */
+export interface OnboardingProfileUpdate {
+  phone?: string;
+  area?: string;
+  userType?: "pesquisador" | "pessoa-empresa" | "ambos";
+  markOnboardingCompleted?: boolean;
+}
+
+/**
+ * Atualiza o perfil com dados preenchidos no onboarding (telefone, área, tipo de usuário).
+ * Opcionalmente marca o onboarding como concluído.
+ * Usa upsert para criar o perfil se ainda não existir (ex.: quando o signup não criou a linha).
+ */
+export async function updateProfileFromOnboarding(
+  userId: string,
+  data: OnboardingProfileUpdate
+): Promise<void> {
+  const row: Record<string, unknown> = { user_id: userId };
+  if (data.phone !== undefined) row.phone = data.phone.replace(/\D/g, "").slice(0, 20) || null;
+  if (data.area !== undefined) row.area = data.area || null;
+  if (data.userType !== undefined) row.user_type = data.userType;
+  if (data.markOnboardingCompleted === true) row.onboarding_completed = true;
+  if (Object.keys(row).length === 1) return; // só user_id, nada a persistir
+
+  const { error } = await supabase
+    .from("profiles")
+    .upsert(row, { onConflict: "user_id" });
+  if (error) {
+    console.error("Erro ao salvar perfil com dados do onboarding:", error);
+    throw error;
   }
 }
 
@@ -331,11 +434,13 @@ function getProfileFromMetadata(user: User): UserProfile {
         lattesId: metadata.lattesId,
         userType: metadata.userType || "pesquisador",
         hasCnpj: metadata.hasCnpj,
+        onboardingCompleted: Boolean(metadata?.profile?.onboarding_completed),
       };
     }
     // Retornar perfil vazio mas válido para permitir edição
     return {
       userType: "pesquisador",
+      onboardingCompleted: Boolean(metadata?.profile?.onboarding_completed),
     };
   }
 
@@ -345,6 +450,10 @@ function getProfileFromMetadata(user: User): UserProfile {
     lattesId: profile.lattesId,
     userType: profile.userType || "pesquisador",
     hasCnpj: profile.hasCnpj,
+    curriculumData: profile.curriculumData ?? undefined,
+    onboardingCompleted: Boolean(profile.onboarding_completed),
+    phone: profile.phone,
+    area: profile.area,
   };
 }
 

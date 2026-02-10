@@ -1,7 +1,7 @@
 import { supabase } from "./supabase";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { getUserProfile, UserProfile } from "./userProfile";
-import { fetchLattesData, LattesData } from "./externalAPIs";
+import { LattesData } from "./externalAPIs";
 import { fetchCNPJData, CNPJData } from "./externalAPIs";
 import { fetchCPFData, CPFData } from "./externalAPIs";
 import { User } from "@supabase/supabase-js";
@@ -40,14 +40,24 @@ export interface EditalWithScores extends DatabaseEdital {
 }
 
 /**
- * Busca todos os editais do Supabase
+ * Busca editais do Supabase com paginação opcional
  */
-export async function fetchEditaisFromSupabase(): Promise<DatabaseEdital[]> {
+export async function fetchEditaisFromSupabase(options?: {
+  limit?: number;
+  offset?: number;
+}): Promise<DatabaseEdital[]> {
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from("editais")
       .select("*")
       .order("criado_em", { ascending: false });
+
+    if (options?.limit != null) {
+      const offset = options.offset ?? 0;
+      query = query.range(offset, offset + options.limit - 1);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.error("Erro ao buscar editais:", error);
@@ -58,6 +68,26 @@ export async function fetchEditaisFromSupabase(): Promise<DatabaseEdital[]> {
   } catch (error) {
     console.error("Erro ao buscar editais do Supabase:", error);
     return [];
+  }
+}
+
+/**
+ * Retorna o total de editais (para paginação)
+ */
+export async function fetchEditaisCount(): Promise<number> {
+  try {
+    const { count, error } = await supabase
+      .from("editais")
+      .select("*", { count: "exact", head: true });
+
+    if (error) {
+      console.error("Erro ao contar editais:", error);
+      return 0;
+    }
+    return count ?? 0;
+  } catch (error) {
+    console.error("Erro ao contar editais:", error);
+    return 0;
   }
 }
 
@@ -134,7 +164,7 @@ async function fetchEditalScore(
       .select("match_percent, probabilidade_percent, justificativa")
       .eq("edital_id", editalId)
       .eq("user_id", userId)
-      .single();
+      .maybeSingle();
 
     if (error || !data) {
       return null;
@@ -171,16 +201,9 @@ async function fetchUserDataForScoring(
 
   userData.userType = profile.userType;
 
-  // Buscar dados do Lattes se disponível
-  if (profile.lattesId) {
-    try {
-      const lattesData = await fetchLattesData(profile.lattesId);
-      if (lattesData) {
-        userData.lattesData = lattesData;
-      }
-    } catch (error) {
-      console.warn("Erro ao buscar dados do Lattes:", error);
-    }
+  // Usar currículo extraído de PDF (opcional)
+  if (profile.curriculumData) {
+    userData.lattesData = profile.curriculumData as LattesData;
   }
 
   // Buscar dados do CNPJ se disponível
@@ -218,12 +241,14 @@ export async function calculateEditalScores(
   edital: DatabaseEdital,
   userId?: string,
   user?: User | null,
-  profile?: UserProfile | null
+  profile?: UserProfile | null,
+  options?: { forceRecalculate?: boolean }
 ): Promise<{ match: number; probabilidade: number; justificativa?: string | null }> {
+  const forceRecalculate = options?.forceRecalculate === true;
+
   // Se não tiver userId, usar cálculo mockado como fallback
   if (!userId || !user) {
     console.warn("UserId não fornecido, usando cálculo mockado");
-    // Retornar valores mockados básicos
     return {
       match: 50,
       probabilidade: 40,
@@ -231,30 +256,27 @@ export async function calculateEditalScores(
     };
   }
 
-  // Criar chave única para cache (edital_id + user_id)
   const cacheKey = `${edital.id}-${userId}`;
+  if (forceRecalculate) scoreCalculationCache.delete(cacheKey);
 
-  // Verificar se já existe uma requisição em andamento para este edital+usuário
-  if (scoreCalculationCache.has(cacheKey)) {
+  if (!forceRecalculate && scoreCalculationCache.has(cacheKey)) {
     console.log(`⏳ Aguardando cálculo de score já em andamento para edital ${edital.id}...`);
     return await scoreCalculationCache.get(cacheKey)!;
   }
 
-  // Criar promise para o cálculo
   const calculationPromise = (async () => {
     try {
-      // Verificar se já existe score no banco
-      const existingScore = await fetchEditalScore(edital.id, userId);
-      if (existingScore) {
-        console.log(`✅ Score já existe para edital ${edital.id} e usuário ${userId}`);
-        return existingScore;
+      if (!forceRecalculate) {
+        const existingScore = await fetchEditalScore(edital.id, userId);
+        if (existingScore) {
+          console.log(`✅ Score já existe para edital ${edital.id} e usuário ${userId}`);
+          return existingScore;
+        }
       }
 
-      // Buscar dados do usuário
       const userProfile = profile || await getUserProfile(user);
       const userData = await fetchUserDataForScoring(user, userProfile);
 
-      // Fazer requisição para API
       const response = await fetch("/api/calculate-edital-scores", {
         method: "POST",
         headers: {
@@ -264,6 +286,7 @@ export async function calculateEditalScores(
           edital_id: edital.id,
           user_id: userId,
           user_data: userData,
+          force: forceRecalculate,
         }),
       });
 
@@ -273,17 +296,21 @@ export async function calculateEditalScores(
 
       const result = await response.json();
       return {
-        match: result.match || 50,
-        probabilidade: result.probabilidade || 40,
-        justificativa: result.justificativa || null,
+        match: result.match ?? 50,
+        probabilidade: result.probabilidade ?? 40,
+        justificativa: result.justificativa ?? "Justificativa não disponível",
       };
     } catch (error) {
-      console.error("Erro ao calcular scores:", error);
-      // Fallback para valores padrão em caso de erro
+      if (!scoreApiErrorLogged) {
+        scoreApiErrorLogged = true;
+        console.warn(
+          "Scores da API indisponíveis (ex.: servidor 500). Exibindo valores padrão. Configure N8N_WEBHOOK_URL ou a API de scores no servidor."
+        );
+      }
       return {
         match: 50,
         probabilidade: 40,
-        justificativa: null,
+        justificativa: "Justificativa não disponível",
       };
     } finally {
       // Remover do cache após completar (sucesso ou erro)
@@ -299,41 +326,37 @@ export async function calculateEditalScores(
 
 // Cache para evitar requisições duplicadas simultâneas
 const scoreCalculationCache = new Map<string, Promise<{ match: number; probabilidade: number; justificativa?: string | null }>>();
+let scoreApiErrorLogged = false;
 
 /**
  * Busca editais do Supabase e adiciona scores (match e probabilidade)
+ * Aceita lista de editais para processar (útil para paginação client-side)
  */
 export async function fetchEditaisWithScores(
   userId?: string,
   user?: User | null,
-  profile?: UserProfile | null
+  profile?: UserProfile | null,
+  editaisToScore?: DatabaseEdital[],
+  options?: { forceRecalculate?: boolean }
 ): Promise<EditalWithScores[]> {
-  const editais = await fetchEditaisFromSupabase();
+  const editais =
+    editaisToScore ?? (await fetchEditaisFromSupabase());
 
-  // Processar editais em batches para evitar rate limits
-  // Calcular scores em batches de 5 para não sobrecarregar a API
   const batchSize = 5;
   const editaisComScores: EditalWithScores[] = [];
+  const forceRecalculate = options?.forceRecalculate === true;
 
   for (let i = 0; i < editais.length; i += batchSize) {
     const batch = editais.slice(i, i + batchSize);
-    
-    // Processar batch com Promise.all, mas limitado ao tamanho do batch
     const batchResults = await Promise.all(
       batch.map(async (edital) => {
-        const scores = await calculateEditalScores(edital, userId, user, profile);
-        return {
-          ...edital,
-          ...scores,
-        };
+        const scores = await calculateEditalScores(edital, userId, user, profile, { forceRecalculate });
+        return { ...edital, ...scores };
       })
     );
-    
     editaisComScores.push(...batchResults);
-    
-    // Pequeno delay entre batches para evitar rate limits
     if (i + batchSize < editais.length) {
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
   }
 

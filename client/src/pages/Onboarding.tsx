@@ -1,21 +1,26 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, CheckCircle2, Sparkles } from "lucide-react";
+import { ArrowRight, CheckCircle2, Sparkles, User, FileText } from "lucide-react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import { fetchEditaisStatsForOnboarding } from "@/lib/editaisApi";
+import { parseCurriculumFromPdf } from "@/lib/externalAPIs";
+import { saveCurriculumToMetadata, setOnboardingCompleted, updateProfileFromOnboarding } from "@/lib/userProfile";
+import { supabase } from "@/lib/supabase";
 import Header from "@/components/Header";
+import { Spinner } from "@/components/ui/spinner";
 
-type OnboardingStep = "email" | "userType" | "area" | "validation" | "result";
+type StepCompletarPerfil = "telefone" | "curriculo" | "area" | "concluido";
+type StepConhecerEditais = "userType" | "area" | "result";
 
 interface OnboardingData {
-  email: string;
+  telefone: string;
   userType: string;
   area: string;
-  document: string;
 }
 
 function formatValorMilhoes(valor: number): string {
@@ -24,17 +29,35 @@ function formatValorMilhoes(valor: number): string {
   return `R$ ${valor.toLocaleString("pt-BR")}`;
 }
 
+function formatTelefone(v: string): string {
+  const n = v.replace(/\D/g, "").slice(0, 11);
+  if (n.length <= 2) return n ? `(${n}` : "";
+  if (n.length <= 6) return `(${n.slice(0, 2)}) ${n.slice(2)}`;
+  return `(${n.slice(0, 2)}) ${n.slice(2, 6)}-${n.slice(6)}`;
+}
+
 export default function Onboarding() {
-  const [step, setStep] = useState<OnboardingStep>("email");
-  const [data, setData] = useState<OnboardingData>({
-    email: "",
-    userType: "",
-    area: "",
-    document: ""
-  });
-  const [, setLocation] = useLocation();
-  const [isLoading, setIsLoading] = useState(false);
-  const { user } = useAuth();
+  const [location, setLocation] = useLocation();
+  const { user, loading: authLoading } = useAuth();
+  const { profile, loading: profileLoading } = useUserProfile();
+  const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : new URLSearchParams();
+  const isNewSignup = params.get("new") === "1";
+
+  // Quem já concluiu o onboarding não fica nesta página: vai para o dashboard
+  useEffect(() => {
+    if (authLoading || profileLoading || !user) return;
+    if (profile?.onboardingCompleted === true) {
+      setLocation("/dashboard");
+    }
+  }, [user, authLoading, profileLoading, profile?.onboardingCompleted, setLocation]);
+
+  const isOnboarding1 = Boolean(user && isNewSignup);
+
+  const [stepCompletar, setStepCompletar] = useState<StepCompletarPerfil>("telefone");
+  const [stepConhecer, setStepConhecer] = useState<StepConhecerEditais>("userType");
+  const [data, setData] = useState<OnboardingData>({ telefone: "", userType: "", area: "" });
+  const [loading, setLoading] = useState(false);
+  const [uploadingPdf, setUploadingPdf] = useState(false);
   const [editaisStats, setEditaisStats] = useState<{
     total: number;
     naArea: number;
@@ -42,302 +65,361 @@ export default function Onboarding() {
     prazoMedioDias: number;
   } | null>(null);
 
-  const handleEmailSubmit = () => {
-    if (!data.email.includes("@")) {
-      toast.error("Email inválido");
-      return;
+  useEffect(() => {
+    if (isNewSignup && user) {
+      toast.success("Conta criada! Complete seu perfil para melhores recomendações.");
     }
-    setStep("userType");
+  }, [isNewSignup, user]);
+
+  const handleSalvarPerfil = async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      const current = (user.user_metadata?.profile as Record<string, unknown>) || {};
+      const updates: Record<string, unknown> = { ...current, onboarding_completed: true };
+      if (data.telefone.trim()) updates.phone = data.telefone.replace(/\D/g, "");
+      await supabase.auth.updateUser({ data: { profile: updates } });
+      await updateProfileFromOnboarding(user.id, {
+        phone: data.telefone.trim() || undefined,
+        area: data.area || undefined,
+        markOnboardingCompleted: true,
+      });
+      toast.success("Perfil atualizado!");
+      setLocation("/dashboard");
+    } catch (e) {
+      toast.error("Erro ao salvar. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUploadCurriculo = async (file: File) => {
+    if (!file?.name.toLowerCase().endsWith(".pdf") || !user) return;
+    setUploadingPdf(true);
+    try {
+      const curriculumData = await parseCurriculumFromPdf(file);
+      if (curriculumData) {
+        await saveCurriculumToMetadata(curriculumData);
+        toast.success("Currículo extraído e salvo.");
+      } else {
+        toast.error("Não foi possível extrair dados do PDF.");
+      }
+    } catch {
+      toast.error("Erro ao processar o PDF.");
+    } finally {
+      setUploadingPdf(false);
+    }
   };
 
   const handleUserTypeSelect = (type: string) => {
-    setData({ ...data, userType: type });
-    setStep("area");
+    setData((d) => ({ ...d, userType: type }));
+    setStepConhecer("area");
   };
 
-  const handleAreaSelect = (area: string) => {
-    setData({ ...data, area });
-    setStep("validation");
-  };
-
-  const handleValidation = async () => {
-    if (!data.document) {
-      toast.error("Informe seu CPF ou CNPJ");
-      return;
-    }
-    
-    setIsLoading(true);
-    setStep("result");
+  const handleAreaSelectConhecer = async (area: string) => {
+    setData((d) => ({ ...d, area }));
+    setStepConhecer("result");
+    setLoading(true);
     try {
-      const stats = await fetchEditaisStatsForOnboarding(data.area || undefined);
+      const stats = await fetchEditaisStatsForOnboarding(area || undefined);
       setEditaisStats(stats);
-    } catch (error) {
+    } catch {
       setEditaisStats({ total: 0, naArea: 0, valorTotal: 0, prazoMedioDias: 30 });
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const handleGoToDashboard = () => {
+  const handleIrAoPainel = async () => {
     if (user) {
+      try {
+        const userType = data.userType ? (data.userType as "pesquisador" | "pessoa-empresa" | "ambos") : undefined;
+        await updateProfileFromOnboarding(user.id, {
+          userType,
+          area: data.area || undefined,
+          markOnboardingCompleted: true,
+        });
+      } catch {
+        // segue mesmo se falhar (ex.: perfil ainda não existe) — marca só onboarding
+        try {
+          await setOnboardingCompleted(user.id);
+        } catch {
+          // ignora
+        }
+      }
       setLocation("/dashboard");
       toast.success("Bem-vindo ao Origem.Lab!");
     } else {
-      const params = data.email ? `?email=${encodeURIComponent(data.email)}` : "";
-      setLocation(`/cadastro${params}`);
+      setLocation("/cadastro");
       toast.success("Crie sua conta para explorar seus editais!");
     }
   };
 
-  // Progress indicator
-  const steps: OnboardingStep[] = ["email", "userType", "area", "validation", "result"];
-  const currentStepIndex = steps.indexOf(step);
-  const progress = ((currentStepIndex + 1) / steps.length) * 100;
+  // Quem já concluiu: mostrar loading até o redirect para o dashboard (evita flash do onboarding)
+  if (user && (authLoading || profileLoading)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Spinner />
+      </div>
+    );
+  }
+
+  if (isOnboarding1) {
+    const steps: StepCompletarPerfil[] = ["telefone", "curriculo", "area", "concluido"];
+    const idx = steps.indexOf(stepCompletar);
+    const progress = ((idx + 1) / steps.length) * 100;
+
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <div className="flex-1 bg-gradient-to-br from-blue-50 via-white to-violet-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-2xl">
+            <div className="mb-8">
+              <h1 className="text-2xl font-bold text-gray-900 mb-1">Complete seu perfil</h1>
+              <p className="text-gray-600">Informações opcionais para recomendações melhores.</p>
+              <div className="mt-4 h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-blue-600 to-violet-600 rounded-full transition-all" style={{ width: `${progress}%` }} />
+              </div>
+              <Badge className="mt-2 bg-blue-100 text-blue-700">Passo {idx + 1} de {steps.length}</Badge>
+            </div>
+
+            <div className="bg-white rounded-2xl shadow-xl p-8 md:p-12 space-y-6">
+              {stepCompletar === "telefone" && (
+                <>
+                  <p className="text-gray-600">Telefone (opcional) para contato sobre editais.</p>
+                  <Input
+                    type="tel"
+                    placeholder="(00) 00000-0000"
+                    value={data.telefone}
+                    onChange={(e) => setData((d) => ({ ...d, telefone: formatTelefone(e.target.value) }))}
+                    className="h-12 text-lg"
+                  />
+                  <Button className="w-full" onClick={() => setStepCompletar("curriculo")}>
+                    Continuar <ArrowRight className="w-5 h-5 ml-2" />
+                  </Button>
+                </>
+              )}
+
+              {stepCompletar === "curriculo" && (
+                <>
+                  <p className="text-gray-600">Envie um PDF do currículo (opcional) para análise de elegibilidade.</p>
+                  <input
+                    type="file"
+                    accept=".pdf,application/pdf"
+                    className="hidden"
+                    id="onb-pdf"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) handleUploadCurriculo(f);
+                      e.target.value = "";
+                    }}
+                  />
+                  <Button variant="outline" className="w-full" onClick={() => document.getElementById("onb-pdf")?.click()} disabled={uploadingPdf}>
+                    <FileText className="w-4 h-4 mr-2" />
+                    {uploadingPdf ? "Enviando..." : "Enviar PDF do currículo"}
+                  </Button>
+                  <Button className="w-full" onClick={() => setStepCompletar("area")}>
+                    Pular e continuar <ArrowRight className="w-5 h-5 ml-2" />
+                  </Button>
+                </>
+              )}
+
+              {stepCompletar === "area" && (
+                <>
+                  <p className="text-gray-600">Sua principal área de atuação (opcional).</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { id: "tech", label: "Tecnologia" },
+                      { id: "health", label: "Saúde" },
+                      { id: "agro", label: "Agronegócio" },
+                      { id: "energy", label: "Energia" },
+                      { id: "bio", label: "Biotecnologia" },
+                      { id: "other", label: "Outra" },
+                    ].map((a) => (
+                      <button
+                        key={a.id}
+                        type="button"
+                        onClick={() => setData((d) => ({ ...d, area: a.id }))}
+                        className={`p-4 border-2 rounded-lg text-left font-medium transition-all ${data.area === a.id ? "border-violet-600 bg-violet-50" : "border-gray-200 hover:border-blue-300"}`}
+                      >
+                        {a.label}
+                      </button>
+                    ))}
+                  </div>
+                  <Button className="w-full" onClick={() => setStepCompletar("concluido")}>
+                    Continuar <ArrowRight className="w-5 h-5 ml-2" />
+                  </Button>
+                </>
+              )}
+
+              {stepCompletar === "concluido" && (
+                <>
+                  <div className="flex justify-center">
+                    <CheckCircle2 className="w-16 h-16 text-green-600" />
+                  </div>
+                  <p className="text-center text-gray-700">Tudo certo! Você pode completar mais dados depois na página de perfil.</p>
+                  <Button className="w-full bg-green-600 hover:bg-green-700" onClick={handleSalvarPerfil} disabled={loading}>
+                    {loading ? "Salvando..." : "Ir ao painel"}
+                    <ArrowRight className="w-5 h-5 ml-2" />
+                  </Button>
+                </>
+              )}
+            </div>
+
+            <p className="text-center mt-6">
+              <button
+                type="button"
+                onClick={async () => {
+                  if (user) {
+                    const current = (user.user_metadata?.profile as Record<string, unknown>) || {};
+                    await supabase.auth.updateUser({ data: { profile: { ...current, onboarding_completed: true } } });
+                    try {
+                      await updateProfileFromOnboarding(user.id, {
+                        phone: data.telefone.trim() || undefined,
+                        area: data.area || undefined,
+                        markOnboardingCompleted: true,
+                      });
+                    } catch {
+                      try {
+                        await setOnboardingCompleted(user.id);
+                      } catch {
+                        // ignora
+                      }
+                    }
+                  }
+                  setLocation("/dashboard");
+                }}
+                className="text-sm text-gray-500 hover:text-gray-700 underline"
+              >
+                Pular e ir ao painel
+              </button>
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const stepsVisitante: StepConhecerEditais[] = ["userType", "area", "result"];
+  const idxVisitante = stepsVisitante.indexOf(stepConhecer);
+  const progressVisitante = ((idxVisitante + 1) / stepsVisitante.length) * 100;
 
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
       <div className="flex-1 bg-gradient-to-br from-blue-50 via-white to-violet-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl">
-        {/* Progress Bar */}
-        <div className="mb-8">
-          <div className="flex justify-between items-center mb-4">
+        <div className="w-full max-w-2xl">
+          <div className="mb-8">
             <h1 className="text-2xl font-bold text-gray-900">
-              {step === "email" && "Qual é seu email?"}
-              {step === "userType" && "O que você busca?"}
-              {step === "area" && "Qual sua área de atuação?"}
-              {step === "validation" && "Validação de elegibilidade"}
-              {step === "result" && "Seus editais ideais"}
+              {stepConhecer === "userType" && "O que você busca?"}
+              {stepConhecer === "area" && "Qual sua área de atuação?"}
+              {stepConhecer === "result" && "Editais para você"}
             </h1>
-            <Badge className="bg-blue-100 text-blue-700">
-              Passo {currentStepIndex + 1} de {steps.length}
-            </Badge>
+            <div className="mt-4 h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-blue-600 to-violet-600 rounded-full transition-all" style={{ width: `${progressVisitante}%` }} />
+            </div>
+            <Badge className="mt-2 bg-blue-100 text-blue-700">Passo {idxVisitante + 1} de {stepsVisitante.length}</Badge>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div
-              className="bg-gradient-to-r from-blue-600 to-violet-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${progress}%` }}
-            ></div>
-          </div>
-        </div>
 
-        {/* Content */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 md:p-12">
-          {/* Step 1: Email */}
-          {step === "email" && (
-            <div className="space-y-6">
-              <p className="text-gray-600 text-lg">
-                Comece sua jornada para descobrir oportunidades de fomento
-              </p>
-              <div className="space-y-4">
-                <Input
-                  type="email"
-                  placeholder="seu@email.com"
-                  value={data.email}
-                  onChange={(e) => setData({ ...data, email: e.target.value })}
-                  className="h-12 text-lg"
-                  onKeyPress={(e) => e.key === "Enter" && handleEmailSubmit()}
-                />
-                <Button
-                  size="lg"
-                  className="w-full bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white"
-                  onClick={handleEmailSubmit}
-                >
-                  Continuar
+          <div className="bg-white rounded-2xl shadow-xl p-8 md:p-12">
+            {stepConhecer === "userType" && (
+              <div className="space-y-6">
+                <p className="text-gray-600">Selecione o perfil que mais combina com você.</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {[
+                    { id: "startup", label: "Startup", desc: "Empresa inovadora" },
+                    { id: "researcher", label: "Pesquisador", desc: "Pesquisa acadêmica" },
+                    { id: "pme", label: "PME", desc: "Pequena/Média Empresa" },
+                    { id: "institution", label: "Instituição", desc: "Universidade/Centro" },
+                  ].map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => handleUserTypeSelect(t.id)}
+                      className={`p-4 border-2 rounded-lg text-left transition-all ${data.userType === t.id ? "border-blue-600 bg-blue-50" : "border-gray-200 hover:border-blue-300"}`}
+                    >
+                      <div className="font-semibold text-gray-900">{t.label}</div>
+                      <div className="text-sm text-gray-600">{t.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {stepConhecer === "area" && (
+              <div className="space-y-6">
+                <p className="text-gray-600">Qual sua principal área de atuação?</p>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { id: "tech", label: "Tecnologia" },
+                    { id: "health", label: "Saúde" },
+                    { id: "agro", label: "Agronegócio" },
+                    { id: "energy", label: "Energia" },
+                    { id: "bio", label: "Biotecnologia" },
+                    { id: "other", label: "Outra" },
+                  ].map((a) => (
+                    <button
+                      key={a.id}
+                      type="button"
+                      onClick={() => handleAreaSelectConhecer(a.id)}
+                      className={`p-4 border-2 rounded-lg font-medium transition-all ${data.area === a.id ? "border-violet-600 bg-violet-50" : "border-gray-200 hover:border-violet-300"}`}
+                    >
+                      {a.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {stepConhecer === "result" && (
+              <div className="space-y-6 text-center">
+                <div className="flex justify-center">
+                  <CheckCircle2 className="w-20 h-20 text-green-600" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900">
+                  Encontramos <span className="text-green-600">{editaisStats?.naArea ?? editaisStats?.total ?? "—"} editais</span> para você!
+                </h2>
+                <div className="grid grid-cols-3 gap-4 bg-gray-50 rounded-lg p-6 text-left">
+                  <div>
+                    <div className="text-2xl font-bold text-blue-600">{editaisStats?.naArea ?? editaisStats?.total ?? "—"}</div>
+                    <div className="text-xs text-gray-600">Na sua área</div>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-violet-600">{editaisStats ? formatValorMilhoes(editaisStats.valorTotal) : "—"}</div>
+                    <div className="text-xs text-gray-600">Valor total</div>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-green-600">{editaisStats?.prazoMedioDias ?? "—"} dias</div>
+                    <div className="text-xs text-gray-600">Prazo médio</div>
+                  </div>
+                </div>
+                <div className="text-left bg-blue-50 rounded-lg p-6 space-y-2">
+                  <h3 className="font-semibold text-gray-900">Você pode ver:</h3>
+                  <ul className="space-y-1 text-gray-700">
+                    <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-green-600" /> Editais completos e elegibilidade</li>
+                    <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-green-600" /> Match score detalhado</li>
+                    <li className="flex items-center gap-2"><Sparkles className="w-4 h-4 text-violet-600" /> Upgrade Pro: todos os editais + IA Redatora</li>
+                  </ul>
+                </div>
+                <Button size="lg" className="w-full bg-green-600 hover:bg-green-700" onClick={handleIrAoPainel}>
+                  {user ? "Explorar painel" : "Criar conta grátis"}
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
-              </div>
-            </div>
-          )}
-
-          {/* Step 2: User Type */}
-          {step === "userType" && (
-            <div className="space-y-6">
-              <p className="text-gray-600 text-lg">
-                Qual tipo de usuário você é?
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[
-                  { id: "startup", label: "🚀 Startup", desc: "Empresa inovadora" },
-                  { id: "researcher", label: "🔬 Pesquisador", desc: "Pesquisa acadêmica" },
-                  { id: "pme", label: "🏢 PME", desc: "Pequena/Média Empresa" },
-                  { id: "institution", label: "🏛️ Instituição", desc: "Universidade/Centro" }
-                ].map((type) => (
-                  <button
-                    key={type.id}
-                    onClick={() => handleUserTypeSelect(type.id)}
-                    className="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-600 hover:bg-blue-50 transition-all text-left"
-                  >
-                    <div className="text-lg font-semibold text-gray-900">{type.label}</div>
-                    <div className="text-sm text-gray-600">{type.desc}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Step 3: Area */}
-          {step === "area" && (
-            <div className="space-y-6">
-              <p className="text-gray-600 text-lg">
-                Qual sua principal área de atuação?
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[
-                  { id: "tech", label: "💻 Tecnologia" },
-                  { id: "health", label: "🏥 Saúde" },
-                  { id: "agro", label: "🌾 Agronegócio" },
-                  { id: "energy", label: "⚡ Energia" },
-                  { id: "bio", label: "🧬 Biotecnologia" },
-                  { id: "other", label: "📋 Outra" }
-                ].map((area) => (
-                  <button
-                    key={area.id}
-                    onClick={() => handleAreaSelect(area.id)}
-                    className="p-4 border-2 border-gray-200 rounded-lg hover:border-violet-600 hover:bg-violet-50 transition-all text-left font-semibold text-gray-900"
-                  >
-                    {area.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Step 4: Validation */}
-          {step === "validation" && (
-            <div className="space-y-6">
-              <p className="text-gray-600 text-lg">
-                Informe seu CPF ou CNPJ para análise de elegibilidade
-              </p>
-              <div className="space-y-4">
-                <Input
-                  placeholder="000.000.000-00 ou 00.000.000/0000-00"
-                  value={data.document}
-                  onChange={(e) => setData({ ...data, document: e.target.value })}
-                  className="h-12 text-lg"
-                />
-                <Button
-                  size="lg"
-                  className="w-full bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white"
-                  onClick={handleValidation}
-                  disabled={isLoading}
-                >
-                  {isLoading ? "Validando..." : "Validar e Continuar"}
-                  {!isLoading && <ArrowRight className="w-5 h-5 ml-2" />}
-                </Button>
-              </div>
-              <p className="text-xs text-gray-500 text-center">
-                Seus dados são criptografados e nunca serão compartilhados
-              </p>
-            </div>
-          )}
-
-          {/* Step 5: Result */}
-          {step === "result" && (
-            <div className="space-y-6 text-center">
-              <div className="flex justify-center mb-6">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-green-400 rounded-full blur-lg opacity-30"></div>
-                  <CheckCircle2 className="w-20 h-20 text-green-600 relative" />
-                </div>
-              </div>
-
-              <div>
-                <h2 className="text-4xl font-bold text-gray-900 mb-2">
-                  Encontramos{" "}
-                  <span className="text-green-600">
-                    {editaisStats ? editaisStats.naArea || editaisStats.total : "—"} editais
-                  </span>{" "}
-                  para você!
-                </h2>
-                <p className="text-lg text-gray-600">
-                  {editaisStats && editaisStats.total > 0 ? (
-                    <>Baseado no seu perfil e área de atuação</>
-                  ) : (
-                    <>Crie sua conta para ver seus editais personalizados</>
-                  )}
+                <p className="text-sm text-gray-600">
+                  {user ? "Acesse seu painel para ver editais personalizados." : "Crie sua conta em menos de 2 minutos."}
                 </p>
               </div>
+            )}
+          </div>
 
-              {/* Quick Stats */}
-              <div className="grid grid-cols-3 gap-4 bg-gray-50 rounded-lg p-6">
-                <div>
-                  <div className="text-2xl font-bold text-blue-600">
-                    {editaisStats?.naArea ?? editaisStats?.total ?? "—"}
-                  </div>
-                  <div className="text-xs text-gray-600">
-                    {data.area && data.area !== "other" ? "Na sua área" : "Editais"}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-violet-600">
-                    {editaisStats ? formatValorMilhoes(editaisStats.valorTotal) : "—"}
-                  </div>
-                  <div className="text-xs text-gray-600">Valor total</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-green-600">
-                    {editaisStats?.prazoMedioDias ?? "—"} dias
-                  </div>
-                  <div className="text-xs text-gray-600">Prazo médio</div>
-                </div>
-              </div>
-
-              {/* What's Included */}
-              <div className="text-left bg-blue-50 rounded-lg p-6 space-y-3">
-                <h3 className="font-semibold text-gray-900">Você pode ver:</h3>
-                <ul className="space-y-2">
-                  <li className="flex items-center gap-2 text-gray-700">
-                    <CheckCircle2 className="w-4 h-4 text-green-600" />
-                    5 editais completos (versão gratuita)
-                  </li>
-                  <li className="flex items-center gap-2 text-gray-700">
-                    <CheckCircle2 className="w-4 h-4 text-green-600" />
-                    Validação de elegibilidade
-                  </li>
-                  <li className="flex items-center gap-2 text-gray-700">
-                    <CheckCircle2 className="w-4 h-4 text-green-600" />
-                    Match score detalhado
-                  </li>
-                  <li className="flex items-center gap-2 text-gray-700">
-                    <Sparkles className="w-4 h-4 text-violet-600" />
-                    <strong>Upgrade para Pro</strong> para ver todos os editais + IA Redatora
-                  </li>
-                </ul>
-              </div>
-
-              <Button
-                size="lg"
-                className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white text-lg py-6"
-                onClick={handleGoToDashboard}
-              >
-                {user ? "Explorar Meu Painel" : "Criar conta grátis"}
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-
-              <p className="text-sm text-gray-600">
-                {user ? (
-                  <>Você está no plano <strong>Gratuito</strong>. Upgrade para <strong>Pro (R$ 49/mês)</strong> para desbloquear todos os editais e IA Redatora.</>
-                ) : (
-                  <>Crie sua conta em menos de 2 minutos para acessar o painel completo.</>
-                )}
-              </p>
-            </div>
+          {stepConhecer !== "result" && (
+            <p className="text-center mt-6">
+              <button type="button" onClick={() => setLocation(user ? "/dashboard" : "/cadastro")} className="text-sm text-gray-500 hover:text-gray-700 underline">
+                {user ? "Pular para o painel" : "Já tenho conta"}
+              </button>
+            </p>
           )}
         </div>
-
-        {/* Skip Link */}
-        {step !== "result" && (
-          <div className="text-center mt-6">
-            <button
-              onClick={() => setLocation(user ? "/dashboard" : "/cadastro")}
-              className="text-gray-600 hover:text-gray-900 text-sm underline"
-            >
-              {user ? "Pular para o dashboard" : "Já tenho conta"}
-            </button>
-          </div>
-        )}
-      </div>
       </div>
     </div>
   );

@@ -3,7 +3,8 @@
  */
 
 export interface ImproveTextParams {
-  edital_id: string;
+  edital_id?: string;
+  proposta_id?: string;
   field_name: string;
   field_description: string;
   current_text: string;
@@ -19,12 +20,23 @@ export interface ImproveTextResponse {
  */
 export async function improveText(params: ImproveTextParams): Promise<string> {
   try {
+    const body: Record<string, unknown> = {
+      field_name: params.field_name,
+      field_description: params.field_description,
+      current_text: params.current_text,
+      word_limit: params.word_limit ?? null,
+    };
+    if (params.edital_id) body.edital_id = params.edital_id;
+    if (params.proposta_id) body.proposta_id = params.proposta_id;
+    if (!body.edital_id && !body.proposta_id) {
+      throw new Error("É necessário edital_id ou proposta_id para melhorar o texto.");
+    }
     const response = await fetch("/api/improve-text", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(params),
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {

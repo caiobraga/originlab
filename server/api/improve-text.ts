@@ -207,21 +207,43 @@ Responda APENAS com o texto melhorado, sem explicações adicionais ou comentár
 }
 
 /**
+ * Busca edital_id a partir do id da proposta (para rota /propostas/:id)
+ */
+async function fetchEditalIdByPropostaId(propostaId: string): Promise<string | null> {
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from("propostas")
+    .select("edital_id")
+    .eq("id", propostaId)
+    .single();
+  if (error || !data?.edital_id) return null;
+  return data.edital_id;
+}
+
+/**
  * Endpoint POST /api/improve-text
+ * Aceita edital_id ou proposta_id (se proposta_id, resolve edital_id pela proposta).
  */
 router.post("/improve-text", async (req, res) => {
   try {
-    const {
-      edital_id,
-      field_name,
-      field_description,
-      current_text,
-      word_limit,
-    } = req.body;
+    const body = req.body || {};
+    let edital_id = body.edital_id ?? body.editalId ?? null;
+    const proposta_id = body.proposta_id ?? body.propostaId ?? null;
+    const field_name = body.field_name ?? body.fieldName ?? "";
+    const field_description = body.field_description ?? body.fieldDescription ?? "";
+    const current_text = body.current_text ?? body.currentText ?? "";
+    const word_limit = body.word_limit ?? body.wordLimit ?? null;
+
+    if (!edital_id && proposta_id) {
+      edital_id = await fetchEditalIdByPropostaId(proposta_id);
+      if (!edital_id) {
+        return res.status(404).json({ error: "Proposta não encontrada ou sem edital associado" });
+      }
+    }
 
     if (!edital_id || !field_name || !current_text) {
       return res.status(400).json({
-        error: "Campos obrigatórios: edital_id, field_name, current_text",
+        error: "Campos obrigatórios: edital_id (ou proposta_id), field_name, current_text",
       });
     }
 

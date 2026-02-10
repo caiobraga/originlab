@@ -11,6 +11,9 @@ const plugins = [react(), tailwindcss(), /* jsxLocPlugin(), */ vitePluginManusRu
 
 export default defineConfig({
   plugins,
+  optimizeDeps: {
+    exclude: ["pdf-parse", "pdfjs-dist"],
+  },
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "client", "src"),

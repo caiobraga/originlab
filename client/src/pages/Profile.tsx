@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation, Link } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
-import { getUserProfile, UserProfile } from "@/lib/userProfile";
-import { fetchLattesData, fetchCNPJData, fetchCPFData, LattesData, CNPJData, CPFData, formatCPF, formatCNPJ, formatCEP } from "@/lib/externalAPIs";
+import { useUserProfile } from "@/hooks/useUserProfile";
+import { saveCurriculumToMetadata } from "@/lib/userProfile";
+import { fetchCNPJData, fetchCPFData, parseCurriculumFromPdf, LattesData, CNPJData, CPFData, formatCPF, formatCNPJ, formatCEP } from "@/lib/externalAPIs";
 import Header from "@/components/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,90 +19,97 @@ import {
   Phone, 
   Calendar,
   AlertCircle,
-  ExternalLink,
-  RefreshCw,
   CheckCircle2,
   Share2
 } from "lucide-react";
 import { toast } from "sonner";
 
+const AREA_LABELS: Record<string, string> = {
+  tech: "Tecnologia",
+  health: "Saúde",
+  agro: "Agronegócio",
+  energy: "Energia",
+  bio: "Biotecnologia",
+  other: "Outra",
+};
+
+function getAreaLabel(areaId: string | undefined): string {
+  if (!areaId) return "—";
+  return AREA_LABELS[areaId] ?? areaId;
+}
+
+function formatPhone(phone: string | undefined): string {
+  if (!phone) return "";
+  const n = phone.replace(/\D/g, "").slice(0, 11);
+  if (n.length <= 2) return n ? `(${n}` : "";
+  if (n.length <= 6) return `(${n.slice(0, 2)}) ${n.slice(2)}`;
+  return `(${n.slice(0, 2)}) ${n.slice(2, 6)}-${n.slice(6)}`;
+}
+
 export default function Profile() {
   const [, setLocation] = useLocation();
   const { user, loading: authLoading } = useAuth();
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const { profile, loading: profileLoading, refetch } = useUserProfile();
   const [lattesData, setLattesData] = useState<LattesData | null>(null);
   const [cnpjData, setCnpjData] = useState<CNPJData | null>(null);
   const [cpfData, setCpfData] = useState<CPFData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [loadingLattes, setLoadingLattes] = useState(false);
   const [loadingCNPJ, setLoadingCNPJ] = useState(false);
   const [loadingCPF, setLoadingCPF] = useState(false);
+  const [importingPdf, setImportingPdf] = useState(false);
+  const hasRefetched = useRef(false);
+
+  const loading = authLoading || profileLoading;
+
+  const importLattesFromPdf = async (file: File) => {
+    if (!file || !file.name.toLowerCase().endsWith(".pdf")) {
+      toast.error("Selecione um arquivo PDF do currículo.");
+      return;
+    }
+    setImportingPdf(true);
+    try {
+      const data = await parseCurriculumFromPdf(file);
+      if (data) {
+        setLattesData(data);
+        try {
+          await saveCurriculumToMetadata(data);
+          refetch();
+        } catch {
+          // não bloquear; dados já estão na tela
+        }
+        toast.success("Dados extraídos do PDF do currículo.");
+      } else {
+        toast.error("Não foi possível extrair dados do PDF. Tente outro arquivo.");
+      }
+    } catch {
+      toast.error("Erro ao processar o PDF. Tente novamente.");
+    } finally {
+      setImportingPdf(false);
+    }
+  };
 
   useEffect(() => {
     if (authLoading) return;
-    
     if (!user) {
       setLocation("/login");
       return;
     }
-
-    loadProfile();
-  }, [user, authLoading, setLocation]);
-
-  const loadProfile = async () => {
-    if (!user) return;
-
-    setLoading(true);
-    try {
-      const userProfile = await getUserProfile(user);
-      console.log("Perfil carregado:", userProfile);
-      console.log("User metadata:", user?.user_metadata);
-      setProfile(userProfile);
-
-      // Carregar dados de APIs externas
-      if (userProfile) {
-        console.log("Carregando dados externos para perfil:", {
-          lattesId: userProfile.lattesId,
-          cnpj: userProfile.cnpj,
-          cpf: userProfile.cpf,
-        });
-        
-        if (userProfile.lattesId) {
-          loadLattesData(userProfile.lattesId);
-        }
-        if (userProfile.cnpj) {
-          console.log("CNPJ encontrado no perfil, carregando dados...");
-          loadCNPJData(userProfile.cnpj);
-        } else {
-          console.log("CNPJ não encontrado no perfil");
-        }
-        if (userProfile.cpf) {
-          loadCPFData(userProfile.cpf);
-        }
-      }
-    } catch (error) {
-      console.error("Erro ao carregar perfil:", error);
-      toast.error("Erro ao carregar perfil");
-    } finally {
-      setLoading(false);
+    // Força nova leitura do perfil no banco ao abrir a página (dados sempre atualizados)
+    if (!hasRefetched.current) {
+      hasRefetched.current = true;
+      refetch();
     }
-  };
+  }, [user, authLoading, setLocation, refetch]);
 
-  const loadLattesData = async (lattesId: string) => {
-    setLoadingLattes(true);
-    try {
-      const data = await fetchLattesData(lattesId);
-      setLattesData(data);
-      if (data) {
-        toast.success("Dados do Lattes carregados");
-      }
-    } catch (error) {
-      console.error("Erro ao carregar dados do Lattes:", error);
-      toast.error("Erro ao carregar dados do Lattes");
-    } finally {
-      setLoadingLattes(false);
+  // Sincronizar currículo e disparar carregamento de CNPJ/CPF quando o perfil vier do banco
+  useEffect(() => {
+    if (!profile) return;
+    if (profile.curriculumData && typeof profile.curriculumData === "object") {
+      setLattesData(profile.curriculumData as LattesData);
     }
-  };
+    if (profile.cnpj) loadCNPJData(profile.cnpj);
+    if (profile.cpf) loadCPFData(profile.cpf);
+  }, [profile?.curriculumData, profile?.cnpj, profile?.cpf]);
+
 
   const loadCNPJData = async (cnpj: string) => {
     if (!cnpj) {
@@ -189,6 +197,23 @@ export default function Profile() {
                 </p>
               </div>
 
+              <div>
+                <label className="text-sm font-medium text-gray-500">Área de atuação</label>
+                <p className="text-gray-900">
+                  {profile?.area ? getAreaLabel(profile.area) : <span className="text-gray-500 italic">Não informada</span>}
+                </p>
+              </div>
+
+              {profile?.phone ? (
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Telefone</label>
+                  <p className="text-gray-900 flex items-center gap-2">
+                    <Phone className="w-4 h-4" />
+                    {formatPhone(profile.phone)}
+                  </p>
+                </div>
+              ) : null}
+
               {profile?.cpf ? (
                 <div>
                   <label className="text-sm font-medium text-gray-500">CPF</label>
@@ -213,31 +238,9 @@ export default function Profile() {
                 </div>
               ) : null}
 
-              {profile?.lattesId ? (
-                <div>
-                  <label className="text-sm font-medium text-gray-500">ID Lattes</label>
-                  <p className="text-gray-900 flex items-center gap-2">
-                    <FileText className="w-4 h-4" />
-                    {profile.lattesId}
-                    <a
-                      href={`https://buscatextual.cnpq.br/buscatextual/visualizacv.do?id=${profile.lattesId}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:text-blue-700"
-                    >
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
-                  </p>
-                </div>
-              ) : profile?.userType === "pesquisador" ? (
-                <div>
-                  <label className="text-sm font-medium text-gray-500">ID Lattes</label>
-                  <p className="text-gray-500 text-sm italic">Não cadastrado</p>
-                </div>
-              ) : null}
             </div>
 
-            {(!profile?.cpf && !profile?.cnpj && !profile?.lattesId) && (
+            {(!profile?.cpf && !profile?.cnpj) && (
               <div className="mt-6 pt-6 border-t border-gray-200">
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                   <div className="flex items-start gap-3">
@@ -247,7 +250,7 @@ export default function Profile() {
                         Perfil incompleto
                       </p>
                       <p className="text-sm text-yellow-700 mb-3">
-                        Complete seu cadastro adicionando CPF, CNPJ ou ID Lattes para aproveitar melhor os recursos da plataforma.
+                        Complete seu cadastro adicionando CPF, CNPJ ou envie um PDF do currículo na seção Currículo para aproveitar melhor os recursos da plataforma.
                       </p>
                       <Link href="/perfil/editar">
                         <Button variant="outline" size="sm" className="border-yellow-600 text-yellow-700 hover:bg-yellow-100">
@@ -284,36 +287,42 @@ export default function Profile() {
           </CardContent>
         </Card>
 
-        {/* Dados do Lattes */}
-        {profile && profile.lattesId && (
+        {/* Currículo (opcional – apenas PDF) */}
+        {profile && (profile.userType === "pesquisador" || profile.userType === "ambos") && (
           <Card className="mb-6">
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <GraduationCap className="w-5 h-5" />
-                  Currículo Lattes
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => loadLattesData(profile.lattesId!)}
-                  disabled={loadingLattes}
-                >
-                  {loadingLattes ? (
-                    <Spinner className="w-4 h-4 mr-2" />
-                  ) : (
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                  )}
-                  Atualizar
-                </Button>
+              <CardTitle className="flex items-center gap-2">
+                <GraduationCap className="w-5 h-5" />
+                Currículo (opcional)
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {loadingLattes ? (
-                <div className="flex items-center justify-center py-8">
-                  <Spinner />
+              {!lattesData ? (
+                <div className="space-y-4">
+                  <p className="text-gray-700">
+                    Envie um PDF do seu currículo para extrairmos nome, formação, áreas de atuação e elegibilidade. Opcional.
+                  </p>
+                  <input
+                    type="file"
+                    accept=".pdf,application/pdf"
+                    className="hidden"
+                    id="curriculum-pdf-upload"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) importLattesFromPdf(f);
+                      e.target.value = "";
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    onClick={() => document.getElementById("curriculum-pdf-upload")?.click()}
+                    disabled={importingPdf}
+                  >
+                    {importingPdf ? <Spinner className="w-4 h-4 mr-2" /> : null}
+                    Enviar PDF do currículo
+                  </Button>
                 </div>
-              ) : lattesData ? (
+              ) : (
                 <div className="space-y-4">
                   <div>
                     <label className="text-sm font-medium text-gray-500">Nome</label>
@@ -455,19 +464,29 @@ export default function Profile() {
                       </div>
                     </div>
                   )}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <AlertCircle className="w-8 h-8 mx-auto mb-2" />
-                  <p>Nenhum dado do Lattes encontrado</p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="mt-4"
-                    onClick={() => loadLattesData(profile.lattesId!)}
-                  >
-                    Tentar Carregar
-                  </Button>
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <input
+                      type="file"
+                      accept=".pdf,application/pdf"
+                      className="hidden"
+                      id="curriculum-pdf-replace"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) importLattesFromPdf(f);
+                        e.target.value = "";
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => document.getElementById("curriculum-pdf-replace")?.click()}
+                      disabled={importingPdf}
+                    >
+                      {importingPdf ? <Spinner className="w-4 h-4 mr-2" /> : null}
+                      Enviar outro PDF
+                    </Button>
+                  </div>
                 </div>
               )}
             </CardContent>
