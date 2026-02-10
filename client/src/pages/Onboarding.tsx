@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, CheckCircle2, Sparkles, User, FileText } from "lucide-react";
+import { ArrowRight, CheckCircle2, Sparkles, User, FileText, ExternalLink } from "lucide-react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -64,6 +64,7 @@ export default function Onboarding() {
     valorTotal: number;
     prazoMedioDias: number;
   } | null>(null);
+  const [curriculumExtracted, setCurriculumExtracted] = useState(false);
 
   useEffect(() => {
     if (isNewSignup && user) {
@@ -100,12 +101,13 @@ export default function Onboarding() {
       const curriculumData = await parseCurriculumFromPdf(file);
       if (curriculumData) {
         await saveCurriculumToMetadata(curriculumData);
-        toast.success("Currículo extraído e salvo.");
+        setCurriculumExtracted(true);
+        toast.success("Currículo extraído e salvo. Você pode continuar.");
       } else {
-        toast.error("Não foi possível extrair dados do PDF.");
+        toast.error("Não foi possível extrair dados do PDF. Envie o PDF do currículo baixado pelo Lattes.");
       }
     } catch {
-      toast.error("Erro ao processar o PDF.");
+      toast.error("Erro ao processar o PDF. Tente novamente.");
     } finally {
       setUploadingPdf(false);
     }
@@ -202,7 +204,18 @@ export default function Onboarding() {
 
               {stepCompletar === "curriculo" && (
                 <>
-                  <p className="text-gray-600">Envie um PDF do currículo (opcional) para análise de elegibilidade.</p>
+                  <p className="text-gray-600 mb-4">
+                    Envie um PDF do currículo baixado pelo Lattes para análise de elegibilidade (formação, vínculo institucional e área). Os dados são necessários para o match com editais.
+                  </p>
+                  <a
+                    href="https://www.lattes.cnpq.br/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-sm text-violet-600 hover:text-violet-800 hover:underline mb-4"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Abrir Plataforma Lattes (CNPq) para baixar ou imprimir seu currículo em PDF
+                  </a>
                   <input
                     type="file"
                     accept=".pdf,application/pdf"
@@ -216,11 +229,20 @@ export default function Onboarding() {
                   />
                   <Button variant="outline" className="w-full" onClick={() => document.getElementById("onb-pdf")?.click()} disabled={uploadingPdf}>
                     <FileText className="w-4 h-4 mr-2" />
-                    {uploadingPdf ? "Enviando..." : "Enviar PDF do currículo"}
+                    {uploadingPdf ? "Enviando e extraindo dados..." : "Enviar PDF do currículo"}
                   </Button>
-                  <Button className="w-full" onClick={() => setStepCompletar("area")}>
-                    Pular e continuar <ArrowRight className="w-5 h-5 ml-2" />
+                  <Button
+                    className="w-full mt-3"
+                    onClick={() => setStepCompletar("area")}
+                    disabled={!curriculumExtracted && !(profile?.curriculumData && typeof profile.curriculumData === "object")}
+                  >
+                    Continuar <ArrowRight className="w-5 h-5 ml-2" />
                   </Button>
+                  {!curriculumExtracted && !(profile?.curriculumData && typeof profile.curriculumData === "object") && (
+                    <p className="text-sm text-amber-700 mt-2">
+                      Envie o PDF e aguarde a extração dos dados para continuar.
+                    </p>
+                  )}
                 </>
               )}
 

@@ -122,14 +122,48 @@ export async function parseCurriculumFromPdf(file: File): Promise<LattesData | n
     }
     const raw = (await response.json()) as Record<string, unknown>;
     const eleg = raw.elegibilidade as Record<string, unknown> | undefined;
+    const formacao = Array.isArray(raw.formacao)
+      ? (raw.formacao as Array<{ nivel: string; curso: string; instituicao: string; anoConclusao?: string }>)
+      : undefined;
+
+    let elegibilidade = eleg
+      ? {
+          possuiDoutorado: Boolean(eleg.possuiDoutorado),
+          possuiMestrado: Boolean(eleg.possuiMestrado),
+          possuiGraduacao: Boolean(eleg.possuiGraduacao),
+          anosExperiencia: eleg.anosExperiencia != null ? Number(eleg.anosExperiencia) : undefined,
+          podeParticiparEditais: Boolean(eleg.podeParticiparEditais),
+          observacoes: Array.isArray(eleg.observacoes) ? (eleg.observacoes as string[]) : undefined,
+        }
+      : undefined;
+
+    // Se a API não retornou elegibilidade ou retornou tudo false, inferir a partir da formação
+    if (formacao && formacao.length > 0) {
+      const niveis = formacao.map((f) => f.nivel).join(" ");
+      const fromFormacao = {
+        possuiDoutorado: /doutorado|doutor\b|ph\.?\s*d/i.test(niveis),
+        possuiMestrado: /mestrado|master\b/i.test(niveis),
+        possuiGraduacao: /gradua[cç][aã]o|bacharelado|licenciatura/i.test(niveis),
+      };
+      const hasAny = fromFormacao.possuiDoutorado || fromFormacao.possuiMestrado || fromFormacao.possuiGraduacao;
+      if (!elegibilidade || (!elegibilidade.possuiDoutorado && !elegibilidade.possuiMestrado && !elegibilidade.possuiGraduacao)) {
+        elegibilidade = {
+          possuiDoutorado: fromFormacao.possuiDoutorado,
+          possuiMestrado: fromFormacao.possuiMestrado,
+          possuiGraduacao: fromFormacao.possuiGraduacao,
+          anosExperiencia: elegibilidade?.anosExperiencia,
+          podeParticiparEditais: hasAny || Boolean(elegibilidade?.podeParticiparEditais),
+          observacoes: elegibilidade?.observacoes,
+        };
+      }
+    }
+
     return {
       id: String(raw.id ?? "pdf"),
       nome: String(raw.nome ?? "Currículo"),
       resumo: raw.resumo != null ? String(raw.resumo) : undefined,
       areasAtuacao: Array.isArray(raw.areasAtuacao) ? (raw.areasAtuacao as string[]) : undefined,
-      formacao: Array.isArray(raw.formacao)
-        ? (raw.formacao as Array<{ nivel: string; curso: string; instituicao: string; anoConclusao?: string }>)
-        : undefined,
+      formacao,
       resumoProducoes: raw.resumoProducoes != null ? String(raw.resumoProducoes) : undefined,
       vinculoInstitucional: Array.isArray(raw.vinculoInstitucional) ? (raw.vinculoInstitucional as string[]) : undefined,
       enderecoProfissional:
@@ -137,16 +171,7 @@ export async function parseCurriculumFromPdf(file: File): Promise<LattesData | n
           ? (raw.enderecoProfissional as { cidade?: string; uf?: string; pais?: string })
           : undefined,
       linkLattes: raw.linkLattes != null ? String(raw.linkLattes) : undefined,
-      elegibilidade: eleg
-        ? {
-            possuiDoutorado: Boolean(eleg.possuiDoutorado),
-            possuiMestrado: Boolean(eleg.possuiMestrado),
-            possuiGraduacao: Boolean(eleg.possuiGraduacao),
-            anosExperiencia: eleg.anosExperiencia != null ? Number(eleg.anosExperiencia) : undefined,
-            podeParticiparEditais: Boolean(eleg.podeParticiparEditais),
-            observacoes: Array.isArray(eleg.observacoes) ? (eleg.observacoes as string[]) : undefined,
-          }
-        : undefined,
+      elegibilidade,
     };
   } catch (err) {
     console.warn("Erro ao extrair currículo do PDF:", err);

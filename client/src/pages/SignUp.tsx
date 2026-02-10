@@ -332,7 +332,7 @@ export default function SignUp() {
 
                 {/* Aba Pesquisador */}
                 <TabsContent value="pesquisador" className="space-y-6">
-                  <p className="text-sm text-gray-600">Você pode enviar um PDF do currículo (opcional) na sua página de perfil após o cadastro.</p>
+                  <p className="text-sm text-gray-600">Você pode enviar um PDF do currículo baixado pelo Lattes (opcional) na sua página de perfil após o cadastro.</p>
                 </TabsContent>
 
                 {/* Aba Pessoa Física/Empresa */}
@@ -378,7 +378,7 @@ export default function SignUp() {
                     </p>
                   </div>
                   
-                  <p className="text-sm text-gray-600">Você pode enviar um PDF do currículo (opcional) na sua página de perfil.</p>
+                  <p className="text-sm text-gray-600">Você pode enviar um PDF do currículo baixado pelo Lattes (opcional) na sua página de perfil.</p>
 
                   <div className="space-y-4">
                     <Label>Você possui CNPJ?</Label>

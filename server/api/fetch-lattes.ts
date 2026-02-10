@@ -299,14 +299,14 @@ function parseLattesFromText(text: string, id: string): Record<string, unknown> 
     const a = m[1].trim();
     if (a.length > 2 && a.length < 150 && !areasAtuacao.includes(a)) areasAtuacao.push(a);
   }
-  const possuiDoutorado = /doutorado|doutor\b|ph\.?\s*d\.?/i.test(full);
-  const possuiMestrado = /mestrado|master\b/i.test(full);
-  const possuiGraduacao = /graduação|bacharelado|licenciatura/i.test(full);
+  let possuiDoutorado = /doutorado|doutor\b|ph\.?\s*d\.?/i.test(full);
+  let possuiMestrado = /mestrado|master\b/i.test(full);
+  let possuiGraduacao = /graduação|bacharelado|licenciatura/i.test(full);
   const vinculos: string[] = [];
-  const vinculoRe = /(?:Instituição|Órgão|Empresa|Vínculo)[^:]*:\s*([^\n]+)/gi;
+  const vinculoRe = /(?:Institui[cç][aã]o|Órg[aã]o|Empresa|V[ií]nculo|Atua[cç][aã]o\s+profissional)[^:]*:\s*([^\n.]+)/gi;
   while ((m = vinculoRe.exec(full)) !== null) {
-    const v = m[1].trim();
-    if (v.length > 3 && v.length < 200 && !vinculos.includes(v)) vinculos.push(v);
+    const v = m[1].trim().replace(/\s+/g, " ").slice(0, 200);
+    if (v.length > 3 && !vinculos.includes(v)) vinculos.push(v);
   }
 
   let formacao = extractFormacaoFromText(full);
@@ -314,6 +314,23 @@ function parseLattesFromText(text: string, id: string): Record<string, unknown> 
     if (possuiDoutorado) formacao.push({ nivel: "Doutorado", curso: "—", instituicao: "—", anoConclusao: undefined });
     if (possuiMestrado) formacao.push({ nivel: "Mestrado", curso: "—", instituicao: "—", anoConclusao: undefined });
     if (possuiGraduacao) formacao.push({ nivel: "Graduação", curso: "—", instituicao: "—", anoConclusao: undefined });
+  }
+
+  // Inferir elegibilidade a partir da formação quando o texto não contiver os termos explícitos
+  const niveisStr = formacao.map((f) => f.nivel).join(" ");
+  if (niveisStr.length > 0) {
+    if (!possuiDoutorado && /doutorado|doutor\b|ph\.?\s*d/i.test(niveisStr)) possuiDoutorado = true;
+    if (!possuiMestrado && /mestrado|master\b/i.test(niveisStr)) possuiMestrado = true;
+    if (!possuiGraduacao && /gradua[cç][aã]o|bacharelado|licenciatura/i.test(niveisStr)) possuiGraduacao = true;
+  }
+
+  // Fallback vínculo: instituições da formação quando não encontradas no texto
+  if (vinculos.length === 0 && formacao.length > 0) {
+    for (const f of formacao) {
+      if (f.instituicao && f.instituicao !== "—" && f.instituicao.length > 5 && !vinculos.includes(f.instituicao)) {
+        vinculos.push(f.instituicao.slice(0, 200));
+      }
+    }
   }
 
   return {
@@ -445,12 +462,14 @@ router.post("/lattes/parse-pdf", async (req, res) => {
     const parser = new PDFParse({ data: new Uint8Array(buffer) });
     const textResult = await parser.getText();
     await parser.destroy();
-    const text = textResult?.text || "";
+    let text = textResult?.text || "";
     if (text.length < 50) {
       return res.status(400).json({ error: "Não foi possível extrair texto do PDF ou o documento está vazio." });
     }
+    // Normalizar espaços e quebras de linha para melhorar extração (PDFs costumam quebrar palavras)
+    const normalized = text.replace(/\s+/g, " ").trim();
     const id = (text.match(/\d{16}/) || [])[0] || "pdf";
-    const data = parseLattesFromText(text, id);
+    const data = parseLattesFromText(normalized.length > 50 ? normalized : text, id);
     if (data && typeof data === "object") {
       const out = { ...data };
       if (id === "pdf") (out as Record<string, unknown>).linkLattes = undefined;

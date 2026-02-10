@@ -967,13 +967,13 @@ export default function Dashboard() {
                           <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5 text-green-600 flex-shrink-0" />
                         </div>
                         <div className="text-xs text-gray-600">Match</div>
-                        <div className="text-xs text-violet-600 font-medium mt-0.5">{edital.probabilidade}% aprovação</div>
-                        {edital.justificativa != null && edital.justificativa !== "" ? (
-                          <p className="text-xs text-gray-500 mt-1 line-clamp-2 max-w-[140px] sm:max-w-[160px] md:max-w-[180px] break-words" title={edital.justificativa}>
-                            {edital.justificativa}
-                          </p>
-                        ) : (
-                          <p className="text-xs text-gray-400 italic mt-1">Justificativa não disponível</p>
+                        {edital.justificativa != null && edital.justificativa !== "" && (
+                          <>
+                            <div className="text-xs text-violet-600 font-medium mt-0.5">{edital.probabilidade}% aprovação</div>
+                            <p className="text-xs text-gray-500 mt-1 line-clamp-2 max-w-[140px] sm:max-w-[160px] md:max-w-[180px] break-words" title={edital.justificativa}>
+                              {edital.justificativa}
+                            </p>
+                          </>
                         )}
                       </>
                     )}

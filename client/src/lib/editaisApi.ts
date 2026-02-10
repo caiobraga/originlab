@@ -170,10 +170,13 @@ async function fetchEditalScore(
       return null;
     }
 
+    const justificativa = data.justificativa != null && String(data.justificativa).trim() !== ""
+      ? data.justificativa
+      : null;
     return {
       match: data.match_percent,
       probabilidade: data.probabilidade_percent,
-      justificativa: data.justificativa || null,
+      justificativa,
     };
   } catch (error) {
     console.error("Erro ao buscar score:", error);
@@ -295,10 +298,13 @@ export async function calculateEditalScores(
       }
 
       const result = await response.json();
+      const justificativa = result.justificativa != null && String(result.justificativa).trim() !== ""
+        ? result.justificativa
+        : null;
       return {
         match: result.match ?? 50,
         probabilidade: result.probabilidade ?? 40,
-        justificativa: result.justificativa ?? "Justificativa não disponível",
+        justificativa,
       };
     } catch (error) {
       if (!scoreApiErrorLogged) {
@@ -310,7 +316,7 @@ export async function calculateEditalScores(
       return {
         match: 50,
         probabilidade: 40,
-        justificativa: "Justificativa não disponível",
+        justificativa: null,
       };
     } finally {
       // Remover do cache após completar (sucesso ou erro)

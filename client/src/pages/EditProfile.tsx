@@ -230,7 +230,7 @@ export default function EditProfile() {
 
                 {/* Aba Pesquisador */}
                 <TabsContent value="pesquisador" className="space-y-6">
-                  <p className="text-sm text-gray-600">Você pode enviar um PDF do currículo (opcional) na sua página de perfil.</p>
+                  <p className="text-sm text-gray-600">Você pode enviar um PDF do currículo baixado pelo Lattes (opcional) na sua página de perfil.</p>
                 </TabsContent>
 
                 {/* Aba Pessoa Física/Empresa */}
@@ -276,7 +276,7 @@ export default function EditProfile() {
                     </p>
                   </div>
                   
-                  <p className="text-sm text-gray-600">Você pode enviar um PDF do currículo (opcional) na sua página de perfil.</p>
+                  <p className="text-sm text-gray-600">Você pode enviar um PDF do currículo baixado pelo Lattes (opcional) na sua página de perfil.</p>
 
                   <div className="space-y-4">
                     <Label>Você possui CNPJ?</Label>

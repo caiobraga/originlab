@@ -26,6 +26,7 @@ interface EditalDetailModalProps {
     prazo: string;
     match: number;
     probabilidade: number;
+    justificativa?: string | null;
   };
 }
 
@@ -82,17 +83,21 @@ export default function EditalDetailModal({ open, onOpenChange, edital }: Edital
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl">{edital.titulo}</DialogTitle>
-          <div className="flex gap-2 mt-2">
+          <div className="flex gap-2 mt-2 flex-wrap">
             <Badge variant="outline">{edital.orgao}</Badge>
             <Badge className="bg-green-500">{edital.match}% Match</Badge>
-            <Badge className="bg-blue-500">{edital.probabilidade}% Aprovação</Badge>
+            {edital.justificativa != null && edital.justificativa !== "" && (
+              <Badge className="bg-blue-500">{edital.probabilidade}% Aprovação</Badge>
+            )}
           </div>
         </DialogHeader>
 
         <Tabs defaultValue="match" className="mt-4">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className={`grid w-full ${edital.justificativa != null && edital.justificativa !== "" ? "grid-cols-4" : "grid-cols-3"}`}>
             <TabsTrigger value="match">Match</TabsTrigger>
-            <TabsTrigger value="probabilidade">Probabilidade</TabsTrigger>
+            {edital.justificativa != null && edital.justificativa !== "" && (
+              <TabsTrigger value="probabilidade">Probabilidade</TabsTrigger>
+            )}
             <TabsTrigger value="timeline">Timeline</TabsTrigger>
             <TabsTrigger value="recomendacoes">Recomendações</TabsTrigger>
           </TabsList>
@@ -149,7 +154,8 @@ export default function EditalDetailModal({ open, onOpenChange, edital }: Edital
             </div>
           </TabsContent>
 
-          {/* Tab: Probabilidade Breakdown */}
+          {/* Tab: Probabilidade Breakdown - só quando há justificativa */}
+          {edital.justificativa != null && edital.justificativa !== "" && (
           <TabsContent value="probabilidade" className="space-y-4">
             <div className="bg-gradient-to-r from-violet-50 to-blue-50 p-6 rounded-lg">
               <div className="flex items-center gap-3 mb-4">
@@ -205,6 +211,7 @@ export default function EditalDetailModal({ open, onOpenChange, edital }: Edital
               </div>
             </div>
           </TabsContent>
+          )}
 
           {/* Tab: Timeline */}
           <TabsContent value="timeline" className="space-y-4">

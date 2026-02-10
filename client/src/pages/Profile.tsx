@@ -300,7 +300,7 @@ export default function Profile() {
               {!lattesData ? (
                 <div className="space-y-4">
                   <p className="text-gray-700">
-                    Envie um PDF do seu currículo para extrairmos nome, formação, áreas de atuação e elegibilidade. Opcional.
+                    Envie um PDF do currículo baixado pelo Lattes para extrairmos nome, formação, áreas de atuação e elegibilidade. Opcional.
                   </p>
                   <input
                     type="file"
