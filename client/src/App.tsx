@@ -7,6 +7,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import Home from "./pages/Home";
+import Inicio from "./pages/Inicio";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
 import EditalDetails from "./pages/EditalDetails";
@@ -19,12 +20,18 @@ import Referencia from "./pages/Referencia";
 import RefRedirect from "./pages/RefRedirect";
 import Profile from "./pages/Profile";
 import EditProfile from "./pages/EditProfile";
+import Sobre from "./pages/Sobre";
+import Contato from "./pages/Contato";
+import PoliticaPrivacidade from "./pages/PoliticaPrivacidade";
+import TermosDeUso from "./pages/TermosDeUso";
+import Cookies from "./pages/Cookies";
 import CookieBanner from "./components/CookieBanner";
 
 function Router() {
   return (
     <Switch>
       <Route path={"/"} component={Home} />
+      <Route path={"/inicio"} component={Inicio} />
       <Route path={"/login"} component={Login} />
       <Route path={"/cadastro"} component={SignUp} />
       <Route path={"/onboarding"} component={Onboarding} />
@@ -37,6 +44,11 @@ function Router() {
       <Route path={"/edital/:id"} component={EditalDetails} />
       <Route path={"/minhas-propostas"} component={MinhasPropostas} />
       <Route path={"/propostas/:id"} component={EditorProposta} />
+      <Route path={"/sobre"} component={Sobre} />
+      <Route path={"/contato"} component={Contato} />
+      <Route path={"/politica-privacidade"} component={PoliticaPrivacidade} />
+      <Route path={"/termos-de-uso"} component={TermosDeUso} />
+      <Route path={"/cookies"} component={Cookies} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

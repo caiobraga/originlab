@@ -55,7 +55,7 @@ export default function Header() {
       <div className="container">
         <div className="flex h-14 md:h-16 items-center justify-between gap-2">
           {/* Logo */}
-          <Link href="/" aria-label={`${APP_TITLE} - Página inicial`}>
+          <Link href="/inicio" aria-label={`${APP_TITLE} - Página inicial`}>
             <div className="flex items-center gap-1.5 md:gap-2 cursor-pointer flex-shrink-0 min-w-0 group transition-all duration-200 hover:opacity-80">
               <div 
                 className="w-7 h-7 md:w-8 md:h-8 bg-gradient-to-br from-blue-600 to-violet-600 rounded-lg flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-110 group-hover:shadow-md"
@@ -97,10 +97,6 @@ export default function Header() {
                 Depoimentos
                 <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-blue-600 transition-all duration-200 group-hover:w-full" aria-hidden="true"></span>
               </a>
-              <Link href="/referencia" className="text-sm font-medium text-gray-700 hover:text-blue-600 transition-all duration-200 hover:scale-105 relative group focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:rounded">
-                Indique e Ganhe
-                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-blue-600 transition-all duration-200 group-hover:w-full" aria-hidden="true"></span>
-              </Link>
             </nav>
           )}
 

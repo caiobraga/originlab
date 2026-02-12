@@ -153,10 +153,8 @@ export default function Footer() {
           <div>
             <h3 className="font-semibold mb-4">Empresa</h3>
             <ul className="space-y-2 text-sm text-gray-400">
-              <li><a href="#" className="hover:text-white transition-colors">Sobre</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Blog</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Carreiras</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Contato</a></li>
+              <li><Link href="/sobre" className="hover:text-white transition-colors">Sobre</Link></li>
+              <li><Link href="/contato" className="hover:text-white transition-colors">Contato</Link></li>
             </ul>
           </div>
 
@@ -164,9 +162,9 @@ export default function Footer() {
           <div>
             <h3 className="font-semibold mb-4">Legal</h3>
             <ul className="space-y-2 text-sm text-gray-400">
-              <li><a href="#" className="hover:text-white transition-colors">Privacidade</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Termos de Uso</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Cookies</a></li>
+              <li><Link href="/politica-privacidade" className="hover:text-white transition-colors">Privacidade</Link></li>
+              <li><Link href="/termos-de-uso" className="hover:text-white transition-colors">Termos de Uso</Link></li>
+              <li><Link href="/cookies" className="hover:text-white transition-colors">Cookies</Link></li>
             </ul>
           </div>
         </div>

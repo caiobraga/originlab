@@ -257,10 +257,16 @@ export default function SignUp() {
             </div>
 
             <Tabs value={userType} onValueChange={(value) => setUserType(value as "pesquisador" | "pessoa-empresa" | "ambos")} className="w-full">
-              <TabsList className="grid w-full grid-cols-3 mb-6">
-                <TabsTrigger value="pesquisador">Pesquisador</TabsTrigger>
-                <TabsTrigger value="pessoa-empresa">Pessoa Física/Empresa</TabsTrigger>
-                <TabsTrigger value="ambos">Ambos</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 mb-6 h-auto p-1 gap-1 sm:gap-0 sm:h-9">
+                <TabsTrigger value="pesquisador" className="whitespace-normal py-3 sm:py-1 min-h-[44px] sm:min-h-0 text-center">
+                  Pesquisador
+                </TabsTrigger>
+                <TabsTrigger value="pessoa-empresa" className="whitespace-normal py-3 sm:py-1 min-h-[44px] sm:min-h-0 text-center">
+                  Pessoa Física/Empresa
+                </TabsTrigger>
+                <TabsTrigger value="ambos" className="whitespace-normal py-3 sm:py-1 min-h-[44px] sm:min-h-0 text-center">
+                  Ambos
+                </TabsTrigger>
               </TabsList>
 
               <form onSubmit={handleSubmit} className="space-y-6">

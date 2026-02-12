@@ -819,10 +819,12 @@ export default function Dashboard() {
             <div key={edital.id} className="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-gray-200 hover:shadow-md hover:border-gray-300 transition-all duration-200 cursor-pointer">
               <div className="flex flex-col md:flex-row items-start md:justify-between gap-4 mb-4">
                 <div className="flex-1 min-w-0 w-full">
-                  <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-2">
-                    <span className="text-xl md:text-2xl flex-shrink-0">{edital.flag}</span>
-                    <h3 className="text-base md:text-lg font-bold text-gray-900 break-words flex-1 min-w-0">{edital.titulo}</h3>
-                    {/* Badges de tipo de edital com separadores visuais */}
+                  {/* No mobile: título em linha própria para evitar compressão */}
+                  <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 sm:gap-3 mb-2">
+                    <h3 className="text-base md:text-lg font-bold text-gray-900 break-words w-full sm:w-auto sm:flex-1 sm:min-w-0 order-1">{edital.titulo}</h3>
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 order-2">
+                      <span className="text-xl md:text-2xl flex-shrink-0">{edital.flag}</span>
+                      {/* Badges de tipo de edital com separadores visuais */}
                     {(() => {
                       const isResearcher = edital.is_researcher === true;
                       const isCompany = edital.is_company === true;
@@ -888,6 +890,7 @@ export default function Dashboard() {
                         </React.Fragment>
                       ));
                     })()}
+                    </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 text-xs md:text-sm text-gray-600 mb-3 break-words">
                     {edital.orgao && (

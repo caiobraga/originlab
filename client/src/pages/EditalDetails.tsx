@@ -212,14 +212,8 @@ export default function EditalDetails() {
   // Função para fazer download do arquivo
   const handleDownloadPdf = async (pdf: EditalPdf) => {
     try {
-      // Se tiver URL original, usar ela primeiro
-      if (pdf.url_original) {
-        console.log("Usando URL original:", pdf.url_original);
-        window.open(pdf.url_original, '_blank');
-        return;
-      }
-
-      // Caso contrário, baixar do storage
+      // Tentar baixar do nosso storage primeiro para manter o usuário no site.
+      // url_original (FAPES, etc.) só é usado como fallback se o storage falhar.
       // IMPORTANTE: Tentar múltiplas estratégias para baixar o PDF
       console.log("Tentando baixar PDF do storage:", pdf);
       console.log("Caminho storage:", pdf.caminho_storage);
