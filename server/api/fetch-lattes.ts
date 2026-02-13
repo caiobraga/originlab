@@ -458,13 +458,28 @@ router.post("/lattes/parse-pdf", async (req, res) => {
     if (buffer.length < 100) {
       return res.status(400).json({ error: "Arquivo PDF muito pequeno." });
     }
-    const { PDFParse } = await import("pdf-parse");
-    const parser = new PDFParse({ data: new Uint8Array(buffer) });
-    const textResult = await parser.getText();
-    await parser.destroy();
-    let text = textResult?.text || "";
+    let text = "";
+    // Usar pdf.js-extract (Node 18+) como primário; pdf-parse requer Node 20+
+    try {
+      const { PDFExtract } = await import("pdf.js-extract");
+      const pdfExtract = new PDFExtract();
+      const data = await pdfExtract.extractBuffer(buffer, {});
+      text =
+        data?.pages
+          ?.flatMap((p: { content?: Array<{ str?: string }> }) => p.content?.map((c: { str?: string }) => c.str ?? "") ?? [])
+          .join(" ") ?? "";
+    } catch (fallbackErr) {
+      const { PDFParse } = await import("pdf-parse");
+      const parser = new PDFParse({ data: new Uint8Array(buffer) });
+      const textResult = await parser.getText();
+      await parser.destroy();
+      text = textResult?.text || "";
+    }
     if (text.length < 50) {
-      return res.status(400).json({ error: "Não foi possível extrair texto do PDF ou o documento está vazio." });
+      return res.status(400).json({
+        error:
+          "Não foi possível extrair texto do PDF. Use o PDF baixado do Lattes (exportar currículo), não uma imagem escaneada.",
+      });
     }
     // Normalizar espaços e quebras de linha para melhorar extração (PDFs costumam quebrar palavras)
     const normalized = text.replace(/\s+/g, " ").trim();
@@ -478,7 +493,12 @@ router.post("/lattes/parse-pdf", async (req, res) => {
     return res.status(400).json({ error: "Não foi possível extrair dados do currículo." });
   } catch (error) {
     console.error("Erro ao processar PDF de currículo:", error);
-    res.status(500).json({ error: (error as Error).message });
+    const msg = (error as Error).message;
+    const userMsg =
+      msg.includes("crypto.hash") || msg.includes("not a function")
+        ? "O servidor precisa do Node.js 20+ para processar PDFs. Atualize o Node."
+        : msg;
+    res.status(500).json({ error: userMsg });
   }
 });
 

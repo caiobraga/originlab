@@ -80,8 +80,9 @@ export default function Profile() {
       } else {
         toast.error("Não foi possível extrair dados do PDF. Tente outro arquivo.");
       }
-    } catch {
-      toast.error("Erro ao processar o PDF. Tente novamente.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erro ao processar o PDF. Tente novamente.";
+      toast.error(msg);
     } finally {
       setImportingPdf(false);
     }

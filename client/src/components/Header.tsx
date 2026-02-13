@@ -28,6 +28,15 @@ export default function Header() {
 
   const isActive = (path: string) => location === path || location.startsWith(path + "/");
 
+  const isInDashboardArea =
+    user &&
+    (location === "/dashboard" ||
+      location === "/minhas-propostas" ||
+      location === "/perfil" ||
+      location.startsWith("/perfil/") ||
+      location.startsWith("/edital/") ||
+      location.startsWith("/propostas/"));
+
   // Fechar menu quando clicar fora
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -264,29 +273,31 @@ export default function Header() {
               </SheetTrigger>
               <SheetContent side="right" className="w-[280px] sm:w-[400px] overflow-y-auto">
                 <div className="flex flex-col gap-4 mt-8">
-                  {/* Mobile Navigation */}
-                  <nav className="flex flex-col gap-4" role="navigation" aria-label="Navegação mobile">
-                    <a 
-                      href="#como-funciona" 
-                      className="text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:rounded"
-                    >
-                      Como Funciona
-                    </a>
-                    <a 
-                      href="#planos" 
-                      className="text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:rounded"
-                    >
-                      Planos
-                    </a>
-                    <a 
-                      href="#depoimentos" 
-                      className="text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:rounded"
-                    >
-                      Depoimentos
-                    </a>
-                  </nav>
+                  {/* Mobile Navigation - esconder Como funciona, Planos, Depoimentos quando dentro do dashboard */}
+                  {!isInDashboardArea && (
+                    <nav className="flex flex-col gap-4" role="navigation" aria-label="Navegação mobile">
+                      <a 
+                        href="#como-funciona" 
+                        className="text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:rounded"
+                      >
+                        Como Funciona
+                      </a>
+                      <a 
+                        href="#planos" 
+                        className="text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:rounded"
+                      >
+                        Planos
+                      </a>
+                      <a 
+                        href="#depoimentos" 
+                        className="text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:rounded"
+                      >
+                        Depoimentos
+                      </a>
+                    </nav>
+                  )}
 
-                  <div className="border-t border-gray-200 pt-4 mt-4">
+                  <div className={cn("border-t border-gray-200 pt-4", !isInDashboardArea && "mt-4")}>
                     {user && !loading ? (
                       <div className="flex flex-col gap-3">
                         <Badge 

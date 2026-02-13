@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, CheckCircle2, Sparkles, User, FileText, ExternalLink } from "lucide-react";
+import { ArrowRight, CheckCircle2, Sparkles, User, FileText, ExternalLink, RefreshCw } from "lucide-react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -13,6 +13,7 @@ import { saveCurriculumToMetadata, setOnboardingCompleted, updateProfileFromOnbo
 import { supabase } from "@/lib/supabase";
 import Header from "@/components/Header";
 import { Spinner } from "@/components/ui/spinner";
+import { Progress } from "@/components/ui/progress";
 
 type StepCompletarPerfil = "telefone" | "curriculo" | "area" | "concluido";
 type StepConhecerEditais = "userType" | "area" | "result";
@@ -58,6 +59,8 @@ export default function Onboarding() {
   const [data, setData] = useState<OnboardingData>({ telefone: "", userType: "", area: "" });
   const [loading, setLoading] = useState(false);
   const [uploadingPdf, setUploadingPdf] = useState(false);
+  const [pdfExtractProgress, setPdfExtractProgress] = useState(0);
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [editaisStats, setEditaisStats] = useState<{
     total: number;
     naArea: number;
@@ -97,19 +100,33 @@ export default function Onboarding() {
   const handleUploadCurriculo = async (file: File) => {
     if (!file?.name.toLowerCase().endsWith(".pdf") || !user) return;
     setUploadingPdf(true);
+    setPdfExtractProgress(0);
+    setUploadedFileName(null);
+    const interval = setInterval(() => {
+      setPdfExtractProgress((p) => {
+        if (p >= 90) return p;
+        return p + Math.random() * 8 + 4;
+      });
+    }, 300);
     try {
       const curriculumData = await parseCurriculumFromPdf(file);
+      clearInterval(interval);
+      setPdfExtractProgress(100);
       if (curriculumData) {
         await saveCurriculumToMetadata(curriculumData);
         setCurriculumExtracted(true);
+        setUploadedFileName(file.name);
         toast.success("Currículo extraído e salvo. Você pode continuar.");
       } else {
         toast.error("Não foi possível extrair dados do PDF. Envie o PDF do currículo baixado pelo Lattes.");
       }
-    } catch {
-      toast.error("Erro ao processar o PDF. Tente novamente.");
+    } catch (err) {
+      clearInterval(interval);
+      const msg = err instanceof Error ? err.message : "Erro ao processar o PDF. Tente novamente.";
+      toast.error(msg);
     } finally {
       setUploadingPdf(false);
+      setPdfExtractProgress(0);
     }
   };
 
@@ -227,10 +244,42 @@ export default function Onboarding() {
                       e.target.value = "";
                     }}
                   />
-                  <Button variant="outline" className="w-full" onClick={() => document.getElementById("onb-pdf")?.click()} disabled={uploadingPdf}>
-                    <FileText className="w-4 h-4 mr-2" />
-                    {uploadingPdf ? "Enviando e extraindo dados..." : "Enviar PDF do currículo"}
-                  </Button>
+                  {!(curriculumExtracted || (profile?.curriculumData && typeof profile.curriculumData === "object")) && (
+                    <Button variant="outline" className="w-full" onClick={() => document.getElementById("onb-pdf")?.click()} disabled={uploadingPdf}>
+                      <FileText className="w-4 h-4 mr-2" />
+                      {uploadingPdf ? "Enviando e extraindo dados..." : "Enviar PDF do currículo"}
+                    </Button>
+                  )}
+                  {uploadingPdf && (
+                    <div className="w-full mt-4 space-y-2">
+                      <div className="flex justify-between text-sm text-gray-600">
+                        <span>Extraindo dados do PDF...</span>
+                        <span>{Math.round(Math.min(pdfExtractProgress, 100))}%</span>
+                      </div>
+                      <Progress value={Math.min(pdfExtractProgress, 100)} className="h-2" />
+                    </div>
+                  )}
+                  {(curriculumExtracted || (profile?.curriculumData && typeof profile.curriculumData === "object")) && !uploadingPdf && (
+                    <div className="w-full mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
+                          <span className="text-sm font-medium text-green-800 truncate">
+                            {uploadedFileName ? uploadedFileName : "Currículo cadastrado"}
+                          </span>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-shrink-0 border-green-300 text-green-700 hover:bg-green-100"
+                          onClick={() => document.getElementById("onb-pdf")?.click()}
+                        >
+                          <RefreshCw className="w-4 h-4 mr-1.5" />
+                          Trocar arquivo
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                   <Button
                     className="w-full mt-3"
                     onClick={() => setStepCompletar("area")}

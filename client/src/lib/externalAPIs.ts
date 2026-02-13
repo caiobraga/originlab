@@ -175,7 +175,8 @@ export async function parseCurriculumFromPdf(file: File): Promise<LattesData | n
     };
   } catch (err) {
     console.warn("Erro ao extrair currículo do PDF:", err);
-    return null;
+    const msg = err instanceof Error ? err.message : "Erro ao processar PDF";
+    throw new Error(msg);
   }
 }
 
