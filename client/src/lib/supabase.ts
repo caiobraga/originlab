@@ -1,21 +1,29 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const envSupabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+// Em dev, usa proxy do Vite para evitar CORS ao chamar Supabase de localhost
+const supabaseUrl =
+  import.meta.env.DEV && typeof window !== "undefined"
+    ? `${window.location.origin}/supabase-proxy`
+    : envSupabaseUrl;
 
 // Check if Supabase is properly configured
 export const isSupabaseConfigured = () => {
-  return !!(
-    supabaseUrl && 
-    supabaseAnonKey && 
-    supabaseUrl !== "your_supabase_project_url" && 
+  const validKey =
+    supabaseAnonKey &&
     supabaseAnonKey !== "your_supabase_anon_key" &&
-    supabaseUrl !== "https://placeholder.supabase.co" &&
+    supabaseAnonKey !== "placeholder" &&
     !supabaseAnonKey.includes("placeholder") &&
-    supabaseUrl.startsWith("https://") &&
-    supabaseAnonKey.length > 50 && // Basic validation - real keys are much longer
-    supabaseAnonKey.startsWith("eyJ") // JWT tokens start with "eyJ"
-  );
+    supabaseAnonKey.length > 50 &&
+    supabaseAnonKey.startsWith("eyJ");
+  const validUrl =
+    envSupabaseUrl &&
+    envSupabaseUrl !== "your_supabase_project_url" &&
+    envSupabaseUrl !== "https://placeholder.supabase.co" &&
+    envSupabaseUrl.startsWith("https://");
+  return !!(validKey && validUrl);
 };
 
 // Create Supabase client only if properly configured
@@ -44,7 +52,7 @@ export const supabase = (() => {
   if (!supabaseClient) {
     const url = supabaseUrl!;
     const key = supabaseAnonKey!;
-    
+
     supabaseClient = createClient(url, key, {
       auth: {
         autoRefreshToken: true,

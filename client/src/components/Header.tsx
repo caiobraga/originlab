@@ -70,7 +70,7 @@ export default function Header() {
           </Link>
 
           {/* Desktop Navigation - Apenas quando não logado */}
-          {!user && !loading && (
+          {!user && (
             <nav 
               className="hidden md:flex items-center gap-8"
               role="navigation"
@@ -160,7 +160,7 @@ export default function Header() {
 
           {/* CTA Buttons */}
           <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
-            {!loading && user ? (
+            {user && !loading ? (
               <>
                 {/* Badge Plano Pro */}
                 <Badge 
@@ -237,18 +237,16 @@ export default function Header() {
                 </div>
               </>
             ) : (
-              !loading && (
-                <Link href="/login">
-                  <Button 
-                    variant="outline" 
-                    className="hidden md:inline-flex"
-                    size="sm"
-                  >
-                    <LogIn className="w-4 h-4 mr-2" />
-                    Entrar
-                  </Button>
-                </Link>
-              )
+              <Link href="/login">
+                <Button 
+                  variant="outline" 
+                  className="hidden md:inline-flex"
+                  size="sm"
+                >
+                  <LogIn className="w-4 h-4 mr-2" />
+                  Entrar
+                </Button>
+              </Link>
             )}
             
             {/* Mobile Menu */}
@@ -289,7 +287,7 @@ export default function Header() {
                   </nav>
 
                   <div className="border-t border-gray-200 pt-4 mt-4">
-                    {!loading && user ? (
+                    {user && !loading ? (
                       <div className="flex flex-col gap-3">
                         <Badge 
                           variant="default"
@@ -344,17 +342,15 @@ export default function Header() {
                         </Button>
                       </div>
                     ) : (
-                      !loading && (
-                        <Link href="/login">
-                          <Button 
-                            variant="outline" 
-                            className="w-full"
-                          >
-                            <LogIn className="w-4 h-4 mr-2" />
-                            Entrar
-                          </Button>
-                        </Link>
-                      )
+                      <Link href="/login">
+                        <Button 
+                          variant="outline" 
+                          className="w-full"
+                        >
+                          <LogIn className="w-4 h-4 mr-2" />
+                          Entrar
+                        </Button>
+                      </Link>
                     )}
                   </div>
                 </div>

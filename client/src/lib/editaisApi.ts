@@ -92,7 +92,7 @@ export async function fetchEditaisCount(): Promise<number> {
 }
 
 /** Mapeamento área onboarding -> termos para filtrar editais */
-const AREA_FILTER_MAP: Record<string, string[]> = {
+export const AREA_FILTER_MAP: Record<string, string[]> = {
   tech: ["tecnologia", "tecnológico", "inovação", "software", "digital", "ti"],
   health: ["saúde", "health", "medicina", "biotecnologia", "farmácia"],
   agro: ["agro", "agronegócio", "agricultura", "rural", "agrícola"],
@@ -100,6 +100,26 @@ const AREA_FILTER_MAP: Record<string, string[]> = {
   bio: ["bio", "biotecnologia", "biologia", "genética"],
   other: [],
 };
+
+/** Opções de área para filtro no Dashboard */
+export const AREA_FILTER_OPTIONS: { value: string; label: string }[] = [
+  { value: "todos", label: "Todas as áreas" },
+  { value: "tech", label: "Tecnologia" },
+  { value: "health", label: "Saúde" },
+  { value: "agro", label: "Agronegócio" },
+  { value: "energy", label: "Energia" },
+  { value: "bio", label: "Biotecnologia" },
+  { value: "other", label: "Outra" },
+];
+
+/** Verifica se o edital corresponde ao filtro de área */
+export function editalMatchesArea(edital: { area?: string | null; descricao?: string | null }, areaFilter: string): boolean {
+  if (areaFilter === "todos" || !areaFilter) return true;
+  const termos = AREA_FILTER_MAP[areaFilter];
+  if (!termos || termos.length === 0) return true; // "other" ou desconhecido = mostra todos
+  const areaText = (edital.area || edital.descricao || "").toLowerCase();
+  return termos.some((t) => areaText.includes(t));
+}
 
 /**
  * Busca estatísticas de editais para onboarding (não requer autenticação)
@@ -343,7 +363,7 @@ export async function fetchEditaisWithScores(
   user?: User | null,
   profile?: UserProfile | null,
   editaisToScore?: DatabaseEdital[],
-  options?: { forceRecalculate?: boolean }
+  options?: { forceRecalculate?: boolean; forceRecalcForIds?: string[] }
 ): Promise<EditalWithScores[]> {
   const editais =
     editaisToScore ?? (await fetchEditaisFromSupabase());
@@ -351,12 +371,14 @@ export async function fetchEditaisWithScores(
   const batchSize = 5;
   const editaisComScores: EditalWithScores[] = [];
   const forceRecalculate = options?.forceRecalculate === true;
+  const forceRecalcForIds = new Set(options?.forceRecalcForIds ?? []);
 
   for (let i = 0; i < editais.length; i += batchSize) {
     const batch = editais.slice(i, i + batchSize);
     const batchResults = await Promise.all(
       batch.map(async (edital) => {
-        const scores = await calculateEditalScores(edital, userId, user, profile, { forceRecalculate });
+        const forceThis = forceRecalculate || forceRecalcForIds.has(edital.id);
+        const scores = await calculateEditalScores(edital, userId, user, profile, { forceRecalculate: forceThis });
         return { ...edital, ...scores };
       })
     );

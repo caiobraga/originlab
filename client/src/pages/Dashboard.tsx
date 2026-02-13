@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { 
   ArrowLeft, Search, Filter, Globe, TrendingUp, Calendar, 
@@ -11,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
@@ -18,9 +20,13 @@ import { UserProfile } from "@/lib/userProfile";
 import Header from "@/components/Header";
 import {
   EditalWithScores,
+  DatabaseEdital,
   formatPrazo,
   getPaisFromEdital,
   getStatusFromEdital,
+  editalMatchesArea,
+  AREA_FILTER_OPTIONS,
+  calculateEditalScores,
 } from "@/lib/editaisApi";
 import { useEditaisList, useEditaisScores } from "@/hooks/useEditaisDashboard";
 import { formatValorProjeto, formatPrazoInscricao } from "@/lib/editalFormatters";
@@ -35,14 +41,17 @@ interface EditalDisplay extends EditalWithScores {
 }
 
 export default function Dashboard() {
-  const [filtroRegiao, setFiltroRegiao] = useState<string>("todos");
+  const [filtroArea, setFiltroArea] = useState<string>("todos");
   const [busca, setBusca] = useState("");
   const [mostrarInativos, setMostrarInativos] = useState(false); // Opção para mostrar editais inativos
-  const [filtroTipoEdital, setFiltroTipoEdital] = useState<"pesquisadores" | "empresas" | "todos">("todos"); // Filtro para tipo ambos
+  const [filtroMatchAlto, setFiltroMatchAlto] = useState(false); // Filtrar apenas editais com match >= 70%
+  const [filtroTipoEdital, setFiltroTipoEdital] = useState<"pesquisadores" | "empresas" | "todos">("todos"); // Filtro para tipo (quando usuário é "ambos")
   const INCREMENTO_PAGINACAO = 5;
   const [visibleCount, setVisibleCount] = useState(15); // Paginação infinita: exibir 15 iniciais, depois +5 ao rolar
   const [gerandoProposta, setGerandoProposta] = useState<string | null>(null);
   const [forceRecalcScores, setForceRecalcScores] = useState(false);
+  const [filtrosSheetOpen, setFiltrosSheetOpen] = useState(false);
+  const queryClient = useQueryClient();
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const [, setLocation] = useLocation();
   const { user, loading: authLoading } = useAuth();
@@ -71,7 +80,7 @@ export default function Dashboard() {
   // Resetar paginação quando filtros mudarem
   useEffect(() => {
     setVisibleCount(15);
-  }, [busca, filtroRegiao, filtroTipoEdital, mostrarInativos]);
+  }, [busca, filtroArea, filtroTipoEdital, mostrarInativos, filtroMatchAlto]);
 
   // Paginação infinita: carregar mais 5 editais quando o sentinel entrar na tela
   const handleLoadMore = useCallback(() => {
@@ -552,15 +561,10 @@ export default function Dashboard() {
       (edital.orgao?.toLowerCase() || "").includes(busca.toLowerCase()) ||
       (edital.area?.toLowerCase() || "").includes(busca.toLowerCase());
 
-    // Filtro de região
-    const matchRegiao =
-      filtroRegiao === "todos" ||
-      (filtroRegiao === "brasil" && edital.pais === "Brasil") ||
-      (filtroRegiao === "europa" && edital.pais === "União Europeia") ||
-      (filtroRegiao === "latam" &&
-        ["Brasil", "Chile", "Colômbia"].includes(edital.pais));
+    // Filtro de área (Tecnologia, Saúde, Agronegócio, etc.)
+    const matchArea = editalMatchesArea(edital, filtroArea);
 
-    return matchBusca && matchRegiao;
+    return matchBusca && matchArea;
   });
 
   // Paginação: apenas os visíveis (scores calculados sob demanda)
@@ -572,6 +576,26 @@ export default function Dashboard() {
     profile ?? null,
     forceRecalcScores
   );
+
+  const recalcMutation = useMutation({
+    mutationFn: async ({ edital }: { edital: DatabaseEdital }) => {
+      if (!user?.id) throw new Error("Não logado");
+      return calculateEditalScores(edital, user.id, user, profile ?? null, { forceRecalculate: true });
+    },
+    onSuccess: (scores, { edital }) => {
+      const queryKey = ["editais-scores", user?.id, visibleEditais.map((e) => e.id).sort().join(","), forceRecalcScores];
+      queryClient.setQueryData<EditalWithScores[]>(queryKey, (old) => {
+        if (!old) return old;
+        return old.map((e) =>
+          e.id === edital.id ? { ...e, ...scores } : e
+        );
+      });
+      toast.success("Probabilidade recalculada");
+    },
+    onError: () => {
+      toast.error("Erro ao recalcular. Tente novamente.");
+    },
+  });
   const editaisComScores = scoresQuery.data ?? [];
 
   // Enquanto os scores carregam (n8n), mostrar placeholder com texto "Carregando probabilidade"
@@ -620,10 +644,12 @@ export default function Dashboard() {
     return () => observer.disconnect();
   }, [hasMore, scoresQuery.isLoading, handleLoadMore, editaisFiltrados.length]);
 
+  const editaisExibidos = filtroMatchAlto ? editais.filter((e) => e.match >= 70) : editais;
+
   const stats = {
     editaisAtivos: editaisFiltrados.length,
     emAnalise: editaisFiltrados.filter((e) => getStatusFromEdital(e) === "em_analise").length,
-    matchAlto: editais.filter((e) => e.match >= 90).length,
+    matchAlto: editais.filter((e) => e.match >= 70).length,
   };
 
   // Não renderizar se não estiver logado (está redirecionando)
@@ -717,7 +743,7 @@ export default function Dashboard() {
               <Sparkles className="w-5 h-5 text-violet-600 transition-transform duration-200 hover:scale-110" />
             </div>
             <div className="text-3xl font-bold text-gray-900">{stats.matchAlto}</div>
-            <div className="text-sm text-gray-600">Match acima de 90%</div>
+            <div className="text-sm text-gray-600">Match acima de 70%</div>
           </div>
 
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md hover:border-gray-300 transition-all duration-200">
@@ -743,24 +769,93 @@ export default function Dashboard() {
                 />
               </div>
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <Filter className="w-5 h-5 text-gray-400 flex-shrink-0" />
-              <select
-                className="px-3 md:px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto transition-all duration-200 hover:border-gray-400 cursor-pointer"
-                value={filtroRegiao}
-                onChange={(e) => setFiltroRegiao(e.target.value)}
-              >
-                <option value="todos">Todas as regiões</option>
-                <option value="brasil">🇧🇷 Brasil</option>
-                <option value="europa">🇪🇺 Europa</option>
-                <option value="latam">🌎 América Latina</option>
-              </select>
+            {/* Mobile: botão Filtros que abre Sheet de baixo para cima */}
+            <div className="md:hidden">
+              <Sheet open={filtrosSheetOpen} onOpenChange={setFiltrosSheetOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="outline" className="w-full justify-center gap-2">
+                    <Filter className="w-5 h-5" />
+                    Filtros
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="bottom" className="h-auto max-h-[85vh] rounded-t-2xl">
+                  <SheetHeader>
+                    <SheetTitle>Filtros</SheetTitle>
+                  </SheetHeader>
+                  <div className="space-y-6 py-4">
+                    {profile && !profileLoading && profile.userType === "ambos" && (
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700 mb-2 block">Tipo</Label>
+                        <div className="flex flex-col gap-1">
+                          {[
+                            { value: "todos" as const, label: "Todos os tipos" },
+                            { value: "pesquisadores" as const, label: "🔬 Pesquisadores" },
+                            { value: "empresas" as const, label: "🏢 Empresas" },
+                          ].map((opt) => (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => { setFiltroTipoEdital(opt.value); }}
+                              className={`flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
+                                filtroTipoEdital === opt.value ? "bg-blue-50 text-blue-700 border-2 border-blue-200" : "bg-gray-50 text-gray-700 border-2 border-transparent hover:bg-gray-100"
+                              }`}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700 mb-2 block">Área</Label>
+                      <div className="flex flex-col gap-1">
+                        {AREA_FILTER_OPTIONS.map((opt) => (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => { setFiltroArea(opt.value); }}
+                            className={`flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
+                              filtroArea === opt.value ? "bg-blue-50 text-blue-700 border-2 border-blue-200" : "bg-gray-50 text-gray-700 border-2 border-transparent hover:bg-gray-100"
+                            }`}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 pt-2">
+                      <Checkbox
+                        id="mostrar-inativos-mobile"
+                        checked={mostrarInativos}
+                        onCheckedChange={(checked) => setMostrarInativos(checked === true)}
+                      />
+                      <Label htmlFor="mostrar-inativos-mobile" className="text-sm text-gray-700 cursor-pointer">
+                        Mostrar editais inativos (com prazo encerrado)
+                      </Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="match-alto-mobile"
+                        checked={filtroMatchAlto}
+                        onCheckedChange={(checked) => setFiltroMatchAlto(checked === true)}
+                      />
+                      <Label htmlFor="match-alto-mobile" className="text-sm text-gray-700 cursor-pointer">
+                        Apenas match ≥ 70%
+                      </Label>
+                    </div>
+                    <Button className="w-full" onClick={() => setFiltrosSheetOpen(false)}>
+                      Aplicar filtros
+                    </Button>
+                  </div>
+                </SheetContent>
+              </Sheet>
             </div>
-            {/* Filtro de tipo de edital - apenas para usuários tipo "ambos" */}
-            {profile && !profileLoading && profile.userType === "ambos" && (
-              <div className="flex items-center gap-2 flex-shrink-0">
+            {/* Desktop: selects inline */}
+            <div className="hidden md:flex items-center gap-2 flex-shrink-0 flex-wrap">
+              <Filter className="w-5 h-5 text-gray-400 flex-shrink-0" />
+              {profile && !profileLoading && profile.userType === "ambos" && (
                 <select
-                  className="px-3 md:px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto transition-all duration-200 hover:border-gray-400 cursor-pointer"
+                  className="px-3 md:px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 hover:border-gray-400 cursor-pointer"
                   value={filtroTipoEdital}
                   onChange={(e) => setFiltroTipoEdital(e.target.value as "pesquisadores" | "empresas" | "todos")}
                 >
@@ -768,19 +863,40 @@ export default function Dashboard() {
                   <option value="pesquisadores">🔬 Pesquisadores</option>
                   <option value="empresas">🏢 Empresas</option>
                 </select>
-              </div>
-            )}
+              )}
+              <select
+                className="px-3 md:px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 hover:border-gray-400 cursor-pointer"
+                value={filtroArea}
+                onChange={(e) => setFiltroArea(e.target.value)}
+              >
+                {AREA_FILTER_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
           </div>
           <div className="mt-4 pt-4 border-t border-gray-200">
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="mostrar-inativos"
-                checked={mostrarInativos}
-                onCheckedChange={(checked) => setMostrarInativos(checked === true)}
-              />
-              <Label htmlFor="mostrar-inativos" className="text-sm text-gray-700 cursor-pointer">
-                Mostrar editais inativos (com prazo encerrado)
-              </Label>
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="mostrar-inativos"
+                  checked={mostrarInativos}
+                  onCheckedChange={(checked) => setMostrarInativos(checked === true)}
+                />
+                <Label htmlFor="mostrar-inativos" className="text-sm text-gray-700 cursor-pointer">
+                  Mostrar editais inativos (com prazo encerrado)
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="match-alto"
+                  checked={filtroMatchAlto}
+                  onCheckedChange={(checked) => setFiltroMatchAlto(checked === true)}
+                />
+                <Label htmlFor="match-alto" className="text-sm text-gray-700 cursor-pointer">
+                  Apenas match ≥ 70%
+                </Label>
+              </div>
             </div>
           </div>
           {profile && !profileLoading && (
@@ -815,7 +931,7 @@ export default function Dashboard() {
 
         {/* Editais List */}
         <div className="space-y-4">
-          {editais.map((edital) => (
+          {editaisExibidos.map((edital) => (
             <div key={edital.id} className="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-gray-200 hover:shadow-md hover:border-gray-300 transition-all duration-200 cursor-pointer">
               <div className="flex flex-col md:flex-row items-start md:justify-between gap-4 mb-4">
                 <div className="flex-1 min-w-0 w-full">
@@ -963,23 +1079,44 @@ export default function Dashboard() {
                         </div>
                         <div className="text-xs text-gray-500">Match e aprovação</div>
                       </>
-                    ) : (
-                      <>
-                        <div className="flex items-center gap-2 mb-1 justify-center md:justify-end">
-                          <div className="text-2xl md:text-3xl font-bold text-blue-600">{edital.match}%</div>
-                          <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5 text-green-600 flex-shrink-0" />
-                        </div>
-                        <div className="text-xs text-gray-600">Match</div>
-                        {edital.justificativa != null && edital.justificativa !== "" && (
-                          <>
-                            <div className="text-xs text-violet-600 font-medium mt-0.5">{edital.probabilidade}% aprovação</div>
-                            <p className="text-xs text-gray-500 mt-1 line-clamp-2 max-w-[140px] sm:max-w-[160px] md:max-w-[180px] break-words" title={edital.justificativa}>
-                              {edital.justificativa}
-                            </p>
-                          </>
-                        )}
-                      </>
-                    )}
+                    ) : (() => {
+                      const isPlaceholder = edital.match === 50 || edital.probabilidade === 50 || (edital.justificativa == null || edital.justificativa === "");
+                      const isRecalculating = recalcMutation.isPending && recalcMutation.variables?.edital.id === edital.id;
+                      if (isPlaceholder) {
+                        return (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-9 text-xs text-violet-600 hover:text-violet-700 hover:bg-violet-50"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              recalcMutation.mutate({ edital });
+                            }}
+                            disabled={isRecalculating}
+                          >
+                            {isRecalculating ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                            ) : (
+                              <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+                            )}
+                            Recalcular probabilidade
+                          </Button>
+                        );
+                      }
+                      return (
+                        <>
+                          <div className="flex items-center gap-2 mb-1 justify-center md:justify-end">
+                            <div className="text-2xl md:text-3xl font-bold text-blue-600">{edital.match}%</div>
+                            <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5 text-green-600 flex-shrink-0" />
+                          </div>
+                          <div className="text-xs text-gray-600">Match</div>
+                          <div className="text-xs text-violet-600 font-medium mt-0.5">{edital.probabilidade}% aprovação</div>
+                          <p className="text-xs text-gray-500 mt-1 line-clamp-2 max-w-[140px] sm:max-w-[160px] md:max-w-[180px] break-words" title={edital.justificativa ?? ""}>
+                            {edital.justificativa}
+                          </p>
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>
@@ -1024,12 +1161,14 @@ export default function Dashboard() {
               </div>
             )}
 
-            {editaisFiltrados.length === 0 && !loading && (
+            {editaisExibidos.length === 0 && !loading && (
               <div className="text-center py-12">
                 <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-600">
                   {editaisRaw.length === 0
                     ? "Nenhum edital encontrado no banco de dados."
+                    : filtroMatchAlto && editaisFiltrados.length > 0
+                    ? "Nenhum edital com match ≥ 70%. Tente desmarcar o filtro \"Apenas match ≥ 70%\"."
                     : "Nenhum edital encontrado. Tente marcar \"Mostrar editais inativos\" ou ajustar os filtros."}
                 </p>
               </div>
