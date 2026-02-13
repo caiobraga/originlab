@@ -35,10 +35,17 @@ export default function Login() {
       return;
     }
     let cancelled = false;
-    getUserProfile(user).then((profile) => {
-      if (cancelled) return;
-      setLocation(profile?.onboardingCompleted ? "/dashboard" : "/onboarding?new=1");
-    });
+    getUserProfile(user)
+      .then((profile) => {
+        if (cancelled) return;
+        setLocation(profile?.onboardingCompleted ? "/dashboard" : "/onboarding?new=1");
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          console.warn("Erro ao buscar perfil para redirecionamento:", err);
+          setLocation("/onboarding?new=1");
+        }
+      });
     return () => { cancelled = true; };
   }, [user, setLocation]);
 

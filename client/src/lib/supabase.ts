@@ -1,13 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 
-const envSupabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-// Em dev, usa proxy do Vite para evitar CORS ao chamar Supabase de localhost
-const supabaseUrl =
-  import.meta.env.DEV && typeof window !== "undefined"
-    ? `${window.location.origin}/supabase-proxy`
-    : envSupabaseUrl;
 
 // Check if Supabase is properly configured
 export const isSupabaseConfigured = () => {
@@ -19,10 +13,10 @@ export const isSupabaseConfigured = () => {
     supabaseAnonKey.length > 50 &&
     supabaseAnonKey.startsWith("eyJ");
   const validUrl =
-    envSupabaseUrl &&
-    envSupabaseUrl !== "your_supabase_project_url" &&
-    envSupabaseUrl !== "https://placeholder.supabase.co" &&
-    envSupabaseUrl.startsWith("https://");
+    supabaseUrl &&
+    supabaseUrl !== "your_supabase_project_url" &&
+    supabaseUrl !== "https://placeholder.supabase.co" &&
+    supabaseUrl.startsWith("https://");
   return !!(validKey && validUrl);
 };
 

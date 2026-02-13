@@ -3,17 +3,18 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import fs from "node:fs";
 import path from "path";
-import { defineConfig, loadEnv } from "vite";
+import { defineConfig } from "vite";
 import { vitePluginManusRuntime } from "vite-plugin-manus-runtime";
 import { apiPlugin } from "./vite-plugin-api";
 
-const plugins = [react(), tailwindcss(), /* jsxLocPlugin(), */ vitePluginManusRuntime(), apiPlugin()];
+const plugins = [
+  react(),
+  tailwindcss(),
+  /* jsxLocPlugin(), */ vitePluginManusRuntime(),
+  apiPlugin(),
+];
 
-export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, path.resolve(import.meta.dirname), "");
-  const supabaseUrl = env.VITE_SUPABASE_URL;
-
-  return {
+export default defineConfig({
   plugins,
   optimizeDeps: {
     exclude: ["pdf-parse", "pdfjs-dist"],
@@ -35,16 +36,6 @@ export default defineConfig(({ mode }) => {
     port: 3000,
     strictPort: false, // Will find next available port if 3000 is busy
     host: true,
-    proxy: supabaseUrl
-      ? {
-          "/supabase-proxy": {
-            target: supabaseUrl,
-            changeOrigin: true,
-            secure: true,
-            rewrite: (path) => path.replace(/^\/supabase-proxy/, ""),
-          },
-        }
-      : undefined,
     allowedHosts: [
       ".manuspre.computer",
       ".manus.computer",
@@ -62,5 +53,4 @@ export default defineConfig(({ mode }) => {
       overlay: false, // Desabilitar overlay de erro temporariamente
     },
   },
-};
 });
