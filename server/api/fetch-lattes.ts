@@ -3,11 +3,17 @@
  * POST /api/lattes/parse-paste - cola HTML/texto
  * POST /api/lattes/parse-zip - upload do ZIP exportado do wwws.cnpq.br (requer login lá).
  * POST /api/lattes/parse-pdf - upload de PDF do currículo; extrai texto e retorna dados no mesmo formato.
+ * GET /api/fetch-cnpj?cnpj=xx - busca dados de CNPJ (ReceitaWS/BrasilAPI) com cache no banco
  */
 import express from "express";
 import AdmZip from "adm-zip";
+import { createClient } from "@supabase/supabase-js";
 
 const router = express.Router();
+
+const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+const supabaseKey = process.env.VITE_SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
 const LATTES_XML_URL = "https://buscatextual.cnpq.br/buscatextual/download.do?metodo=apresentar&idcnpq=";
 const LATTES_HTML_URL = "https://buscatextual.cnpq.br/buscatextual/visualizacv.do?id=";
@@ -500,6 +506,148 @@ router.post("/lattes/parse-pdf", async (req, res) => {
         : msg;
     res.status(500).json({ error: userMsg });
   }
+});
+
+/** GET /api/fetch-cnpj?cnpj=xx - Proxy CNPJ com cache no banco (evita CORS e repetir requisições) */
+router.get("/fetch-cnpj", async (req, res) => {
+  const raw = (req.query.cnpj as string) || "";
+  const cleanCnpj = String(raw).replace(/\D/g, "");
+  if (cleanCnpj.length !== 14) {
+    return res.status(400).json({ error: "CNPJ inválido (deve ter 14 dígitos)" });
+  }
+
+  // 1) Verificar cache no banco
+  if (supabase) {
+    try {
+      const { data: cached, error } = await supabase
+        .from("cnpj_cache")
+        .select("data")
+        .eq("cnpj", cleanCnpj)
+        .maybeSingle();
+      if (!error && cached?.data) {
+        return res.json(cached.data as object);
+      }
+    } catch {}
+  }
+
+  const processReceitaWS = (data: any) => {
+    const calcTempo = (abertura: string): number | null => {
+      if (!abertura) return null;
+      try {
+        const [d, m, a] = abertura.split("/");
+        const dt = new Date(parseInt(a), parseInt(m) - 1, parseInt(d));
+        return Math.floor((Date.now() - dt.getTime()) / (1000 * 60 * 60 * 24 * 30));
+      } catch {
+        return null;
+      }
+    };
+    const situacao = data.situacao || "Desconhecida";
+    const dataAbertura = data.abertura || "";
+    const tempoAtividade = calcTempo(dataAbertura);
+    const empresaAtiva = situacao === "ATIVA";
+    const observacoes: string[] = [];
+    if (!empresaAtiva) observacoes.push("Empresa não está ativa na Receita Federal");
+    if (tempoAtividade !== null && tempoAtividade < 6) observacoes.push("Empresa com menos de 6 meses de atividade");
+    if (!data.email) observacoes.push("Email não cadastrado na Receita Federal");
+    const podeParticiparEditais = empresaAtiva && (tempoAtividade === null || tempoAtividade >= 6);
+    return {
+      cnpj: cleanCnpj,
+      razaoSocial: data.nome || data.fantasia || "",
+      nomeFantasia: data.fantasia,
+      situacao,
+      dataAbertura,
+      capitalSocial: data.capital_social,
+      porte: data.porte || "",
+      naturezaJuridica: data.natureza_juridica || "",
+      endereco: { logradouro: data.logradouro || "", numero: data.numero || "", complemento: data.complemento, bairro: data.bairro || "", municipio: data.municipio || "", uf: data.uf || "", cep: data.cep ? String(data.cep).replace(/\D/g, "") : "" },
+      atividades: [].concat(data.atividade_principal || [], data.atividades_secundarias || []).map((atv: any) => ({ codigo: atv.code || "", descricao: atv.text || "", principal: !!(data.atividade_principal || []).find((a: any) => a.code === atv.code) })),
+      telefones: data.telefone ? [data.telefone] : [],
+      email: data.email,
+      elegibilidade: { empresaAtiva, tempoAtividade: tempoAtividade ?? undefined, podeParticiparEditais, observacoes: observacoes.length ? observacoes : undefined },
+    };
+  };
+  const processBrasilAPI = (data: any) => {
+    const calcTempo = (abertura: string): number | null => {
+      if (!abertura) return null;
+      try {
+        const [a, m, d] = abertura.split("-");
+        const dt = new Date(parseInt(a), parseInt(m) - 1, parseInt(d));
+        return Math.floor((Date.now() - dt.getTime()) / (1000 * 60 * 60 * 24 * 30));
+      } catch {
+        return null;
+      }
+    };
+    const situacao = data.descricao_situacao_cadastral || "Desconhecida";
+    const dataAbertura = data.data_inicio_atividade || "";
+    const tempoAtividade = calcTempo(dataAbertura);
+    const empresaAtiva = situacao === "ATIVA" || data.situacao_cadastral === 2;
+    const observacoes: string[] = [];
+    if (!empresaAtiva) observacoes.push("Empresa não está ativa na Receita Federal");
+    if (tempoAtividade !== null && tempoAtividade < 6) observacoes.push("Empresa com menos de 6 meses de atividade");
+    const podeParticiparEditais = empresaAtiva && (tempoAtividade === null || tempoAtividade >= 6);
+    return {
+      cnpj: cleanCnpj,
+      razaoSocial: data.razao_social || data.nome_fantasia || "",
+      nomeFantasia: data.nome_fantasia,
+      situacao,
+      dataAbertura: dataAbertura ? dataAbertura.split("-").reverse().join("/") : "",
+      capitalSocial: data.capital_social?.toString(),
+      porte: data.porte || "",
+      naturezaJuridica: data.natureza_juridica || "",
+      endereco: { logradouro: data.logradouro || "", numero: data.numero || "", complemento: data.complemento, bairro: data.bairro || "", municipio: data.municipio || "", uf: data.uf || "", cep: data.cep ? String(data.cep).replace(/\D/g, "") : "" },
+      atividades: (data.cnae_fiscal != null ? [{ codigo: String(data.cnae_fiscal), descricao: data.cnae_fiscal_descricao || "", principal: true }] : []).concat((data.cnaes_secundarios || []).map((c: any) => ({ codigo: String(c.codigo || ""), descricao: c.descricao || "", principal: false }))),
+      telefones: data.ddd_telefone_1 ? [data.ddd_telefone_1] : [],
+      email: data.email,
+      elegibilidade: { empresaAtiva, tempoAtividade: tempoAtividade ?? undefined, podeParticiparEditais, observacoes: observacoes.length ? observacoes : undefined },
+    };
+  };
+  const fetchOpts = {
+    method: "GET" as const,
+    headers: {
+      Accept: "application/json",
+      "User-Agent": "Mozilla/5.0 (compatible; OrigemLab/1.0)",
+    },
+  };
+
+  let result: object | null = null;
+
+  // BrasilAPI primeiro (mais estável, sem rate limit rígido)
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 10000);
+    const r = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cleanCnpj}`, { ...fetchOpts, signal: ctrl.signal });
+    clearTimeout(t);
+    if (r.ok) {
+      const data = await r.json();
+      if (data.razao_social || data.nome_fantasia) result = processBrasilAPI(data);
+    }
+  } catch {}
+  // Fallback ReceitaWS
+  if (!result) {
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 10000);
+      const r = await fetch(`https://www.receitaws.com.br/v1/cnpj/${cleanCnpj}`, { ...fetchOpts, signal: ctrl.signal });
+      clearTimeout(t);
+      if (r.ok) {
+        const data = await r.json();
+        if (data.status !== "ERROR" && (data.nome || data.fantasia)) result = processReceitaWS(data);
+      }
+    } catch {}
+  }
+
+  if (!result) {
+    return res.status(404).json({ error: "CNPJ não encontrado ou APIs indisponíveis" });
+  }
+
+  // Salvar no cache para próximas requisições
+  if (supabase) {
+    try {
+      await supabase.from("cnpj_cache").upsert({ cnpj: cleanCnpj, data: result }, { onConflict: "cnpj" });
+    } catch {}
+  }
+
+  return res.json(result);
 });
 
 router.get("/lattes/:id", async (req, res) => {

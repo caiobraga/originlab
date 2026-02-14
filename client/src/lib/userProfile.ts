@@ -1,15 +1,21 @@
 import { supabase } from "./supabase";
 import { User } from "@supabase/supabase-js";
 
-/** Chama upsert_user_profile com retry quando o backend retorna "User does not exist" (race pós-signUp). */
-async function callUpsertRpcWithRetry(rpcParams: {
+/** Params para upsert_user_profile (versão com consentimento - 9 params, evita ambiguidade PGRST203). */
+type UpsertRpcParams = {
   p_user_id: string;
   p_cpf: string | null;
   p_cnpj: string | null;
   p_lattes_id: string | null;
   p_user_type: string;
   p_has_cnpj: boolean;
-}): Promise<{ data: unknown; error: { code: string; message: string } | null }> {
+  p_data_collection_consent?: boolean;
+  p_consent_version?: string | null;
+  p_consent_date?: string | null;
+};
+
+/** Chama upsert_user_profile com retry quando o backend retorna "User does not exist" (race pós-signUp). */
+async function callUpsertRpcWithRetry(rpcParams: UpsertRpcParams): Promise<{ data: unknown; error: { code: string; message: string } | null }> {
   const { data, error } = await supabase.rpc('upsert_user_profile', rpcParams);
   if (!error) return { data, error: null };
   const isRaceCondition =
@@ -182,13 +188,16 @@ export async function saveUserProfile(
       // Durante signup, geralmente não há sessão ativa ainda
       // Sempre tentar usar a função SECURITY DEFINER primeiro (evita RLS no insert)
       if (!session || session.user.id !== userId) {
-        const rpcParams = {
+        const rpcParams: UpsertRpcParams = {
           p_user_id: userId,
           p_cpf: profileData.cpf ?? null,
           p_cnpj: profileData.cnpj ?? null,
           p_lattes_id: profileData.lattes_id ?? null,
           p_user_type: profileData.user_type,
           p_has_cnpj: profileData.has_cnpj === true,
+          p_data_collection_consent: profileData.data_collection_consent ?? false,
+          p_consent_version: profileData.consent_version ?? null,
+          p_consent_date: profileData.consent_date ?? null,
         };
         const functionResult = await callUpsertRpcWithRetry(rpcParams);
         if (functionResult.error) {
@@ -225,13 +234,16 @@ export async function saveUserProfile(
           // Se for erro de RLS, tentar usar a função (com retry para "User does not exist")
           if (error.code === '42501' || error.message?.includes('permission') || error.message?.includes('policy') || error.message?.includes('RLS')) {
             console.warn("Erro de RLS detectado. Tentando usar função upsert_user_profile...");
-            const rpcParams = {
+            const rpcParams: UpsertRpcParams = {
               p_user_id: userId,
               p_cpf: profileData.cpf ?? null,
               p_cnpj: profileData.cnpj ?? null,
               p_lattes_id: profileData.lattes_id ?? null,
               p_user_type: profileData.user_type,
               p_has_cnpj: profileData.has_cnpj === true,
+              p_data_collection_consent: profileData.data_collection_consent ?? false,
+              p_consent_version: profileData.consent_version ?? null,
+              p_consent_date: profileData.consent_date ?? null,
             };
             const functionResult = await callUpsertRpcWithRetry(rpcParams);
             if (functionResult.error) throw functionResult.error;
@@ -344,11 +356,22 @@ export async function getUserProfile(user: User | null): Promise<UserProfile | n
     if (profile) {
       const metadataProfile = user?.user_metadata?.profile;
       const curriculumFromDb = profile.curriculum_data != null && typeof profile.curriculum_data === "object";
+      // user_type: priorizar banco; se banco tem pesquisador ou vazio, usar user_metadata (cadastro pode não ter persistido no banco)
+      const dbUserType = (profile.user_type || "").trim();
+      const metaUserType = (metadataProfile?.userType || "").trim();
+      const resolvedUserType =
+        dbUserType === "pessoa-empresa" || dbUserType === "ambos"
+          ? dbUserType
+          : metaUserType === "pessoa-empresa" || metaUserType === "ambos"
+            ? metaUserType
+            : dbUserType === "pesquisador" || metaUserType === "pesquisador"
+              ? "pesquisador"
+              : "pesquisador";
       return {
         cpf: profile.cpf || undefined,
         cnpj: profile.cnpj || undefined,
         lattesId: profile.lattes_id || undefined,
-        userType: (profile.user_type as "pesquisador" | "pessoa-empresa" | "ambos") || "pesquisador",
+        userType: resolvedUserType as "pesquisador" | "pessoa-empresa" | "ambos",
         hasCnpj: profile.has_cnpj || false,
         curriculumData: (curriculumFromDb ? (profile.curriculum_data as CurriculumData) : metadataProfile?.curriculumData) ?? undefined,
         onboardingCompleted: profile.onboarding_completed ?? Boolean(metadataProfile?.onboarding_completed),
@@ -389,6 +412,8 @@ export interface OnboardingProfileUpdate {
   phone?: string;
   area?: string;
   userType?: "pesquisador" | "pessoa-empresa" | "ambos";
+  cnpj?: string;
+  hasCnpj?: boolean;
   markOnboardingCompleted?: boolean;
 }
 
@@ -405,6 +430,11 @@ export async function updateProfileFromOnboarding(
   if (data.phone !== undefined) row.phone = data.phone.replace(/\D/g, "").slice(0, 20) || null;
   if (data.area !== undefined) row.area = data.area || null;
   if (data.userType !== undefined) row.user_type = data.userType;
+  if (data.cnpj !== undefined) {
+    const cnpjLimpo = data.cnpj.replace(/\D/g, "");
+    row.cnpj = cnpjLimpo.length === 14 ? cnpjLimpo : null;
+    row.has_cnpj = cnpjLimpo.length === 14;
+  }
   if (data.markOnboardingCompleted === true) row.onboarding_completed = true;
   if (Object.keys(row).length === 1) return; // só user_id, nada a persistir
 

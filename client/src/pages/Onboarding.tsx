@@ -22,6 +22,7 @@ interface OnboardingData {
   telefone: string;
   userType: string;
   area: string;
+  cnpj: string;
 }
 
 function formatValorMilhoes(valor: number): string {
@@ -54,9 +55,12 @@ export default function Onboarding() {
 
   const isOnboarding1 = Boolean(user && isNewSignup);
 
+  /** Tipo de onboarding conforme perfil do usuário (pesquisador, pessoa-empresa ou ambos). */
+  const onboardingVariant = (profile?.userType ?? "pesquisador") as "pesquisador" | "pessoa-empresa" | "ambos";
+
   const [stepCompletar, setStepCompletar] = useState<StepCompletarPerfil>("telefone");
   const [stepConhecer, setStepConhecer] = useState<StepConhecerEditais>("userType");
-  const [data, setData] = useState<OnboardingData>({ telefone: "", userType: "", area: "" });
+  const [data, setData] = useState<OnboardingData>({ telefone: "", userType: "", area: "", cnpj: "" });
   const [loading, setLoading] = useState(false);
   const [uploadingPdf, setUploadingPdf] = useState(false);
   const [pdfExtractProgress, setPdfExtractProgress] = useState(0);
@@ -86,6 +90,8 @@ export default function Onboarding() {
       await updateProfileFromOnboarding(user.id, {
         phone: data.telefone.trim() || undefined,
         area: data.area || undefined,
+        cnpj: data.cnpj.trim() ? data.cnpj : undefined,
+        hasCnpj: data.cnpj.replace(/\D/g, "").length === 14,
         markOnboardingCompleted: true,
       });
       toast.success("Perfil atualizado!");
@@ -219,7 +225,132 @@ export default function Onboarding() {
                 </>
               )}
 
-              {stepCompletar === "curriculo" && (
+              {stepCompletar === "curriculo" && onboardingVariant === "pessoa-empresa" && (
+                <>
+                  <p className="text-gray-600 mb-4">
+                    Informe o CNPJ da empresa (opcional). Você pode preencher depois na página de perfil.
+                  </p>
+                  <Input
+                    placeholder="00.000.000/0001-00"
+                    value={data.cnpj}
+                    onChange={(e) => {
+                      const n = e.target.value.replace(/\D/g, "").slice(0, 14);
+                      let formatted = n;
+                      if (n.length > 12) formatted = n.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d+)/, "$1.$2.$3/$4-$5");
+                      else if (n.length > 8) formatted = n.replace(/(\d{2})(\d{3})(\d{3})(\d+)/, "$1.$2.$3/$4");
+                      else if (n.length > 5) formatted = n.replace(/(\d{2})(\d{3})(\d+)/, "$1.$2.$3");
+                      else if (n.length > 2) formatted = n.replace(/(\d{2})(\d+)/, "$1.$2");
+                      setData((d) => ({ ...d, cnpj: formatted }));
+                    }}
+                    maxLength={18}
+                    className="font-mono"
+                  />
+                  <Button className="w-full mt-3" onClick={() => setStepCompletar("area")}>
+                    Continuar <ArrowRight className="w-5 h-5 ml-2" />
+                  </Button>
+                </>
+              )}
+
+              {stepCompletar === "curriculo" && onboardingVariant === "ambos" && (
+                <>
+                  <p className="text-gray-600 mb-4">
+                    Você é pesquisador e empresa. Informe o CNPJ (opcional) e envie o currículo Lattes.
+                  </p>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">CNPJ da empresa (opcional)</label>
+                      <Input
+                        placeholder="00.000.000/0001-00"
+                        value={data.cnpj}
+                        onChange={(e) => {
+                          const n = e.target.value.replace(/\D/g, "").slice(0, 14);
+                          let formatted = n;
+                          if (n.length > 12) formatted = n.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d+)/, "$1.$2.$3/$4-$5");
+                          else if (n.length > 8) formatted = n.replace(/(\d{2})(\d{3})(\d{3})(\d+)/, "$1.$2.$3/$4");
+                          else if (n.length > 5) formatted = n.replace(/(\d{2})(\d{3})(\d+)/, "$1.$2.$3");
+                          else if (n.length > 2) formatted = n.replace(/(\d{2})(\d+)/, "$1.$2");
+                          setData((d) => ({ ...d, cnpj: formatted }));
+                        }}
+                        maxLength={18}
+                        className="font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Currículo Lattes (obrigatório)</label>
+                      <a
+                        href="https://www.lattes.cnpq.br/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 text-sm text-violet-600 hover:text-violet-800 hover:underline mb-2"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                        Abrir Plataforma Lattes (CNPq) para baixar ou imprimir seu currículo em PDF
+                      </a>
+                      <input
+                        type="file"
+                        accept=".pdf,application/pdf"
+                        className="hidden"
+                        id="onb-pdf-ambos"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) handleUploadCurriculo(f);
+                          e.target.value = "";
+                        }}
+                      />
+                      {!(curriculumExtracted || (profile?.curriculumData && typeof profile.curriculumData === "object")) && (
+                        <Button variant="outline" className="w-full" onClick={() => document.getElementById("onb-pdf-ambos")?.click()} disabled={uploadingPdf}>
+                          <FileText className="w-4 h-4 mr-2" />
+                          {uploadingPdf ? "Enviando e extraindo dados..." : "Enviar PDF do currículo"}
+                        </Button>
+                      )}
+                      {uploadingPdf && (
+                        <div className="w-full mt-2 space-y-2">
+                          <div className="flex justify-between text-sm text-gray-600">
+                            <span>Extraindo dados do PDF...</span>
+                            <span>{Math.round(Math.min(pdfExtractProgress, 100))}%</span>
+                          </div>
+                          <Progress value={Math.min(pdfExtractProgress, 100)} className="h-2" />
+                        </div>
+                      )}
+                      {(curriculumExtracted || (profile?.curriculumData && typeof profile.curriculumData === "object")) && !uploadingPdf && (
+                        <div className="w-full p-4 bg-green-50 border border-green-200 rounded-lg">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
+                              <span className="text-sm font-medium text-green-800 truncate">
+                                {uploadedFileName ? uploadedFileName : "Currículo cadastrado"}
+                              </span>
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-shrink-0 border-green-300 text-green-700 hover:bg-green-100"
+                              onClick={() => document.getElementById("onb-pdf-ambos")?.click()}
+                            >
+                              <RefreshCw className="w-4 h-4 mr-1.5" />
+                              Trocar arquivo
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <Button
+                    className="w-full mt-3"
+                    onClick={() => setStepCompletar("area")}
+                    disabled={!curriculumExtracted && !(profile?.curriculumData && typeof profile.curriculumData === "object")}
+                  >
+                    Continuar <ArrowRight className="w-5 h-5 ml-2" />
+                  </Button>
+                  {!curriculumExtracted && !(profile?.curriculumData && typeof profile.curriculumData === "object") && (
+                    <p className="text-sm text-amber-700 mt-2">
+                      Envie o PDF do currículo para continuar.
+                    </p>
+                  )}
+                </>
+              )}
+
+              {stepCompletar === "curriculo" && onboardingVariant === "pesquisador" && (
                 <>
                   <p className="text-gray-600 mb-4">
                     Envie um PDF do currículo baixado pelo Lattes para análise de elegibilidade (formação, vínculo institucional e área). Os dados são necessários para o match com editais.
@@ -348,6 +479,8 @@ export default function Onboarding() {
                       await updateProfileFromOnboarding(user.id, {
                         phone: data.telefone.trim() || undefined,
                         area: data.area || undefined,
+                        cnpj: data.cnpj.trim() ? data.cnpj : undefined,
+                        hasCnpj: data.cnpj.replace(/\D/g, "").length === 14,
                         markOnboardingCompleted: true,
                       });
                     } catch {

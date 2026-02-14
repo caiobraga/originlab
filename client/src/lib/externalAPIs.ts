@@ -284,94 +284,31 @@ function calcularAnosExperiencia(html: string): number | null {
 }
 
 /**
- * Busca informações de CNPJ usando API pública (ReceitaWS)
+ * Busca informações de CNPJ via proxy no servidor (evita CORS).
+ * O servidor chama ReceitaWS e BrasilAPI; o browser não chama APIs externas diretamente.
  */
 export async function fetchCNPJData(cnpj: string): Promise<CNPJData | null> {
   try {
-    // Remover formatação
     const cleanCnpj = cnpj.replace(/\D/g, "");
-    
     if (cleanCnpj.length !== 14) {
       throw new Error("CNPJ inválido");
     }
 
-    console.log("Buscando dados do CNPJ:", cleanCnpj);
+    const base = typeof window !== "undefined" ? "" : process.env.VITE_APP_URL || "http://localhost:3000";
+    const response = await fetch(`${base}/api/fetch-cnpj?cnpj=${encodeURIComponent(cleanCnpj)}`, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+    });
 
-    // Tentar API ReceitaWS primeiro
-    try {
-      // Criar AbortController para timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 segundos
-
-      const response = await fetch(`https://www.receitaws.com.br/v1/cnpj/${cleanCnpj}`, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      console.log("Resposta ReceitaWS:", response.status, response.statusText);
-
-      if (!response.ok) {
-        // Se receber 429 (rate limit) ou 403 (CORS), tentar API alternativa
-        if (response.status === 429 || response.status === 403) {
-          console.warn("ReceitaWS bloqueada, tentando API alternativa...");
-          throw new Error("Rate limit ou CORS bloqueado");
-        }
-        throw new Error(`Erro ao buscar CNPJ: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      console.log("Dados recebidos da ReceitaWS:", data);
-
-      if (data.status === "ERROR") {
-        throw new Error(data.message || "Erro ao buscar CNPJ");
-      }
-
-      // Verificar se os dados estão vazios ou inválidos
-      if (!data.nome && !data.fantasia) {
-        throw new Error("CNPJ não encontrado ou dados inválidos");
-      }
-
-      // Processar dados da ReceitaWS
-      return processCNPJData(cleanCnpj, data);
-    } catch (fetchError: any) {
-      console.error("Erro ao buscar na ReceitaWS:", fetchError);
-      
-      // Tentar API alternativa (BrasilAPI)
-      try {
-        console.log("Tentando API alternativa BrasilAPI...");
-        const brasilApiController = new AbortController();
-        const brasilApiTimeoutId = setTimeout(() => brasilApiController.abort(), 10000);
-        
-        const brasilApiResponse = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cleanCnpj}`, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-          },
-          signal: brasilApiController.signal,
-        });
-
-        clearTimeout(brasilApiTimeoutId);
-
-        if (brasilApiResponse.ok) {
-          const brasilApiData = await brasilApiResponse.json();
-          console.log("Dados recebidos da BrasilAPI:", brasilApiData);
-          
-          // Converter formato da BrasilAPI para nosso formato
-          return convertBrasilAPIToCNPJData(cleanCnpj, brasilApiData);
-        }
-      } catch (brasilApiError) {
-        console.error("Erro ao buscar na BrasilAPI:", brasilApiError);
-      }
-
-      // Se ambas as APIs falharem, retornar null
-      throw fetchError;
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      console.warn("Erro ao buscar CNPJ:", (err as { error?: string }).error || response.statusText);
+      return null;
     }
-  } catch (error: any) {
+
+    const data = (await response.json()) as CNPJData;
+    return data;
+  } catch (error: unknown) {
     console.error("Erro ao buscar dados do CNPJ:", error);
     return null;
   }

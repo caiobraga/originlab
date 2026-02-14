@@ -4,6 +4,7 @@ import express from 'express';
 export function apiPlugin(): Plugin {
   return {
     name: 'api-plugin',
+    enforce: 'pre', // API antes do SPA fallback para /api/* não retornar 404
     async configureServer(server) {
       // Carregar variáveis de ambiente
       try {
@@ -38,7 +39,7 @@ export function apiPlugin(): Plugin {
         console.log('   - /api/calculate-edital-scores');
         console.log('   - /api/generate-proposta');
         console.log('   - /api/improve-text');
-        console.log('   - /api/lattes/:id');
+        console.log('   - /api/lattes/:id, /api/fetch-cnpj');
       } catch (error) {
         console.error('❌ Erro ao configurar API endpoints:', error);
       }

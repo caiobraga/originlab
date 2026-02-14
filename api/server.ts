@@ -3,11 +3,13 @@ import extractEditalInfoRouter from "../server/api/extract-edital-info.js";
 import calculateEditalScoresRouter from "../server/api/calculate-edital-scores.js";
 import generatePropostaRouter from "../server/api/generate-proposta.js";
 import improveTextRouter from "../server/api/improve-text.js";
+import fetchLattesRouter from "../server/api/fetch-lattes.js";
 
 const app = express();
 
 // API routes
 app.use("/api", extractEditalInfoRouter);
+app.use("/api", fetchLattesRouter);
 app.use("/api", calculateEditalScoresRouter);
 app.use("/api", generatePropostaRouter);
 app.use("/api", improveTextRouter);
