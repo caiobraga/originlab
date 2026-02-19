@@ -42,8 +42,10 @@ Certifique-se de ter as seguintes variáveis configuradas no `.env.local`:
 VITE_SUPABASE_URL=https://seu-projeto.supabase.co
 VITE_SUPABASE_SERVICE_ROLE_KEY=sua-chave-service-role
 
-# Usar n8n (padrão - recomendado devido aos limites de quota)
+# Usar n8n produção (padrão)
 N8N_WEBHOOK_URL=https://n8n.srv652789.hstgr.cloud/webhook/789b0959-b90f-40e8-afe8-03aa8e486b43
+# Opcional: webhook "light" (menos intensivo) quando não há file_ids
+# N8N_WEBHOOK_LIGHT_URL=https://n8n.srv652789.hstgr.cloud/webhook/SEU-ID-LIGHT
 
 # Delays para evitar rate limiting (em milissegundos)
 API_REQUEST_DELAY_MS=3000      # Delay entre requisições de campos (padrão: 3000ms)

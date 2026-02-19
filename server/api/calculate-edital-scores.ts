@@ -326,17 +326,20 @@ router.post('/calculate-edital-scores', async (req, res) => {
     const editalInfo = formatEditalInfo(edital);
     const userData = formatUserData(user_data || {});
 
-    const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL || 'https://n8n.srv652789.hstgr.cloud/webhook/789b0959-b90f-40e8-afe8-03aa8e486b43';
+    const n8nWebhookFull = process.env.N8N_WEBHOOK_URL || 'https://n8n.srv652789.hstgr.cloud/webhook/789b0959-b90f-40e8-afe8-03aa8e486b43';
+    const n8nWebhookLight = process.env.N8N_WEBHOOK_LIGHT_URL || n8nWebhookFull;
 
     let scores: { match: number; probabilidade: number; justificativa: string };
 
-    if (n8nWebhookUrl) {
-      console.log(`🔄 Calculando scores via n8n para edital ${edital_id} e usuário ${user_id}...`);
+    if (n8nWebhookFull) {
       try {
         const message = buildScoresPrompt(editalInfo, userData);
         const file_ids = await getEditalFileIds(edital_id);
+        const useLight = file_ids.length === 0 && n8nWebhookLight !== n8nWebhookFull;
+        const n8nWebhookUrl = useLight ? n8nWebhookLight : n8nWebhookFull;
+        console.log(`🔄 Calculando scores via n8n (${useLight ? 'light' : 'full'}) para edital ${edital_id} e usuário ${user_id}...`);
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 18000);
+        const timeoutId = setTimeout(() => controller.abort(), useLight ? 12000 : 18000);
         const webhookRes = await fetch(n8nWebhookUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
