@@ -84,13 +84,13 @@ function parseLattesFromXml(xml: string, id: string): Record<string, unknown> | 
   const oneGlobal = (re: RegExp): string | undefined => one(xml, re);
   const all = (re: RegExp): string[] => {
     const matches = xml.matchAll(re);
-    return [...matches].map((m) => strip(m[1])).filter(Boolean);
+    return Array.from(matches).map((m) => strip(m[1])).filter(Boolean);
   };
 
   const nome = oneGlobal(/<NOME-COMPLETO>([\s\S]*?)<\/NOME-COMPLETO>/i) || `Pesquisador ${id.slice(0, 4)}`;
   const areas = all(/<NOME-DA-AREA-DO-CONHECIMENTO>([\s\S]*?)<\/NOME-DA-AREA-DO-CONHECIMENTO>/gi);
   const areasEspecialidade = all(/<NOME-DA-ESPECIALIDADE>([\s\S]*?)<\/NOME-DA-ESPECIALIDADE>/gi);
-  const areasAtuacao = [...new Set([...areas, ...areasEspecialidade])].filter(Boolean);
+  const areasAtuacao = Array.from(new Set([...areas, ...areasEspecialidade])).filter(Boolean);
 
   const formacaoBlocks = xml.match(/<FORMACAO-ACADEMICA-TITULACAO>[\s\S]*?<\/FORMACAO-ACADEMICA-TITULACAO>/gi);
   const formacao: Array<{ nivel: string; curso: string; instituicao: string; anoConclusao?: string }> = [];
@@ -465,7 +465,7 @@ router.post("/lattes/parse-pdf", async (req, res) => {
       return res.status(400).json({ error: "Arquivo PDF muito pequeno." });
     }
     let text = "";
-    // Usar pdf.js-extract (Node 18+) como primário; pdf-parse requer Node 20+
+    const isServerless = typeof process.env.VERCEL === "string" || typeof process.env.AWS_LAMBDA_FUNCTION_NAME === "string";
     try {
       const { PDFExtract } = await import("pdf.js-extract");
       const pdfExtract = new PDFExtract();
@@ -474,12 +474,23 @@ router.post("/lattes/parse-pdf", async (req, res) => {
         data?.pages
           ?.flatMap((p: { content?: Array<{ str?: string }> }) => p.content?.map((c: { str?: string }) => c.str ?? "") ?? [])
           .join(" ") ?? "";
-    } catch (fallbackErr) {
-      const { PDFParse } = await import("pdf-parse");
-      const parser = new PDFParse({ data: new Uint8Array(buffer) });
-      const textResult = await parser.getText();
-      await parser.destroy();
-      text = textResult?.text || "";
+    } catch (primaryErr) {
+      if (isServerless) {
+        console.warn("PDF extract failed in serverless (pdf.js-extract):", (primaryErr as Error).message);
+        return res.status(503).json({
+          error:
+            "Processamento de PDF temporariamente indisponível neste ambiente. Por favor, informe seu ID Lattes na página de perfil ou tente enviar o currículo novamente mais tarde.",
+        });
+      }
+      try {
+        const { PDFParse } = await import("pdf-parse");
+        const parser = new PDFParse({ data: new Uint8Array(buffer) });
+        const textResult = await parser.getText();
+        await parser.destroy();
+        text = textResult?.text || "";
+      } catch {
+        text = "";
+      }
     }
     if (text.length < 50) {
       return res.status(400).json({
