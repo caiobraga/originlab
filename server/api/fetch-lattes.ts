@@ -476,20 +476,28 @@ router.post("/lattes/parse-pdf", async (req, res) => {
           .join(" ") ?? "";
     } catch (primaryErr) {
       if (isServerless) {
-        console.warn("PDF extract failed in serverless (pdf.js-extract):", (primaryErr as Error).message);
-        return res.status(503).json({
-          error:
-            "Processamento de PDF temporariamente indisponível neste ambiente. Por favor, informe seu ID Lattes na página de perfil ou tente enviar o currículo novamente mais tarde.",
-        });
-      }
-      try {
-        const { PDFParse } = await import("pdf-parse");
-        const parser = new PDFParse({ data: new Uint8Array(buffer) });
-        const textResult = await parser.getText();
-        await parser.destroy();
-        text = textResult?.text || "";
-      } catch {
-        text = "";
+        try {
+          const { extractText, getDocumentProxy } = await import("unpdf");
+          const pdf = await getDocumentProxy(new Uint8Array(buffer));
+          const result = await extractText(pdf, { mergePages: true });
+          text = result?.text ?? "";
+        } catch (unpdfErr) {
+          console.warn("PDF extract failed in serverless (pdf.js-extract + unpdf):", (primaryErr as Error).message, (unpdfErr as Error).message);
+          return res.status(503).json({
+            error:
+              "Processamento de PDF temporariamente indisponível neste ambiente. Por favor, informe seu ID Lattes na página de perfil ou tente enviar o currículo novamente mais tarde.",
+          });
+        }
+      } else {
+        try {
+          const { PDFParse } = await import("pdf-parse");
+          const parser = new PDFParse({ data: new Uint8Array(buffer) });
+          const textResult = await parser.getText();
+          await parser.destroy();
+          text = textResult?.text || "";
+        } catch {
+          text = "";
+        }
       }
     }
     if (text.length < 50) {
