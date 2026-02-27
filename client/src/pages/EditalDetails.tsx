@@ -51,6 +51,75 @@ export default function EditalDetails() {
   const { user, loading: authLoading } = useAuth();
   const { profile } = useUserProfile();
   const [, setLocation] = useLocation();
+  const scrollPositionKey = `scroll_edital_${editalId}`;
+  const [scrollRestored, setScrollRestored] = useState(false);
+
+  useEffect(() => {
+    if (!editalId) return;
+
+    const saveScroll = () => {
+      try {
+        sessionStorage.setItem(scrollPositionKey, window.scrollY.toString());
+      } catch {
+      }
+    };
+
+    const restoreScroll = () => {
+      try {
+        const saved = sessionStorage.getItem(scrollPositionKey);
+        if (!saved) return;
+        const y = parseInt(saved, 10);
+        if (Number.isFinite(y)) {
+          requestAnimationFrame(() => window.scrollTo(0, y));
+        }
+      } catch {
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        saveScroll();
+      } else {
+        restoreScroll();
+      }
+    };
+
+    window.addEventListener("scroll", saveScroll, { passive: true });
+    window.addEventListener("beforeunload", saveScroll);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("scroll", saveScroll);
+      window.removeEventListener("beforeunload", saveScroll);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [editalId, scrollPositionKey]);
+
+  useEffect(() => {
+    if (!editalId) return;
+    if (scrollRestored) return;
+    if (loading) return;
+    if (!edital) return;
+
+    try {
+      const saved = sessionStorage.getItem(scrollPositionKey);
+      if (!saved) {
+        setScrollRestored(true);
+        return;
+      }
+      const y = parseInt(saved, 10);
+      if (!Number.isFinite(y)) {
+        setScrollRestored(true);
+        return;
+      }
+      setTimeout(() => {
+        window.scrollTo(0, y);
+        setScrollRestored(true);
+      }, 50);
+    } catch {
+      setScrollRestored(true);
+    }
+  }, [editalId, loading, edital, scrollPositionKey, scrollRestored]);
 
   // Redirecionar para login se não estiver autenticado
   useEffect(() => {

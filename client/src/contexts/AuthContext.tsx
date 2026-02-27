@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { User, Session, AuthError } from "@supabase/supabase-js";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { toast } from "sonner";
+import { translateSupabaseAuthError } from "@/lib/authErrorTranslations";
 
 interface AuthContextType {
   user: User | null;
@@ -75,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       const authError = error as AuthError;
-      toast.error(authError.message || "Erro ao fazer login");
+      toast.error(translateSupabaseAuthError(authError, "Erro ao fazer login"));
       throw error;
     }
   };
@@ -113,7 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const authError = error as AuthError;
       // Only show generic error if we haven't shown a specific one
       if (!authError.message.includes("Invalid API key") && !authError.message.includes("Invalid URL")) {
-        toast.error(authError.message || "Erro ao criar conta");
+        toast.error(translateSupabaseAuthError(authError, "Erro ao criar conta"));
       }
       throw error;
     }
@@ -132,7 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       toast.info("Logout realizado");
     } catch (error) {
       const authError = error as AuthError;
-      toast.error(authError.message || "Erro ao fazer logout");
+      toast.error(translateSupabaseAuthError(authError, "Erro ao fazer logout"));
       throw error;
     }
   };

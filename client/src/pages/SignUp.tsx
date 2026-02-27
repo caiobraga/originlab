@@ -13,6 +13,7 @@ import Header from "@/components/Header";
 import { saveUserProfile } from "@/lib/userProfile";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { translateSupabaseAuthError } from "@/lib/authErrorTranslations";
 import {
   getStoredReferralCode,
   clearStoredReferralCode,
@@ -219,7 +220,7 @@ export default function SignUp() {
       }
     } catch (error: any) {
       console.error("Erro completo no signup:", error);
-      toast.error(error.message || "Erro ao criar conta. Tente novamente.");
+      toast.error(translateSupabaseAuthError(error, "Erro ao criar conta. Tente novamente."));
     } finally {
       setLoading(false);
     }
@@ -272,7 +273,10 @@ export default function SignUp() {
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Campos comuns */}
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">
+                    Email <span className="text-red-600" aria-hidden="true">*</span>
+                    <span className="sr-only"> (obrigatório)</span>
+                  </Label>
                   <Input
                     id="email"
                     type="email"
@@ -287,7 +291,10 @@ export default function SignUp() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="password">Senha</Label>
+                    <Label htmlFor="password">
+                      Senha <span className="text-red-600" aria-hidden="true">*</span>
+                      <span className="sr-only"> (obrigatório)</span>
+                    </Label>
                     <Input
                       id="password"
                       type="password"
@@ -303,7 +310,10 @@ export default function SignUp() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">Confirmar Senha</Label>
+                    <Label htmlFor="confirmPassword">
+                      Confirmar Senha <span className="text-red-600" aria-hidden="true">*</span>
+                      <span className="sr-only"> (obrigatório)</span>
+                    </Label>
                     <Input
                       id="confirmPassword"
                       type="password"
@@ -322,7 +332,10 @@ export default function SignUp() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="cpf">CPF</Label>
+                  <Label htmlFor="cpf">
+                    CPF <span className="text-red-600" aria-hidden="true">*</span>
+                    <span className="sr-only"> (obrigatório)</span>
+                  </Label>
                   <Input
                     id="cpf"
                     type="text"
@@ -358,7 +371,10 @@ export default function SignUp() {
 
                     {hasCnpj === "sim" && (
                       <div className="space-y-2 mt-4">
-                        <Label htmlFor="cnpj">CNPJ</Label>
+                        <Label htmlFor="cnpj">
+                          CNPJ <span className="text-red-600" aria-hidden="true">*</span>
+                          <span className="sr-only"> (obrigatório)</span>
+                        </Label>
                         <Input
                           id="cnpj"
                           type="text"
@@ -433,7 +449,9 @@ export default function SignUp() {
                         htmlFor="data-consent" 
                         className="text-sm font-medium text-gray-900 dark:text-gray-100 cursor-pointer"
                       >
-                        Consentimento para coleta de dados pessoais (LGPD)
+                        Consentimento para coleta de dados pessoais (LGPD){" "}
+                        <span className="text-red-600" aria-hidden="true">*</span>
+                        <span className="sr-only"> (obrigatório)</span>
                       </Label>
                       <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                         Eu concordo com a coleta e processamento dos meus dados pessoais (CPF, CNPJ, email, etc.) 

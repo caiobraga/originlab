@@ -937,7 +937,15 @@ export default function Dashboard() {
                 <div className="flex-1 min-w-0 w-full">
                   {/* No mobile: título em linha própria para evitar compressão */}
                   <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 sm:gap-3 mb-2">
-                    <h3 className="text-base md:text-lg font-bold text-gray-900 break-words w-full sm:w-auto sm:flex-1 sm:min-w-0 order-1">{edital.titulo}</h3>
+                    <Link
+                      href={`/edital/${edital.id}`}
+                      className="order-1 w-full sm:w-auto sm:flex-1 sm:min-w-0"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <h3 className="text-base md:text-lg font-bold text-gray-900 break-words hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 rounded">
+                        {edital.titulo}
+                      </h3>
+                    </Link>
                     <div className="flex flex-wrap items-center gap-2 sm:gap-3 order-2">
                       <span className="text-xl md:text-2xl flex-shrink-0">{edital.flag}</span>
                       {/* Badges de tipo de edital com separadores visuais */}

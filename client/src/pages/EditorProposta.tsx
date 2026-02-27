@@ -8,6 +8,8 @@ import {
   CheckCircle2,
   FileText,
   List,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -40,7 +42,26 @@ export default function EditorProposta() {
   const hasUnsavedChangesRef = useRef(false);
   const camposRef = useRef<PropostaFormData | CNPqFormData>(createEmptyPropostaForm());
   const scrollPositionKey = `scroll_${propostaId}`;
+  const [scrollRestored, setScrollRestored] = useState(false);
   const [activeSection, setActiveSection] = useState<string>("");
+  const statusPanelStorageKey = "editor_proposta_status_panel_collapsed";
+  const [statusPanelCollapsed, setStatusPanelCollapsed] = useState<boolean>(() => {
+    try {
+      const stored = localStorage.getItem(statusPanelStorageKey);
+      if (stored === null) return true;
+      return stored === "1";
+    } catch {
+      return true;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(statusPanelStorageKey, statusPanelCollapsed ? "1" : "0");
+    } catch {
+      // ignore
+    }
+  }, [statusPanelCollapsed]);
 
   useEffect(() => {
     async function loadProposta() {
@@ -121,6 +142,13 @@ export default function EditorProposta() {
 
     try {
       setSaving(true);
+      // Preservar posição do scroll durante o save (evita “voltar pro topo” em re-render)
+      const yBeforeSave = window.scrollY;
+      try {
+        sessionStorage.setItem(scrollPositionKey, yBeforeSave.toString());
+      } catch {
+        // ignore
+      }
 
       // Calcular progresso baseado em campos preenchidos
       // Função recursiva para verificar se um campo está preenchido
@@ -265,6 +293,8 @@ export default function EditorProposta() {
       });
 
       setProposta({ ...proposta, campos_formulario: camposToSave, progresso });
+      // Restaurar logo após a atualização de estado/pintura
+      requestAnimationFrame(() => window.scrollTo(0, yBeforeSave));
       hasUnsavedChangesRef.current = false;
       toast.success("Proposta salva com sucesso!");
     } catch (error: any) {
@@ -275,15 +305,23 @@ export default function EditorProposta() {
     } finally {
       setSaving(false);
     }
-  }, [proposta, user]);
+  }, [proposta, user, scrollPositionKey]);
 
   const handleStatusChange = async (newStatus: StatusProposta) => {
     if (!proposta || !user) return;
 
     try {
       setSaving(true);
+      // Preservar scroll durante a troca de status também
+      const yBeforeSave = window.scrollY;
+      try {
+        sessionStorage.setItem(scrollPositionKey, yBeforeSave.toString());
+      } catch {
+        // ignore
+      }
       await updateProposta(proposta.id, user.id, { status: newStatus });
       setProposta({ ...proposta, status: newStatus });
+      requestAnimationFrame(() => window.scrollTo(0, yBeforeSave));
       toast.success(`Status alterado para: ${newStatus}`);
     } catch (error) {
       console.error("Erro ao atualizar status:", error);
@@ -361,26 +399,104 @@ export default function EditorProposta() {
     };
   }, [proposta]);
 
-  // Restaurar scroll position quando a página carrega
+  // Preservar/restaurar scroll ao trocar de aba do navegador (e ao voltar para a página)
   useEffect(() => {
-    if (!loading && proposta) {
-      const savedScrollPosition = sessionStorage.getItem(scrollPositionKey);
-      if (savedScrollPosition) {
-        // Usar setTimeout para garantir que o DOM está totalmente renderizado
-        setTimeout(() => {
-          window.scrollTo(0, parseInt(savedScrollPosition, 10));
-        }, 100);
+    if (!propostaId) return;
+
+    const saveScroll = () => {
+      try {
+        sessionStorage.setItem(scrollPositionKey, window.scrollY.toString());
+      } catch {
+        // ignore
       }
+    };
+
+    const restoreScroll = () => {
+      try {
+        const saved = sessionStorage.getItem(scrollPositionKey);
+        if (!saved) return;
+        const y = parseInt(saved, 10);
+        if (!Number.isFinite(y)) return;
+        // Alguns navegadores/app re-render podem “puxar” o scroll após voltar para a aba.
+        // Restauramos mais de uma vez para garantir.
+        requestAnimationFrame(() => {
+          window.scrollTo(0, y);
+          requestAnimationFrame(() => window.scrollTo(0, y));
+        });
+        setTimeout(() => window.scrollTo(0, y), 120);
+        setTimeout(() => window.scrollTo(0, y), 300);
+      } catch {
+        // ignore
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        saveScroll();
+      } else {
+        restoreScroll();
+      }
+    };
+
+    const handlePageHide = () => {
+      saveScroll();
+    };
+
+    const handlePageShow = () => {
+      restoreScroll();
+    };
+
+    window.addEventListener("scroll", saveScroll, { passive: true });
+    window.addEventListener("beforeunload", saveScroll);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("pagehide", handlePageHide);
+    window.addEventListener("pageshow", handlePageShow);
+
+    return () => {
+      window.removeEventListener("scroll", saveScroll);
+      window.removeEventListener("beforeunload", saveScroll);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("pagehide", handlePageHide);
+      window.removeEventListener("pageshow", handlePageShow);
+    };
+  }, [propostaId, scrollPositionKey]);
+
+  // Restaurar scroll uma vez, após carregar a proposta (garante altura suficiente)
+  useEffect(() => {
+    if (!propostaId) return;
+    if (scrollRestored) return;
+    if (loading) return;
+    if (!proposta) return;
+
+    try {
+      const saved = sessionStorage.getItem(scrollPositionKey);
+      if (!saved) {
+        setScrollRestored(true);
+        return;
+      }
+      const y = parseInt(saved, 10);
+      if (!Number.isFinite(y)) {
+        setScrollRestored(true);
+        return;
+      }
+      requestAnimationFrame(() => {
+        window.scrollTo(0, y);
+        requestAnimationFrame(() => window.scrollTo(0, y));
+      });
+      setTimeout(() => window.scrollTo(0, y), 80);
+      setTimeout(() => {
+        window.scrollTo(0, y);
+        setScrollRestored(true);
+      }, 250);
+    } catch {
+      setScrollRestored(true);
     }
-  }, [loading, proposta, scrollPositionKey]);
+  }, [propostaId, loading, proposta, scrollPositionKey, scrollRestored]);
 
   // Auto-save quando o usuário muda de tab ou sai da página
   // IMPORTANTE: Este useEffect deve estar ANTES dos early returns para evitar erro de hooks
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      // Salvar scroll position antes de sair
-      sessionStorage.setItem(scrollPositionKey, window.scrollY.toString());
-      
       // Salvar antes de sair da página se houver mudanças não salvas
       if (hasUnsavedChangesRef.current && proposta && user) {
         // Usar sendBeacon para garantir que o salvamento aconteça mesmo ao sair
@@ -390,33 +506,15 @@ export default function EditorProposta() {
 
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        // Salvar scroll position quando a aba perde o foco
-        sessionStorage.setItem(scrollPositionKey, window.scrollY.toString());
-        
         // Salvar quando a aba perde o foco
         if (hasUnsavedChangesRef.current && proposta && user) {
           handleSave();
         }
-      } else {
-        // Restaurar scroll position quando a aba volta ao foco
-        const savedScrollPosition = sessionStorage.getItem(scrollPositionKey);
-        if (savedScrollPosition) {
-          // Usar requestAnimationFrame para garantir que o DOM está pronto
-          requestAnimationFrame(() => {
-            window.scrollTo(0, parseInt(savedScrollPosition, 10));
-          });
-        }
       }
-    };
-
-    // Salvar scroll position periodicamente enquanto o usuário está na página
-    const handleScroll = () => {
-      sessionStorage.setItem(scrollPositionKey, window.scrollY.toString());
     };
 
     window.addEventListener("beforeunload", handleBeforeUnload);
     document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("scroll", handleScroll, { passive: true });
 
     return () => {
       // Limpar timeout ao desmontar
@@ -425,9 +523,8 @@ export default function EditorProposta() {
       }
       window.removeEventListener("beforeunload", handleBeforeUnload);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("scroll", handleScroll);
     };
-  }, [handleSave, proposta, user, scrollPositionKey]);
+  }, [handleSave, proposta, user]);
 
   if (loading) {
     return (
@@ -562,7 +659,7 @@ export default function EditorProposta() {
       <div className="h-[88px]"></div>
 
       {/* Barra Lateral de Navegação - Tópicos */}
-      <div className="fixed top-[100px] left-6 z-40 bg-white rounded-xl p-4 shadow-lg border border-gray-200 w-64 hidden lg:block">
+      <div className="fixed top-[200px] left-6 z-40 bg-white rounded-xl p-4 shadow-lg border border-gray-200 w-64 hidden lg:block">
         <div className="flex items-center gap-2 mb-4">
           <List className="w-4 h-4 text-blue-600" />
           <h3 className="font-bold text-gray-900 text-sm">Navegação</h3>
@@ -585,56 +682,88 @@ export default function EditorProposta() {
       </div>
 
       {/* Card Fixo - Status, Progresso e Ver Edital - Sempre visível */}
-      <div className="fixed top-[100px] right-6 z-40 bg-white rounded-xl p-5 shadow-lg border border-gray-200 w-56 space-y-4">
-        {/* Status */}
-        <div>
-          <h3 className="font-bold text-gray-900 mb-3 text-sm">Status</h3>
-          <div className="space-y-2">
-            {(
-              [
-                "rascunho",
-                "em_redacao",
-                "revisao",
-                "submetida",
-              ] as StatusProposta[]
-            ).map((status) => (
-              <Button
-                key={status}
-                variant={proposta.status === status ? "default" : "outline"}
-                className="w-full justify-start text-xs py-1.5 h-9"
-                onClick={() => handleStatusChange(status)}
-                disabled={saving}
+      <div
+        className={`fixed top-[200px] right-6 z-40 bg-white rounded-xl shadow-lg border border-gray-200 transition-all duration-200 ${
+          statusPanelCollapsed ? "w-12 h-40 p-1" : "w-56 p-5"
+        }`}
+      >
+        {statusPanelCollapsed ? (
+          <button
+            type="button"
+            onClick={() => setStatusPanelCollapsed(false)}
+            className="w-full h-full rounded-lg hover:bg-gray-50 active:bg-gray-100 transition-colors flex flex-col items-center justify-center gap-3 p-2"
+            aria-label="Expandir painel de status"
+            title="Expandir"
+          >
+            <ChevronLeft className="w-5 h-5 text-gray-800" />
+            <span className="text-xs font-semibold text-gray-700 rotate-90 whitespace-nowrap select-none">
+              Status
+            </span>
+          </button>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="font-bold text-gray-900 text-sm">Status</h3>
+              <button
+                type="button"
+                onClick={() => setStatusPanelCollapsed(true)}
+                className="p-1.5 rounded-md hover:bg-gray-100 active:bg-gray-200 transition-colors"
+                aria-label="Recolher painel de status"
+                title="Recolher"
               >
-                {statusConfig[status]?.label || status}
-              </Button>
-            ))}
-          </div>
-        </div>
-
-        {/* Progresso */}
-        <div className="border-t border-gray-200 pt-4">
-          <h3 className="font-bold text-gray-900 mb-3 text-sm">Progresso</h3>
-          <div className="space-y-2">
-            <div className="text-2xl font-bold text-blue-600">
-              {proposta.progresso}%
+                <ChevronRight className="w-4 h-4 text-gray-700" />
+              </button>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div
-                className="bg-blue-600 h-2 rounded-full transition-all"
-                style={{ width: `${proposta.progresso}%` }}
-              />
+            {/* Status */}
+            <div>
+              <div className="space-y-2">
+                {(
+                  [
+                    "rascunho",
+                    "em_redacao",
+                    "revisao",
+                    "submetida",
+                  ] as StatusProposta[]
+                ).map((status) => (
+                  <Button
+                    key={status}
+                    variant={proposta.status === status ? "default" : "outline"}
+                    className="w-full justify-start text-xs py-1.5 h-9"
+                    onClick={() => handleStatusChange(status)}
+                    disabled={saving}
+                  >
+                    {statusConfig[status]?.label || status}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Progresso */}
+            <div className="border-t border-gray-200 pt-4">
+              <h3 className="font-bold text-gray-900 mb-3 text-sm">Progresso</h3>
+              <div className="space-y-2">
+                <div className="text-2xl font-bold text-blue-600">
+                  {proposta.progresso}%
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-blue-600 h-2 rounded-full transition-all"
+                    style={{ width: `${proposta.progresso}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Ver Edital Original */}
+            <div className="border-t border-gray-200 pt-4">
+              <Link href={`/edital/${proposta.edital_id}`}>
+                <Button variant="outline" className="w-full text-xs">
+                  Ver Edital Original
+                </Button>
+              </Link>
             </div>
           </div>
-        </div>
-
-        {/* Ver Edital Original */}
-        <div className="border-t border-gray-200 pt-4">
-          <Link href={`/edital/${proposta.edital_id}`}>
-            <Button variant="outline" className="w-full text-xs">
-              Ver Edital Original
-            </Button>
-          </Link>
-        </div>
+        )}
       </div>
 
       <div className="container py-8 lg:pl-72">

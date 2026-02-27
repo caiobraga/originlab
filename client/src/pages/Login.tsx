@@ -80,7 +80,10 @@ export default function Login() {
 
             <form onSubmit={handleSubmit} className="space-y-6" aria-label="Formulário de login">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">
+                  Email <span className="text-red-600" aria-hidden="true">*</span>
+                  <span className="sr-only"> (obrigatório)</span>
+                </Label>
                 <Input
                   id="email"
                   type="email"
@@ -97,7 +100,10 @@ export default function Login() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password">Senha</Label>
+                <Label htmlFor="password">
+                  Senha <span className="text-red-600" aria-hidden="true">*</span>
+                  <span className="sr-only"> (obrigatório)</span>
+                </Label>
                 <Input
                   id="password"
                   type="password"
