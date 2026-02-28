@@ -8,6 +8,8 @@ import generatePropostaRouter from "./api/generate-proposta.js";
 import improveTextRouter from "./api/improve-text.js";
 import fetchLattesRouter from "./api/fetch-lattes.js";
 import translateRouter from "./api/translate.js";
+import generateFieldTextRouter from "./api/generate-field-text.js";
+import analyzeFieldRouter from "./api/analyze-field.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -22,6 +24,8 @@ async function startServer() {
   app.use("/api", calculateEditalScoresRouter);
   app.use("/api", generatePropostaRouter);
   app.use("/api", improveTextRouter);
+  app.use("/api", generateFieldTextRouter);
+  app.use("/api", analyzeFieldRouter);
   app.use("/api", translateRouter);
 
   // Serve static files from dist/public in production
@@ -48,6 +52,8 @@ async function startServer() {
     console.log(`  - http://localhost:${port}/api/improve-text`);
     console.log(`  - http://localhost:${port}/api/fetch-cnpj`);
     console.log(`  - http://localhost:${port}/api/translate`);
+    console.log(`  - http://localhost:${port}/api/generate-field-text`);
+    console.log(`  - http://localhost:${port}/api/analyze-field`);
   });
 }
 

@@ -73,6 +73,7 @@ async function improveTextWithWebhook(
   fieldDescription: string,
   currentText: string,
   wordLimit: number | null,
+  charLimit: number | null,
   editalInfo: any,
   fileIds: string[]
 ): Promise<string> {
@@ -90,6 +91,9 @@ Informações do Edital:
   const limitText = wordLimit
     ? `IMPORTANTE: O texto melhorado DEVE ter no máximo ${wordLimit} palavras. Se o texto atual já estiver próximo do limite, mantenha-o conciso.`
     : "";
+  const charLimitText = charLimit
+    ? `IMPORTANTE: O texto melhorado DEVE ter no máximo ${charLimit} caracteres (contando espaços).`
+    : "";
 
   const prompt = `
 Você é um assistente especializado em melhorar textos de propostas para editais de fomento à pesquisa.
@@ -98,6 +102,7 @@ Contexto do Campo:
 - Nome do Campo: ${fieldName}
 - Descrição: ${fieldDescription}
 ${limitText}
+${charLimitText}
 
 ${editalContext}
 
@@ -113,6 +118,7 @@ Melhore o texto fornecido, mantendo o conteúdo e a essência, mas:
 3. Melhore a estrutura e a coesão
 4. Corrija erros gramaticais e ortográficos
 5. ${wordLimit ? `Respeite o limite de ${wordLimit} palavras` : "Seja conciso mas completo"}
+6. ${charLimit ? `Respeite o limite de ${charLimit} caracteres` : "Respeite limites do formulário quando aplicável"}
 
 Responda APENAS com o texto melhorado, sem explicações adicionais ou comentários.
 `;
@@ -197,7 +203,26 @@ Responda APENAS com o texto melhorado, sem explicações adicionais ou comentár
     }
 
     // Remover possíveis marcadores ou formatação extra
-    const improvedText = responseText.replace(/^```\w*\n?/gm, "").replace(/```$/gm, "").trim();
+    let improvedText = responseText.replace(/^```\w*\n?/gm, "").replace(/```$/gm, "").trim();
+
+    if (charLimit && typeof charLimit === "number" && Number.isFinite(charLimit) && charLimit > 0) {
+      if (improvedText.length > charLimit) {
+        const hard = improvedText.slice(0, charLimit);
+        // tentar cortar em boundary amigável
+        const lastBreak =
+          Math.max(
+            hard.lastIndexOf("\n"),
+            hard.lastIndexOf(". "),
+            hard.lastIndexOf("! "),
+            hard.lastIndexOf("? "),
+            hard.lastIndexOf("; "),
+            hard.lastIndexOf(", "),
+            hard.lastIndexOf(" ")
+          );
+        const cutAt = lastBreak >= Math.max(0, charLimit - 120) ? lastBreak : charLimit;
+        improvedText = hard.slice(0, cutAt).trim();
+      }
+    }
 
     return improvedText;
   } catch (error) {
@@ -233,6 +258,7 @@ router.post("/improve-text", async (req, res) => {
     const field_description = body.field_description ?? body.fieldDescription ?? "";
     const current_text = body.current_text ?? body.currentText ?? "";
     const word_limit = body.word_limit ?? body.wordLimit ?? null;
+    const char_limit = body.char_limit ?? body.charLimit ?? null;
 
     if (!edital_id && proposta_id) {
       edital_id = await fetchEditalIdByPropostaId(proposta_id);
@@ -271,6 +297,7 @@ router.post("/improve-text", async (req, res) => {
       field_description,
       current_text,
       word_limit || null,
+      char_limit || null,
       editalInfo,
       fileIds
     );

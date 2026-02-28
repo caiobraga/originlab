@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
+import { generateFieldText } from "@/lib/generateFieldTextApi";
 import {
   fetchPropostaById,
   updateProposta,
@@ -36,6 +37,7 @@ export default function EditorProposta() {
   const [proposta, setProposta] = useState<Proposta | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [refazendoResumo, setRefazendoResumo] = useState(false);
   const [campos, setCampos] = useState<PropostaFormData | CNPqFormData>(createEmptyPropostaForm());
   const [isCNPq, setIsCNPq] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -139,6 +141,67 @@ export default function EditorProposta() {
       }
     }, 2000);
   };
+
+  const handleRefazerResumoProjeto = useCallback(async () => {
+    if (!propostaId) return;
+    if (!proposta) return;
+    if (refazendoResumo) return;
+
+    setRefazendoResumo(true);
+    try {
+      const isC = isCNPq;
+      const fieldId = isC ? "resumo_proposta" : "resumo_publicavel";
+      const fieldName = isC ? "Resumo da Proposta" : "3.1. Resumo (Publicável pela FAPES)";
+      const fieldDescription = isC
+        ? "Refaça do zero o resumo da proposta para submissão ao CNPq, usando o contexto do edital e do documento."
+        : "Refaça do zero o resumo do projeto que será publicado, usando o contexto do edital e do documento. Deve conter objetivo geral, caminho percorrido e resultados esperados.";
+
+      const generated = await generateFieldText({
+        proposta_id: propostaId,
+        field_id: fieldId,
+        field_name: fieldName,
+        field_description: fieldDescription,
+        word_limit: isC ? null : 500,
+        char_limit: isC ? 2000 : null,
+        form_data: camposRef.current,
+        target_language: "pt",
+      });
+
+      if (!generated) {
+        toast.error("A IA não retornou texto para o resumo.");
+        return;
+      }
+
+      if (isC) {
+        const next = {
+          ...(camposRef.current as any),
+          resumo: {
+            ...((camposRef.current as any)?.resumo || {}),
+            resumo_proposta: generated,
+          },
+        };
+        handleFormChange(next);
+        scrollToSection("secao-resumo");
+      } else {
+        const next = {
+          ...(camposRef.current as any),
+          detalhamento_projeto: {
+            ...((camposRef.current as any)?.detalhamento_projeto || {}),
+            resumo_publicavel: generated,
+          },
+        };
+        handleFormChange(next);
+        scrollToSection("secao-detalhamento-projeto");
+      }
+
+      toast.success("Resumo refeito do zero!");
+    } catch (error: any) {
+      console.error("Erro ao refazer resumo:", error);
+      toast.error(error?.message || "Erro ao refazer resumo. Tente novamente.");
+    } finally {
+      setRefazendoResumo(false);
+    }
+  }, [propostaId, proposta, isCNPq, refazendoResumo]);
 
   const handleSave = useCallback(async () => {
     if (!proposta || !user) return;
@@ -264,7 +327,41 @@ export default function EditorProposta() {
 
       const emptyForm = isCNPq ? createEmptyCNPqForm() : createEmptyPropostaForm();
       const currentCampos = camposRef.current;
-      const { total, filled } = countFields(currentCampos, emptyForm);
+
+      let total = 0;
+      let filled = 0;
+
+      if (isCNPq) {
+        // Cálculo específico e previsível: % baseado no número de campos do formulário CNPq.
+        const c = currentCampos as CNPqFormData;
+        const requiredFields: string[] = [
+          c.projeto_pesquisa.instituicao_desenvolvimento,
+          c.projeto_pesquisa.titulo_projeto_pt,
+          c.projeto_pesquisa.titulo_projeto_en,
+          c.projeto_pesquisa.area,
+          c.projeto_pesquisa.palavras_chave_pt,
+          c.projeto_pesquisa.palavras_chave_en,
+          c.resumo.resumo_proposta,
+          c.sobre_projeto.objetivo,
+          c.sobre_projeto.metas,
+          c.sobre_projeto.metodologia_gestao_execucao,
+          c.sobre_projeto.relevancia_setor_produtivo,
+          c.sobre_projeto.instituicoes_colaboradoras_financiadoras,
+          c.sobre_projeto.nivel_maturidade_tecnologica,
+          c.sobre_projeto.resultados_cientificos_tecnologicos,
+          c.sobre_projeto.potencial_producao_tecnologica_inovacao,
+          c.sobre_projeto.potencial_empreendedorismo_inovador,
+          c.sobre_projeto.potencial_atendimento_necessidades,
+          c.sobre_projeto.sumula_curricular,
+          c.sobre_projeto.sumula_curricular_continuacao,
+        ];
+        total = requiredFields.length;
+        filled = requiredFields.filter((v) => String(v || "").trim().length > 0).length;
+      } else {
+        const r = countFields(currentCampos, emptyForm);
+        total = r.total;
+        filled = r.filled;
+      }
       
       // Calcular progresso: só 100% quando TODOS os campos estiverem preenchidos
       let progresso = total > 0 ? Math.round((filled / total) * 100) : 0;
@@ -308,7 +405,7 @@ export default function EditorProposta() {
     } finally {
       setSaving(false);
     }
-  }, [proposta, user, scrollPositionKey]);
+  }, [proposta, user, scrollPositionKey, isCNPq]);
 
   const handleStatusChange = async (newStatus: StatusProposta) => {
     if (!proposta || !user) return;
@@ -680,6 +777,24 @@ export default function EditorProposta() {
             </div>
             <div className="flex items-center gap-3">
               {getStatusBadge(proposta.status)}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleRefazerResumoProjeto}
+                disabled={saving || refazendoResumo}
+              >
+                {refazendoResumo ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Refazendo resumo...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-4 h-4 mr-2" />
+                    Refazer resumo
+                  </>
+                )}
+              </Button>
               <Button
                 onClick={handleSave}
                 disabled={saving}

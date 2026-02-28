@@ -23,6 +23,8 @@ export function apiPlugin(): Plugin {
         const { default: calculateEditalScoresRouter } = await import('./server/api/calculate-edital-scores.js');
         const { default: generatePropostaRouter } = await import('./server/api/generate-proposta.js');
         const { default: improveTextRouter } = await import('./server/api/improve-text.js');
+        const { default: generateFieldTextRouter } = await import('./server/api/generate-field-text.js');
+        const { default: analyzeFieldRouter } = await import('./server/api/analyze-field.js');
         const { default: fetchLattesRouter } = await import('./server/api/fetch-lattes.js');
         const { default: translateRouter } = await import('./server/api/translate.js');
         
@@ -31,6 +33,8 @@ export function apiPlugin(): Plugin {
         app.use('/api', calculateEditalScoresRouter);
         app.use('/api', generatePropostaRouter);
         app.use('/api', improveTextRouter);
+        app.use('/api', generateFieldTextRouter);
+        app.use('/api', analyzeFieldRouter);
         app.use('/api', translateRouter);
         
         // Usar o middleware do Express no servidor Vite
@@ -41,6 +45,8 @@ export function apiPlugin(): Plugin {
         console.log('   - /api/calculate-edital-scores');
         console.log('   - /api/generate-proposta');
         console.log('   - /api/improve-text');
+        console.log('   - /api/generate-field-text');
+        console.log('   - /api/analyze-field');
         console.log('   - /api/translate');
         console.log('   - /api/lattes/:id, /api/fetch-cnpj');
       } catch (error) {

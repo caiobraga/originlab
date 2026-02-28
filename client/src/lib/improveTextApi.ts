@@ -9,6 +9,7 @@ export interface ImproveTextParams {
   field_description: string;
   current_text: string;
   word_limit?: number | null;
+  char_limit?: number | null;
 }
 
 export interface ImproveTextResponse {
@@ -25,6 +26,7 @@ export async function improveText(params: ImproveTextParams): Promise<string> {
       field_description: params.field_description,
       current_text: params.current_text,
       word_limit: params.word_limit ?? null,
+      char_limit: params.char_limit ?? null,
     };
     if (params.edital_id) body.edital_id = params.edital_id;
     if (params.proposta_id) body.proposta_id = params.proposta_id;

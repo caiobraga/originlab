@@ -227,17 +227,18 @@ export default function FormularioCNPq({ data, onChange, editalId, propostaId }:
         </h3>
 
         <div>
-          <Label htmlFor="resumo_proposta" className="text-sm font-medium text-gray-700">
-            Resumo da Proposta <span className="text-red-500">*</span>
-          </Label>
           <TextFieldWithAI
             id="resumo_proposta"
             label="Resumo da Proposta"
+            required
+            showDescription
             value={data.resumo.resumo_proposta}
             onChange={(value) => updateNestedField('resumo', 'resumo_proposta', value)}
             editalId={editalId}
             propostaId={propostaId}
             fieldDescription="Resumo da proposta para submissão ao CNPq (até 2000 caracteres)."
+            charLimit={2000}
+            allFormData={data}
             className="mt-1"
             placeholder="Digite o resumo da proposta"
           />
@@ -271,17 +272,18 @@ export default function FormularioCNPq({ data, onChange, editalId, propostaId }:
           { key: 'sumula_curricular_continuacao', label: '12. SÚMULA CURRICULAR (continuação)', number: 12 },
         ].map(({ key, label, number }) => (
           <div key={key} id={`secao-${key}`} className="space-y-2 mt-8">
-            <Label htmlFor={key} className="text-sm font-medium text-gray-700">
-              {label}
-            </Label>
             <TextFieldWithAI
               id={key}
               label={label}
+              required
+              showDescription={false}
               value={data.sobre_projeto[key as keyof typeof data.sobre_projeto]}
               onChange={(value) => updateNestedField('sobre_projeto', key, value)}
               editalId={editalId}
               propostaId={propostaId}
               fieldDescription={`Resposta para a questão ${number} do formulário CNPq.`}
+              charLimit={4000}
+              allFormData={data}
               rows={6}
               className="mt-1 min-h-[150px]"
               placeholder={`Digite a resposta para a questão ${number}`}
