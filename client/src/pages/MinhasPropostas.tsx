@@ -407,13 +407,22 @@ export default function MinhasPropostas() {
 
                 {/* Ações */}
                 <div className="flex items-center gap-2 pt-4 border-t border-gray-200">
-                  {proposta.status === "rascunho" || proposta.status === "em_redacao" ? (
+                  {proposta.status === "rascunho" || proposta.status === "em_redacao" || proposta.status === "submetida" ? (
                     <Button 
-                      className="bg-gradient-to-r from-blue-600 to-violet-600"
-                      onClick={() => handleContinuarRedacao(proposta.id)}
+                      className={
+                        proposta.status === "submetida"
+                          ? "bg-gradient-to-r from-purple-600 to-fuchsia-600"
+                          : "bg-gradient-to-r from-blue-600 to-violet-600"
+                      }
+                      onClick={() => {
+                        if (proposta.status === "submetida") {
+                          toast.info("Você está editando uma proposta marcada como submetida. Se necessário, altere o status no editor para continuar a redação.");
+                        }
+                        handleContinuarRedacao(proposta.id);
+                      }}
                     >
                       <Edit3 className="w-4 h-4 mr-2" />
-                      Continuar Redação
+                      {proposta.status === "submetida" ? "Editar Proposta" : "Continuar Redação"}
                     </Button>
                   ) : proposta.status === "revisao" ? (
                     <Button 

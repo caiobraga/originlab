@@ -127,23 +127,108 @@ export default function Dashboard() {
   /** Extrai a data mais recente (prazo fim) de prazo_inscricao para comparar com hoje */
   const extrairDataMaisRecentePrazo = (prazo: string | null | undefined): Date | null => {
     if (!prazo || prazo === 'Não informado') return null;
-    const parseDateFromString = (str: string): Date | null => {
+    const normalizeMonth = (m: string): string => {
+      return String(m || "")
+        .trim()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+    };
+
+    const monthMap: Record<string, number> = {
+      janeiro: 1, jan: 1,
+      fevereiro: 2, fev: 2,
+      marco: 3, mar: 3,
+      abril: 4, abr: 4,
+      maio: 5, mai: 5,
+      junho: 6, jun: 6,
+      julho: 7, jul: 7,
+      agosto: 8, ago: 8,
+      setembro: 9, set: 9,
+      outubro: 10, out: 10,
+      novembro: 11, nov: 11,
+      dezembro: 12, dez: 12,
+    };
+
+    const parsePtMonthDateParts = (dayStr: string, monthStr: string, yearStr: string): Date | null => {
+      const day = Number(dayStr);
+      const year = Number(yearStr);
+      const monthKey = normalizeMonth(monthStr);
+      const month = monthMap[monthKey];
+      if (!month || !day || !year) return null;
+      const d = new Date(year, month - 1, day);
+      return isNaN(d.getTime()) ? null : d;
+    };
+
+    // Parse somente quando a string é *apenas* uma data (evita pegar datas erradas dentro de textos/JSON)
+    const parseDateOnly = (str: string): Date | null => {
       const s = String(str).trim();
-      const d = new Date(s);
-      if (!isNaN(d.getTime())) return d;
-      const iso = s.match(/(\d{4})-(\d{2})-(\d{2})/);
-      if (iso) return new Date(`${iso[1]}-${iso[2]}-${iso[3]}`);
-      const br = s.match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/);
-      if (br) return new Date(`${br[3]}-${br[2].padStart(2,'0')}-${br[1].padStart(2,'0')}`);
+
+      const isoOnly = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (isoOnly) {
+        const year = Number(isoOnly[1]);
+        const month = Number(isoOnly[2]);
+        const day = Number(isoOnly[3]);
+        const d = new Date(year, month - 1, day);
+        return isNaN(d.getTime()) ? null : d;
+      }
+
+      const brOnly = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
+      if (brOnly) {
+        const day = Number(brOnly[1]);
+        const month = Number(brOnly[2]);
+        const year = Number(brOnly[3]);
+        const d = new Date(year, month - 1, day);
+        return isNaN(d.getTime()) ? null : d;
+      }
+
+      // Ex.: "08 de outubro de 2025" ou "8 outubro 2025"
+      const ptMonthOnly1 = s.match(/^(\d{1,2})\s+de\s+([a-zA-ZÀ-ÿçÇ]+)\s+de\s+(\d{4})$/i);
+      if (ptMonthOnly1) {
+        return parsePtMonthDateParts(ptMonthOnly1[1], ptMonthOnly1[2], ptMonthOnly1[3]);
+      }
+      const ptMonthOnly2 = s.match(/^(\d{1,2})\s+([a-zA-ZÀ-ÿçÇ]+)\s+(\d{4})$/i);
+      if (ptMonthOnly2) {
+        return parsePtMonthDateParts(ptMonthOnly2[1], ptMonthOnly2[2], ptMonthOnly2[3]);
+      }
+
+      // Tentar datas com hora (ISO completo), mas só quando parece um formato de data/hora.
+      if (/^\d{4}-\d{2}-\d{2}t\d{2}:\d{2}/i.test(s)) {
+        const d = new Date(s);
+        return isNaN(d.getTime()) ? null : d;
+      }
+
       return null;
     };
-    /** Procura qualquer data em um texto (último recurso) */
-    const extrairQualquerDataDoTexto = (texto: string): Date[] => {
+
+    /** Procura datas dentro de um texto (último recurso) */
+    const extrairDatasDoTexto = (texto: string): Date[] => {
       const datas: Date[] = [];
-      const iso = texto.match(/\d{4}-\d{2}-\d{2}/g);
-      if (iso) iso.forEach((m) => { const d = parseDateFromString(m); if (d) datas.push(d); });
-      const br = texto.match(/\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{4}/g);
-      if (br) br.forEach((m) => { const d = parseDateFromString(m); if (d) datas.push(d); });
+      if (!texto) return datas;
+
+      const t = String(texto);
+      const matches: string[] = [];
+      // ISO e BR numérico
+      const basic = t.match(/\d{4}-\d{2}-\d{2}|\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{4}/g);
+      if (basic) matches.push(...basic);
+      // Datas com mês por extenso (pt-BR)
+      const ptMonthRegex = /\b(\d{1,2})\s+de\s+([a-zA-ZÀ-ÿçÇ]+)\s+de\s+(\d{4})\b|\b(\d{1,2})\s+([a-zA-ZÀ-ÿçÇ]+)\s+(\d{4})\b/gi;
+      let m: RegExpExecArray | null;
+      while ((m = ptMonthRegex.exec(t)) !== null) {
+        // preferir a forma com "de"
+        if (m[1] && m[2] && m[3]) {
+          matches.push(`${m[1]} de ${m[2]} de ${m[3]}`);
+        } else if (m[4] && m[5] && m[6]) {
+          matches.push(`${m[4]} ${m[5]} ${m[6]}`);
+        }
+      }
+
+      if (matches.length === 0) return datas;
+
+      for (const m of matches) {
+        const d = parseDateOnly(m);
+        if (d) datas.push(d);
+      }
       return datas;
     };
     try {
@@ -153,356 +238,196 @@ export default function Dashboard() {
       } else if (typeof prazo === 'object') {
         parsed = prazo;
       } else {
-        const d = parseDateFromString(String(prazo).trim());
-        if (d) return d;
-        const quaisquer = extrairQualquerDataDoTexto(String(prazo));
-        return quaisquer.length ? new Date(Math.max(...quaisquer.map((x) => x.getTime()))) : null;
+        const quaisquer = extrairDatasDoTexto(String(prazo));
+        const max = quaisquer.length ? Math.max(...quaisquer.map((x) => x.getTime()).filter((t) => !isNaN(t))) : NaN;
+        return Number.isFinite(max) ? new Date(max) : null;
       }
       const datas: Date[] = [];
       if (parsed.prazos && Array.isArray(parsed.prazos)) {
         for (const p of parsed.prazos) {
           const str = typeof p === 'string' ? p : (p.fim || p.prazo);
           if (str) {
-            const d = parseDateFromString(String(str));
-            if (d) datas.push(d);
+            const found = extrairDatasDoTexto(String(str));
+            datas.push(...found);
           }
         }
       } else if (parsed.fim) {
-        const d = parseDateFromString(String(parsed.fim));
-        if (d) datas.push(d);
+        datas.push(...extrairDatasDoTexto(String(parsed.fim)));
       } else if (parsed.prazo) {
-        const d = parseDateFromString(String(parsed.prazo));
-        if (d) datas.push(d);
+        datas.push(...extrairDatasDoTexto(String(parsed.prazo)));
       }
       if (datas.length === 0) {
         const texto = JSON.stringify(parsed);
-        const quaisquer = extrairQualquerDataDoTexto(texto);
-        return quaisquer.length ? new Date(Math.max(...quaisquer.map((x) => x.getTime()))) : null;
+        const quaisquer = extrairDatasDoTexto(texto);
+        const max = quaisquer.length ? Math.max(...quaisquer.map((x) => x.getTime()).filter((t) => !isNaN(t))) : NaN;
+        return Number.isFinite(max) ? new Date(max) : null;
       }
       return new Date(Math.max(...datas.map((d: Date) => d.getTime())));
     } catch {
       const str = String(prazo);
-      const quaisquer = extrairQualquerDataDoTexto(str);
-      return quaisquer.length ? new Date(Math.max(...quaisquer.map((x) => x.getTime()))) : null;
+      const quaisquer = extrairDatasDoTexto(str);
+      const max = quaisquer.length ? Math.max(...quaisquer.map((x) => x.getTime()).filter((t) => !isNaN(t))) : NaN;
+      return Number.isFinite(max) ? new Date(max) : null;
     }
   };
 
-  // Regra principal: prazo de submissão da proposta inferior à data atual = inativo.
-  // Também: data_encerramento passou, status encerrado ou timeline fechada = inativo.
-  const isEditalAtivo = (edital: EditalDisplay): boolean => {
+  const normalizeText = (value: unknown): string => {
+    return String(value ?? "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim();
+  };
+
+  const formatDatePtBR = (date: Date): string => {
+    try {
+      return date.toLocaleDateString("pt-BR");
+    } catch {
+      return String(date);
+    }
+  };
+
+  const getPrazoInscricaoSummary = (prazoInscricao: any): { date: Date | null; extraCount: number } => {
+    if (!prazoInscricao || prazoInscricao === "Não informado") return { date: null, extraCount: 0 };
+
+    // Tentar obter contagem de prazos quando vier como JSON
+    let extraCount = 0;
+    try {
+      let parsed: any = prazoInscricao;
+      if (typeof prazoInscricao === "string" && prazoInscricao.trim().startsWith("{")) {
+        parsed = JSON.parse(prazoInscricao);
+      }
+      if (parsed?.prazos && Array.isArray(parsed.prazos) && parsed.prazos.length > 1) {
+        extraCount = parsed.prazos.length - 1;
+      }
+    } catch {
+      // ignore
+    }
+
+    const date = extrairDataMaisRecentePrazo(typeof prazoInscricao === "string" ? prazoInscricao : JSON.stringify(prazoInscricao));
+    return { date: date && !isNaN(date.getTime()) ? date : null, extraCount };
+  };
+
+  /** Prioriza sempre a data de submissão (timeline_estimada). */
+  const extrairDeadlineSubmissao = (timeline: any): Date | null => {
+    if (!timeline) return null;
+
+    let obj: any = timeline;
+    if (typeof timeline === "string") {
+      try {
+        obj = JSON.parse(timeline);
+      } catch {
+        return null;
+      }
+    }
+
+    const fases = obj?.fases;
+    if (!Array.isArray(fases) || fases.length === 0) return null;
+
+    const candidatos = fases.filter((fase: any) => {
+      const nome = normalizeText(fase?.nome);
+      return nome.includes("submiss"); // cobre "submissão", "submissao", "submissões"
+    });
+
+    if (candidatos.length === 0) return null;
+
+    const deadlines: Date[] = [];
+
+    const extractDeadlineFromText = (text: string): Date | null => {
+      const t = String(text || "");
+      const norm = normalizeText(t);
+
+      // 1) Se existir "fim:" ou "fim" com uma data logo após, essa é a fonte de verdade
+      const fimMatch = norm.match(/\bfim\b\s*:?\s*([0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{1,2}[\/\-.][0-9]{1,2}[\/\-.][0-9]{4}|\d{1,2}\s+de\s+[a-zA-ZÀ-ÿçÇ]+\s+de\s+\d{4}|\d{1,2}\s+[a-zA-ZÀ-ÿçÇ]+\s+\d{4})/i);
+      if (fimMatch?.[1]) {
+        const d = extrairDataMaisRecentePrazo(fimMatch[1]);
+        if (d && !isNaN(d.getTime())) return d;
+      }
+
+      // 2) "até <data>" geralmente representa o deadline
+      const ateMatch = norm.match(/\bate\b\s+([0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{1,2}[\/\-.][0-9]{1,2}[\/\-.][0-9]{4}|\d{1,2}\s+de\s+[a-zA-ZÀ-ÿçÇ]+\s+de\s+\d{4}|\d{1,2}\s+[a-zA-ZÀ-ÿçÇ]+\s+\d{4})/i);
+      if (ateMatch?.[1]) {
+        const d = extrairDataMaisRecentePrazo(ateMatch[1]);
+        if (d && !isNaN(d.getTime())) return d;
+      }
+
+      // 3) Intervalos: pegar a *segunda* data como deadline (ex.: "06/04/2026 a 17/04/2026" ou "05/04/2026 - 16/04/2026")
+      const rangeBasic = t.match(/(\d{4}-\d{2}-\d{2}|\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{4})\s*(?:-|a|até|to)\s*(\d{4}-\d{2}-\d{2}|\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{4})/i);
+      if (rangeBasic?.[2]) {
+        const d = extrairDataMaisRecentePrazo(rangeBasic[2]);
+        if (d && !isNaN(d.getTime())) return d;
+      }
+
+      // 4) Último recurso: se houver apenas uma data, usar ela
+      const d = extrairDataMaisRecentePrazo(t);
+      if (d && !isNaN(d.getTime())) return d;
+      return null;
+    };
+
+    for (const fase of candidatos) {
+      // Preferir data_fim quando existir (deadline real)
+      if (fase?.data_fim) {
+        const parsedFim = extrairDataMaisRecentePrazo(String(fase.data_fim));
+        if (parsedFim && !isNaN(parsedFim.getTime())) {
+          deadlines.push(parsedFim);
+          continue;
+        }
+      }
+
+      // Fallback: extrair deadline de textos (prioriza "Fim:" / "Até" / 2ª data do intervalo)
+      const rawText = [
+        fase?.prazo,
+        fase?.fim,
+        fase?.nome,
+        fase?.data_inicio,
+        fase?.data_fim,
+      ]
+        .filter(Boolean)
+        .map(String)
+        .join(" | ");
+      const extractedDeadline = extractDeadlineFromText(rawText);
+      if (extractedDeadline && !isNaN(extractedDeadline.getTime())) deadlines.push(extractedDeadline);
+    }
+
+    if (deadlines.length === 0) return null;
+    return new Date(Math.max(...deadlines.map((d) => d.getTime())));
+  };
+
+  // Regra principal: edital é "ativo" se ainda está dentro do prazo de submissão.
+  // A data usada para filtrar deve ser a MESMA exibida no card (Prazo).
+  const isEditalAtivo = (edital: DatabaseEdital): boolean => {
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
 
-    const statusLower = (edital.status || '').toLowerCase().trim();
-    if (statusLower === 'encerrado' || statusLower === 'finalizado' || statusLower === 'fechado') {
-      return false; // Status explícito de encerrado
+    // 1) Submissão (timeline_estimada)
+    const deadlineSubmissao = extrairDeadlineSubmissao(edital.timeline_estimada);
+    if (deadlineSubmissao && !isNaN(deadlineSubmissao.getTime())) {
+      const fimDoDia = new Date(deadlineSubmissao);
+      fimDoDia.setHours(23, 59, 59, 999);
+      return hoje.getTime() <= fimDoDia.getTime();
     }
 
-    // Prazo de submissão da proposta inferior à data atual → inativo
-    const dataPrazoProposta = extrairDataMaisRecentePrazo(edital.prazo_inscricao);
-    if (dataPrazoProposta) {
-      const fimDoDiaPrazo = new Date(dataPrazoProposta);
-      fimDoDiaPrazo.setHours(23, 59, 59, 999);
-      // Se hoje é depois do fim do dia do prazo, prazo já venceu → inativo
-      if (hoje.getTime() > fimDoDiaPrazo.getTime()) return false;
-      return true; // Prazo ainda válido (hoje no dia do prazo ou no futuro)
+    // 2) prazo_inscricao (quando não há timeline de submissão)
+    const prazoSummary = getPrazoInscricaoSummary(edital.prazo_inscricao);
+    if (prazoSummary.date) {
+      const fimDoDia = new Date(prazoSummary.date);
+      fimDoDia.setHours(23, 59, 59, 999);
+      return hoje.getTime() <= fimDoDia.getTime();
     }
 
-    // data_encerramento inferior à data atual → inativo
-    if (edital.data_encerramento) {
-      const encerramento = new Date(edital.data_encerramento);
-      encerramento.setHours(23, 59, 59, 999);
-      if (hoje.getTime() > encerramento.getTime()) return false;
-      return true;
-    }
-
-    // Critério 3: Verificar Timeline Estimada
-    // IMPORTANTE: Se tem timeline_estimada, ela é a fonte de verdade principal
-    // Se nenhuma fase está ativa, o edital NÃO está ativo (a menos que outros critérios indiquem o contrário)
-    if (edital.timeline_estimada && edital.timeline_estimada.fases && Array.isArray(edital.timeline_estimada.fases)) {
-      const fasesValidas = edital.timeline_estimada.fases.filter((fase: any) => fase); // Filtrar fases nulas
-      
-      // Se não tem fases válidas, não considerar timeline
-      if (fasesValidas.length === 0) {
-        // Timeline vazia, continuar verificando outros critérios
-      } else {
-        // Verificar se alguma fase está ativa
-        const temFaseAtiva = fasesValidas.some((fase: any) => {
-          let statusCalculado = fase.status?.toLowerCase() || 'pendente';
-          
-          // Calcular status baseado nas datas
-          if (fase.data_fim) {
-            const dataFim = new Date(fase.data_fim);
-            dataFim.setHours(23, 59, 59, 999);
-            if (hoje > dataFim) {
-              statusCalculado = 'fechado';
-            } else if (fase.data_inicio) {
-              const dataInicio = new Date(fase.data_inicio);
-              dataInicio.setHours(0, 0, 0, 0);
-              if (hoje >= dataInicio && hoje <= dataFim) {
-                statusCalculado = 'aberto';
-              } else if (hoje < dataInicio) {
-                statusCalculado = 'pendente';
-              }
-            } else {
-              if (hoje <= dataFim) {
-                statusCalculado = 'aberto';
-              }
-            }
-          } else if (fase.data_inicio) {
-            const dataInicio = new Date(fase.data_inicio);
-            dataInicio.setHours(0, 0, 0, 0);
-            if (hoje >= dataInicio) {
-              statusCalculado = 'aberto';
-            } else {
-              statusCalculado = 'pendente';
-            }
-          } else {
-            // Fase sem datas válidas, considerar como pendente
-            statusCalculado = 'pendente';
-          }
-          
-          // Se a fase está aberta, o edital está ativo
-          return statusCalculado === 'aberto' || statusCalculado === 'aberta';
-        });
-        
-        if (temFaseAtiva) {
-          return true; // Tem fase ativa na timeline, edital está ativo
-        }
-        
-        // IMPORTANTE: Se tem timeline mas nenhuma fase está ativa, verificar se todas estão fechadas
-        // Se todas as fases estão fechadas/encerradas, o edital está inativo
-        const todasFasesFechadas = fasesValidas.every((fase: any) => {
-          // Verificar status explícito primeiro
-          const statusFase = fase.status?.toLowerCase() || '';
-          if (statusFase === 'fechado' || statusFase === 'encerrado' || statusFase === 'finalizado') {
-            return true; // Status explícito indica fechado
-          }
-          
-          // Se não tem status explícito, verificar por data
-          if (fase.data_fim) {
-            const dataFim = new Date(fase.data_fim);
-            dataFim.setHours(23, 59, 59, 999);
-            return hoje > dataFim; // Data já passou = fechado
-          }
-          
-          // Se não tem data_fim nem status explícito, não considerar como fechada
-          return false;
-        });
-        
-        if (todasFasesFechadas && fasesValidas.length > 0) {
-          // Todas as fases da timeline estão fechadas, edital está inativo
-          // A menos que tenha status explícito de ativo (pode ter sido reaberto)
-          if (statusLower === 'ativo' || statusLower === 'aberto' || statusLower === 'aberta') {
-            return true; // Status explícito indica ativo mesmo com timeline fechada
-          }
-          
-          // Se não tem status explícito de ativo, está inativo
-          // (não precisa verificar prazo aqui, pois se todas as fases estão fechadas, o edital está inativo)
-          return false;
-        }
-        
-        // Se chegou aqui, tem timeline mas nenhuma fase está ativa e nem todas estão fechadas
-        // (pode ter fases pendentes sem datas ou fases futuras)
-        // Continuar verificando outros critérios abaixo
-      }
-    }
-
-    // Critério 3: Verificar data_encerramento
-    // Se tem data_encerramento e já passou, verificar se não há outras indicações de atividade
-    if (edital.data_encerramento) {
-      const encerramento = new Date(edital.data_encerramento);
-      encerramento.setHours(0, 0, 0, 0);
-      if (encerramento < hoje) {
-        // Data de encerramento passou, mas verificar se tem prazo_inscricao válido
-        // (pode ter múltiplos prazos ou prorrogações)
-      } else {
-        // Data de encerramento ainda não chegou, edital está ativo
-        return true;
-      }
-    }
-
-    // Critério 4: Verificar prazo_inscricao (pode ter múltiplos prazos)
-    if (edital.prazo_inscricao) {
-      try {
-        // Tentar parsear como JSON
-        let parsed: any;
-        if (typeof edital.prazo_inscricao === 'string' && edital.prazo_inscricao.trim().startsWith('{')) {
-          parsed = JSON.parse(edital.prazo_inscricao);
-        } else if (typeof edital.prazo_inscricao === 'object') {
-          parsed = edital.prazo_inscricao;
-        } else {
-          // Se for string simples, tentar parsear como data
-          const dataPrazo = new Date(edital.prazo_inscricao);
-          if (!isNaN(dataPrazo.getTime())) {
-            dataPrazo.setHours(0, 0, 0, 0);
-            if (dataPrazo >= hoje) {
-              return true; // Prazo ainda válido
-            }
-          }
-          // Se não for data válida, continuar verificando outros critérios
-        }
-
-        // Se for objeto com array de prazos
-        if (parsed.prazos && Array.isArray(parsed.prazos)) {
-          // Verificar se pelo menos um prazo ainda está ativo
-          const temPrazoAtivo = parsed.prazos.some((prazo: any) => {
-            if (typeof prazo === 'string') {
-              const dataPrazo = new Date(prazo);
-              if (!isNaN(dataPrazo.getTime())) {
-                dataPrazo.setHours(0, 0, 0, 0);
-                return dataPrazo >= hoje;
-              }
-            } else if (prazo.fim) {
-              const dataFim = new Date(prazo.fim);
-              if (!isNaN(dataFim.getTime())) {
-                dataFim.setHours(0, 0, 0, 0);
-                return dataFim >= hoje;
-              }
-            }
-            return false;
-          });
-          if (temPrazoAtivo) {
-            return true; // Tem pelo menos um prazo ativo
-          }
-        }
-
-        // Se for objeto com prazo único
-        if (parsed.prazo) {
-          const dataPrazo = new Date(parsed.prazo);
-          if (!isNaN(dataPrazo.getTime())) {
-            dataPrazo.setHours(0, 0, 0, 0);
-            if (dataPrazo >= hoje) {
-              return true; // Prazo ainda válido
-            }
-          }
-        }
-
-        if (parsed.fim) {
-          const dataFim = new Date(parsed.fim);
-          if (!isNaN(dataFim.getTime())) {
-            dataFim.setHours(0, 0, 0, 0);
-            if (dataFim >= hoje) {
-              return true; // Prazo ainda válido
-            }
-          }
-        }
-      } catch (e) {
-        // Se não conseguir parsear, continuar verificando outros critérios
-        console.warn("Erro ao parsear prazo_inscricao:", e);
-      }
-    }
-
-    // Critério 5: Verificação final - considerar múltiplos fatores
-    // IMPORTANTE: Se tem timeline_estimada e nenhuma fase está ativa, verificar se todas estão fechadas
-    // Se todas estão fechadas, considerar como inativo (a menos que tenha status explícito de ativo)
-    
-    // Verificar se tem timeline com todas as fases fechadas (verificação duplicada para garantir)
-    let todasFasesFechadas = false;
-    let temTimelineComFases = false;
-    if (edital.timeline_estimada && edital.timeline_estimada.fases && Array.isArray(edital.timeline_estimada.fases)) {
-      const fasesValidas = edital.timeline_estimada.fases.filter((fase: any) => fase);
-      if (fasesValidas.length > 0) {
-        temTimelineComFases = true;
-        todasFasesFechadas = fasesValidas.every((fase: any) => {
-          // Verificar status explícito primeiro
-          const statusFase = fase.status?.toLowerCase() || '';
-          if (statusFase === 'fechado' || statusFase === 'encerrado' || statusFase === 'finalizado') {
-            return true; // Status explícito indica fechado
-          }
-          
-          // Se não tem status explícito, verificar por data
-          if (fase.data_fim) {
-            const dataFim = new Date(fase.data_fim);
-            dataFim.setHours(23, 59, 59, 999);
-            return hoje > dataFim; // Data já passou = fechado
-          }
-          
-          return false; // Se não tem data_fim nem status explícito, não considerar como fechada
-        });
-      }
-    }
-    
-    // Se tem timeline e todas as fases estão fechadas, edital está inativo
-    // (a menos que tenha status explícito de ativo)
-    if (temTimelineComFases && todasFasesFechadas) {
-      // Verificar se tem status explícito de ativo (pode ter sido reaberto)
-      if (statusLower === 'ativo' || statusLower === 'aberto' || statusLower === 'aberta') {
-        return true; // Status explícito indica ativo mesmo com timeline fechada
-      }
-      
-      // Se não tem status explícito de ativo, está inativo
-      return false; // Timeline fechada e sem status explícito de ativo = inativo
-    }
-    
-    // Se tem timeline mas nenhuma fase está ativa e nem todas estão fechadas
-    // (pode ter fases pendentes sem datas), considerar como inativo se não tiver outros critérios válidos
-    if (temTimelineComFases && !todasFasesFechadas) {
-      // Tem timeline mas nenhuma fase ativa e nem todas fechadas
-      // Verificar outros critérios (status explícito ou prazo válido) antes de decidir
-      // Se não tiver outros critérios válidos, será considerado inativo no final
-    }
-    
-    // Se tem data_encerramento e já passou
-    if (edital.data_encerramento) {
-      const encerramento = new Date(edital.data_encerramento);
-      encerramento.setHours(0, 0, 0, 0);
-      
-      if (encerramento < hoje) {
-        // Data passou, mas verificar outros fatores antes de considerar inativo
-        
-        // Se status explícito é encerrado/finalizado, então está inativo
-        if (statusLower === 'encerrado' || statusLower === 'finalizado' || statusLower === 'fechado') {
-          return false; // Claramente encerrado
-        }
-        
-        // Se tem timeline mas nenhuma fase está ativa, está inativo
-        if (temTimelineComFases) {
-          return false; // Timeline sem fases ativas e data passou = inativo
-        }
-        
-        // Se não tem status explícito de encerrado e não tem timeline,
-        // ainda pode estar ativo se tem prazo válido (já verificamos prazo acima)
-        // Se chegou aqui sem prazo válido, está inativo
-        return false;
-      } else {
-        // Data de encerramento ainda não chegou, edital está ativo
-        return true;
-      }
-    }
-    
-    // Critério 6: Se não tem nenhuma informação de encerramento explícita, considerar como ativo
-    // Por padrão, assumimos que um edital está ativo a menos que haja evidência clara de que está encerrado
-    // Isso é importante porque muitos editais podem não ter todas as informações preenchidas
-    // PRINCÍPIO: Melhor mostrar editais que podem estar ativos do que esconder editais que estão ativos
-    
-    // IMPORTANTE: Se tem timeline mas nenhuma fase está ativa, considerar como inativo
-    // (a menos que tenha outros critérios válidos como status explícito ou prazo válido)
-    if (temTimelineComFases) {
-      // Tem timeline mas nenhuma fase está ativa
-      // Se não tem status explícito de ativo e não tem prazo válido, está inativo
-      // (já verificamos status e prazo acima, então se chegou aqui, está inativo)
-      return false;
-    }
-    
-    // Se tem data_encerramento e já passou, inativo (verificação final)
+    // 3) data_encerramento (fallback)
     if (edital.data_encerramento) {
       const enc = new Date(edital.data_encerramento);
-      enc.setHours(23, 59, 59, 999);
-      if (hoje.getTime() > enc.getTime()) return false;
-    }
-
-    // Se tem prazo_inscricao mas não parseamos no início, tentar de novo (ex.: formato em texto)
-    if (edital.prazo_inscricao && String(edital.prazo_inscricao).trim() && edital.prazo_inscricao !== 'Não informado') {
-      const dataPrazo = extrairDataMaisRecentePrazo(edital.prazo_inscricao);
-      if (dataPrazo) {
-        const fimDoDia = new Date(dataPrazo);
-        fimDoDia.setHours(23, 59, 59, 999);
-        if (hoje.getTime() > fimDoDia.getTime()) return false;
+      if (!isNaN(enc.getTime())) {
+        enc.setHours(23, 59, 59, 999);
+        return hoje.getTime() <= enc.getTime();
       }
     }
 
-    // Sem evidência clara de encerramento e sem timeline: considerar ativo
+    // 4) Sem datas parseáveis: não esconder o edital por default.
+    // Só marcar como inativo quando o status explícito indica encerrado/finalizado.
+    const statusLower = (edital.status || "").toLowerCase().trim();
+    if (statusLower === "encerrado" || statusLower === "finalizado") return false;
     return true;
   };
 
@@ -1052,17 +977,29 @@ export default function Dashboard() {
                     <div className="flex items-center gap-2 min-w-0 max-w-full group/item">
                       <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0 transition-transform duration-200 group-hover/item:scale-110 group-hover/item:text-blue-600" />
                       <span className="text-gray-600 break-words min-w-0 overflow-hidden" title={(() => {
-                        const prazoFormatado = formatPrazoInscricao(edital.prazo_inscricao);
-                        if (prazoFormatado.display !== 'Não informado') {
-                          return `Prazo: ${prazoFormatado.display}`;
+                        const deadlineSubmissao = extrairDeadlineSubmissao(edital.timeline_estimada);
+                        if (deadlineSubmissao && !isNaN(deadlineSubmissao.getTime())) {
+                          return `Prazo (submissão): Até ${formatDatePtBR(deadlineSubmissao)}`;
                         }
+                        const prazoSummary = getPrazoInscricaoSummary(edital.prazo_inscricao);
+                        if (prazoSummary.date) {
+                          return `Prazo: Até ${formatDatePtBR(prazoSummary.date)}${prazoSummary.extraCount ? ` (+${prazoSummary.extraCount} mais)` : ""}`;
+                        }
+                        const prazoFormatado = formatPrazoInscricao(edital.prazo_inscricao);
+                        if (prazoFormatado.display !== "Não informado") return `Prazo: ${prazoFormatado.display}`;
                         return `Prazo: ${edital.prazo}`;
                       })()}>
                         {(() => {
-                          const prazoFormatado = formatPrazoInscricao(edital.prazo_inscricao);
-                          if (prazoFormatado.display !== 'Não informado') {
-                            return `Prazo: ${prazoFormatado.display}`;
+                          const deadlineSubmissao = extrairDeadlineSubmissao(edital.timeline_estimada);
+                          if (deadlineSubmissao && !isNaN(deadlineSubmissao.getTime())) {
+                            return `Prazo: Até ${formatDatePtBR(deadlineSubmissao)}`;
                           }
+                          const prazoSummary = getPrazoInscricaoSummary(edital.prazo_inscricao);
+                          if (prazoSummary.date) {
+                            return `Prazo: Até ${formatDatePtBR(prazoSummary.date)}${prazoSummary.extraCount ? ` (+${prazoSummary.extraCount} mais)` : ""}`;
+                          }
+                          const prazoFormatado = formatPrazoInscricao(edital.prazo_inscricao);
+                          if (prazoFormatado.display !== "Não informado") return `Prazo: ${prazoFormatado.display}`;
                           return `Prazo: ${edital.prazo}`;
                         })()}
                       </span>

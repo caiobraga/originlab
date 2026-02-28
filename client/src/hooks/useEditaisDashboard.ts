@@ -47,5 +47,13 @@ export function useEditaisScores(
       editaisToScore.every((e) => e.id),
     staleTime: 5 * 60 * 1000,
     cacheTime: 10 * 60 * 1000,
+    // Enquanto houver itens sem justificativa, refazer em background para tentar preencher
+    refetchInterval: (data) => {
+      const list = data as EditalWithScores[] | undefined;
+      if (!list || list.length === 0) return false;
+      const hasIncomplete = list.some((e) => e.justificativa == null || String(e.justificativa).trim() === "");
+      return hasIncomplete ? 15_000 : false;
+    },
+    refetchIntervalInBackground: true,
   });
 }

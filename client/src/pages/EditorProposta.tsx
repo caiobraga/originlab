@@ -43,6 +43,9 @@ export default function EditorProposta() {
   const camposRef = useRef<PropostaFormData | CNPqFormData>(createEmptyPropostaForm());
   const scrollPositionKey = `scroll_${propostaId}`;
   const [scrollRestored, setScrollRestored] = useState(false);
+  const latestScrollYRef = useRef(0);
+  const isRestoringScrollRef = useRef(false);
+  const restoreRunIdRef = useRef(0);
   const [activeSection, setActiveSection] = useState<string>("");
   const statusPanelStorageKey = "editor_proposta_status_panel_collapsed";
   const [statusPanelCollapsed, setStatusPanelCollapsed] = useState<boolean>(() => {
@@ -143,7 +146,7 @@ export default function EditorProposta() {
     try {
       setSaving(true);
       // Preservar posição do scroll durante o save (evita “voltar pro topo” em re-render)
-      const yBeforeSave = window.scrollY;
+      const yBeforeSave = latestScrollYRef.current || window.scrollY;
       try {
         sessionStorage.setItem(scrollPositionKey, yBeforeSave.toString());
       } catch {
@@ -313,7 +316,7 @@ export default function EditorProposta() {
     try {
       setSaving(true);
       // Preservar scroll durante a troca de status também
-      const yBeforeSave = window.scrollY;
+      const yBeforeSave = latestScrollYRef.current || window.scrollY;
       try {
         sessionStorage.setItem(scrollPositionKey, yBeforeSave.toString());
       } catch {
@@ -404,8 +407,9 @@ export default function EditorProposta() {
     if (!propostaId) return;
 
     const saveScroll = () => {
+      if (isRestoringScrollRef.current) return;
       try {
-        sessionStorage.setItem(scrollPositionKey, window.scrollY.toString());
+        sessionStorage.setItem(scrollPositionKey, String(latestScrollYRef.current || 0));
       } catch {
         // ignore
       }
@@ -417,6 +421,8 @@ export default function EditorProposta() {
         if (!saved) return;
         const y = parseInt(saved, 10);
         if (!Number.isFinite(y)) return;
+        const runId = ++restoreRunIdRef.current;
+        isRestoringScrollRef.current = true;
         // Alguns navegadores/app re-render podem “puxar” o scroll após voltar para a aba.
         // Restauramos mais de uma vez para garantir.
         requestAnimationFrame(() => {
@@ -425,6 +431,13 @@ export default function EditorProposta() {
         });
         setTimeout(() => window.scrollTo(0, y), 120);
         setTimeout(() => window.scrollTo(0, y), 300);
+        setTimeout(() => {
+          // libera novamente o salvamento; evita sobrescrever com 0 durante a restauração
+          if (restoreRunIdRef.current === runId) {
+            isRestoringScrollRef.current = false;
+            latestScrollYRef.current = window.scrollY;
+          }
+        }, 650);
       } catch {
         // ignore
       }
@@ -435,6 +448,9 @@ export default function EditorProposta() {
         saveScroll();
       } else {
         restoreScroll();
+        setTimeout(() => restoreScroll(), 120);
+        setTimeout(() => restoreScroll(), 350);
+        setTimeout(() => restoreScroll(), 900);
       }
     };
 
@@ -444,20 +460,45 @@ export default function EditorProposta() {
 
     const handlePageShow = () => {
       restoreScroll();
+      setTimeout(() => restoreScroll(), 120);
+      setTimeout(() => restoreScroll(), 350);
+      setTimeout(() => restoreScroll(), 900);
     };
 
-    window.addEventListener("scroll", saveScroll, { passive: true });
+    const handleScrollUpdate = () => {
+      if (isRestoringScrollRef.current) return;
+      latestScrollYRef.current = window.scrollY;
+      saveScroll();
+    };
+
+    const handleFocus = () => {
+      // Ao voltar para a aba, alguns navegadores podem “resetar” antes de disparar visibilitychange
+      restoreScroll();
+      setTimeout(() => restoreScroll(), 120);
+      setTimeout(() => restoreScroll(), 350);
+      setTimeout(() => restoreScroll(), 900);
+    };
+
+    const handleBlur = () => {
+      saveScroll();
+    };
+
+    window.addEventListener("scroll", handleScrollUpdate, { passive: true });
     window.addEventListener("beforeunload", saveScroll);
     document.addEventListener("visibilitychange", handleVisibilityChange);
     window.addEventListener("pagehide", handlePageHide);
     window.addEventListener("pageshow", handlePageShow);
+    window.addEventListener("focus", handleFocus);
+    window.addEventListener("blur", handleBlur);
 
     return () => {
-      window.removeEventListener("scroll", saveScroll);
+      window.removeEventListener("scroll", handleScrollUpdate);
       window.removeEventListener("beforeunload", saveScroll);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("pagehide", handlePageHide);
       window.removeEventListener("pageshow", handlePageShow);
+      window.removeEventListener("focus", handleFocus);
+      window.removeEventListener("blur", handleBlur);
     };
   }, [propostaId, scrollPositionKey]);
 
@@ -479,6 +520,8 @@ export default function EditorProposta() {
         setScrollRestored(true);
         return;
       }
+      const runId = ++restoreRunIdRef.current;
+      isRestoringScrollRef.current = true;
       requestAnimationFrame(() => {
         window.scrollTo(0, y);
         requestAnimationFrame(() => window.scrollTo(0, y));
@@ -487,6 +530,10 @@ export default function EditorProposta() {
       setTimeout(() => {
         window.scrollTo(0, y);
         setScrollRestored(true);
+        if (restoreRunIdRef.current === runId) {
+          isRestoringScrollRef.current = false;
+          latestScrollYRef.current = window.scrollY;
+        }
       }, 250);
     } catch {
       setScrollRestored(true);

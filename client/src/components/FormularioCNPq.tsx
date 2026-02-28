@@ -1,8 +1,10 @@
+import { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { type CNPqFormData } from "@/lib/cnpqFormFields";
 import TextFieldWithAI from "./TextFieldWithAI";
+import { translateText } from "@/lib/translateApi";
 
 interface FormularioCNPqProps {
   data: CNPqFormData;
@@ -35,6 +37,80 @@ export default function FormularioCNPq({ data, onChange, editalId, propostaId }:
     return max - text.length;
   };
 
+  const [isTranslatingTitle, setIsTranslatingTitle] = useState(false);
+  const [isTranslatingKeywords, setIsTranslatingKeywords] = useState(false);
+  const latestTituloEnRef = useRef<string>("");
+  const latestTituloPtRef = useRef<string>("");
+  const latestKeywordsEnRef = useRef<string>("");
+  const latestKeywordsPtRef = useRef<string>("");
+  const translateRunIdRef = useRef(0);
+  const translateKeywordsRunIdRef = useRef(0);
+
+  useEffect(() => {
+    latestTituloEnRef.current = String(data.projeto_pesquisa.titulo_projeto_en || "");
+    latestTituloPtRef.current = String(data.projeto_pesquisa.titulo_projeto_pt || "");
+    latestKeywordsEnRef.current = String(data.projeto_pesquisa.palavras_chave_en || "");
+    latestKeywordsPtRef.current = String(data.projeto_pesquisa.palavras_chave_pt || "");
+  }, [
+    data.projeto_pesquisa.titulo_projeto_en,
+    data.projeto_pesquisa.titulo_projeto_pt,
+    data.projeto_pesquisa.palavras_chave_en,
+    data.projeto_pesquisa.palavras_chave_pt,
+  ]);
+
+  const maybeTranslateTituloPtToEn = async () => {
+    const pt = String(latestTituloPtRef.current || "").trim();
+    const en = String(latestTituloEnRef.current || "").trim();
+    if (!pt) return;
+    if (en) return; // não sobrescrever o que o usuário já preencheu
+
+    const runId = ++translateRunIdRef.current;
+    setIsTranslatingTitle(true);
+    try {
+      const translated = await translateText({ text: pt, source: "pt", target: "en" });
+      const translatedClean = String(translated || "").trim();
+      if (!translatedClean) return;
+
+      // Se houve outra tradução depois, ou o usuário já preencheu o EN enquanto traduzia, não sobrescreve.
+      if (translateRunIdRef.current !== runId) return;
+      const currentEn = String(latestTituloEnRef.current || "").trim();
+      if (currentEn) return;
+
+      updateNestedField("projeto_pesquisa", "titulo_projeto_en", translatedClean);
+    } catch {
+      // silencioso: não bloquear fluxo do usuário
+    } finally {
+      if (translateRunIdRef.current === runId) {
+        setIsTranslatingTitle(false);
+      }
+    }
+  };
+
+  const maybeTranslateKeywordsPtToEn = async () => {
+    const pt = String(latestKeywordsPtRef.current || "").trim();
+    const en = String(latestKeywordsEnRef.current || "").trim();
+    if (!pt) return;
+    if (en) return;
+
+    const runId = ++translateKeywordsRunIdRef.current;
+    setIsTranslatingKeywords(true);
+    try {
+      const translated = await translateText({ text: pt, source: "pt", target: "en" });
+      const translatedClean = String(translated || "").trim();
+      if (!translatedClean) return;
+      if (translateKeywordsRunIdRef.current !== runId) return;
+      const currentEn = String(latestKeywordsEnRef.current || "").trim();
+      if (currentEn) return;
+      updateNestedField("projeto_pesquisa", "palavras_chave_en", translatedClean);
+    } catch {
+      // silencioso
+    } finally {
+      if (translateKeywordsRunIdRef.current === runId) {
+        setIsTranslatingKeywords(false);
+      }
+    }
+  };
+
   return (
     <div className="space-y-8">
       {/* Projeto de Pesquisa */}
@@ -65,9 +141,13 @@ export default function FormularioCNPq({ data, onChange, editalId, propostaId }:
               id="titulo_projeto_pt"
               value={data.projeto_pesquisa.titulo_projeto_pt}
               onChange={(e) => updateNestedField('projeto_pesquisa', 'titulo_projeto_pt', e.target.value)}
+              onBlur={maybeTranslateTituloPtToEn}
               className="mt-1"
               placeholder="Título em português"
             />
+            {isTranslatingTitle && (
+              <p className="text-xs text-gray-500 mt-1">Traduzindo para inglês…</p>
+            )}
           </div>
 
           <div>
@@ -104,12 +184,16 @@ export default function FormularioCNPq({ data, onChange, editalId, propostaId }:
               id="palavras_chave_pt"
               value={data.projeto_pesquisa.palavras_chave_pt}
               onChange={(e) => updateNestedField('projeto_pesquisa', 'palavras_chave_pt', e.target.value)}
+              onBlur={maybeTranslateKeywordsPtToEn}
               className="mt-1"
               placeholder="Informe entre uma e seis palavras-chave, separadas por vírgula"
             />
             <p className="text-xs text-gray-500 mt-1">
               Informe entre uma e seis palavras-chave, separadas por vírgula
             </p>
+            {isTranslatingKeywords && (
+              <p className="text-xs text-gray-500 mt-1">Traduzindo palavras-chave para inglês…</p>
+            )}
           </div>
 
           <div>

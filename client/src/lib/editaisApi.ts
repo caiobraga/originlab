@@ -291,7 +291,8 @@ export async function calculateEditalScores(
     try {
       if (!forceRecalculate) {
         const existingScore = await fetchEditalScore(edital.id, userId);
-        if (existingScore) {
+        // Se o score existir, mas estiver "incompleto" (sem justificativa), forçar recálculo.
+        if (existingScore && existingScore.justificativa != null) {
           console.log(`✅ Score já existe para edital ${edital.id} e usuário ${userId}`);
           return existingScore;
         }
@@ -300,31 +301,95 @@ export async function calculateEditalScores(
       const userProfile = profile || await getUserProfile(user);
       const userData = await fetchUserDataForScoring(user, userProfile);
 
-      const response = await fetch("/api/calculate-edital-scores", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          edital_id: edital.id,
-          user_id: userId,
-          user_data: userData,
-          force: forceRecalculate,
-        }),
-      });
+      const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-      if (!response.ok) {
-        throw new Error(`Erro na API: ${response.statusText}`);
+      // Retry automático (IA / webhook pode falhar pontualmente)
+      const maxAttempts = 3;
+      let lastResult: any = null;
+      let lastError: unknown = null;
+
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          // Se não havia forceRecalculate, mas o score no banco estava incompleto, forçar aqui.
+          const forceThisAttempt = forceRecalculate || attempt > 1;
+
+          const response = await fetch("/api/calculate-edital-scores", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              edital_id: edital.id,
+              user_id: userId,
+              user_data: userData,
+              force: forceThisAttempt,
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error(`Erro na API: ${response.status} ${response.statusText}`);
+          }
+
+          const result = await response.json();
+          lastResult = result;
+
+          // O endpoint pode devolver fallback silencioso quando dá erro interno.
+          // Nesses casos, tentamos novamente.
+          const isFallback = result?._fallback === true;
+          const justificativa =
+            result?.justificativa != null && String(result.justificativa).trim() !== ""
+              ? String(result.justificativa)
+              : null;
+
+          if (!isFallback && justificativa != null) {
+            return {
+              match: result.match ?? 50,
+              probabilidade: result.probabilidade ?? 40,
+              justificativa,
+            };
+          }
+
+          if (attempt < maxAttempts) {
+            // backoff leve
+            await sleep(250 * attempt);
+            continue;
+          }
+        } catch (err) {
+          lastError = err;
+          if (attempt < maxAttempts) {
+            await sleep(250 * attempt);
+            continue;
+          }
+        }
       }
 
-      const result = await response.json();
-      const justificativa = result.justificativa != null && String(result.justificativa).trim() !== ""
-        ? result.justificativa
-        : null;
+      // Se esgotou tentativas, usar fallback para não quebrar UI.
+      const justificativa =
+        lastResult?.justificativa != null && String(lastResult.justificativa).trim() !== ""
+          ? String(lastResult.justificativa)
+          : null;
+
+      if (justificativa != null) {
+        return {
+          match: lastResult?.match ?? 50,
+          probabilidade: lastResult?.probabilidade ?? 40,
+          justificativa,
+        };
+      }
+
+      if (!scoreApiErrorLogged) {
+        scoreApiErrorLogged = true;
+        console.warn(
+          "Scores da API indisponíveis (ex.: servidor 500). Exibindo valores padrão. Configure N8N_WEBHOOK_URL ou a API de scores no servidor."
+        );
+      }
+      if (lastError) {
+        console.warn("Falha ao calcular scores após retry:", lastError);
+      }
       return {
-        match: result.match ?? 50,
-        probabilidade: result.probabilidade ?? 40,
-        justificativa,
+        match: 50,
+        probabilidade: 40,
+        justificativa: null,
       };
     } catch (error) {
       if (!scoreApiErrorLogged) {
