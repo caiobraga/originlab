@@ -7,6 +7,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 const USE_LOCAL_API = process.env.USE_LOCAL_API === 'true'; // Default: false (usa n8n)
 const LOCAL_API_URL = process.env.LOCAL_API_URL || "http://localhost:3000/api/extract-edital-info";
 const WEBHOOK_URL = process.env.N8N_WEBHOOK_URL || "https://n8n.srv652789.hstgr.cloud/webhook/789b0959-b90f-40e8-afe8-03aa8e486b43";
+const WEBHOOK_LIGHT_URL = process.env.N8N_WEBHOOK_LIGHT_URL || WEBHOOK_URL;
 
 interface EditalInfo {
   id: string;
@@ -53,7 +54,7 @@ async function fetchEditalPdfIds(supabase: SupabaseClient, editalId: string): Pr
     }
 
     // Retornar file_id se disponível, caso contrário usar id como fallback
-    return data?.map((pdf) => pdf.file_id || pdf.id).filter((id): id is string => id !== null) || [];
+    return data?.map((pdf: any) => pdf.file_id || pdf.id).filter((p: any): p is string => typeof p === 'string' && p.trim().length > 0) || [];
   } catch (error) {
     console.error(`Erro ao buscar PDFs do edital ${editalId}:`, error);
     return [];
@@ -424,13 +425,17 @@ Retorne APENAS o JSON válido: {"is_company": true/false/null}`,
       await new Promise(resolve => setTimeout(resolve, delayMs));
     }
 
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestBody),
-    });
+    const isVectorInsertError = (txt: string) =>
+      String(txt || '').toLowerCase().includes('vector must have at least 1 dimension');
+
+    const doRequest = (url: string) =>
+      fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+      });
+
+    let response = await doRequest(apiUrl);
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => '');
@@ -441,9 +446,21 @@ Retorne APENAS o JSON válido: {"is_company": true/false/null}`,
         console.warn(`     Dica: Execute o workflow no n8n ou ative-o em produção.`);
         return null;
       }
+
+      // Fallback para webhook "light" quando o n8n falha ao inserir embeddings no vector store (pgvector)
+      if (!USE_LOCAL_API && response.status === 400 && isVectorInsertError(errorText) && WEBHOOK_LIGHT_URL !== WEBHOOK_URL) {
+        console.warn(`  ⚠️ n8n vector store falhou (embedding vazio) ao extrair ${field}. Tentando fallback (light)...`);
+        response = await doRequest(WEBHOOK_LIGHT_URL);
+        if (!response.ok) {
+          const errorText2 = await response.text().catch(() => '');
+          console.error(`  ❌ Erro HTTP ${response.status} (light) ao extrair ${field}:`, errorText2);
+          return null;
+        }
+      } else {
       
-      console.error(`  ❌ Erro HTTP ${response.status} ao extrair ${field}:`, errorText);
-      return null;
+        console.error(`  ❌ Erro HTTP ${response.status} ao extrair ${field}:`, errorText);
+        return null;
+      }
     }
 
     // Processar resposta

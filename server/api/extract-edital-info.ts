@@ -53,25 +53,42 @@ async function fetchPdfFromStorage(fileId: string): Promise<Buffer | null> {
   }
 
   try {
-    // Primeiro, buscar informações do PDF na tabela edital_pdfs
-    const { data: pdfRecord, error: dbError } = await supabase
-      .from('edital_pdfs')
-      .select('caminho_storage, nome_arquivo')
-      .eq('id', fileId)
-      .single();
+    const ref = String(fileId || '').trim();
+    if (!ref) return null;
 
-    if (dbError || !pdfRecord) {
-      console.error(`Erro ao buscar PDF ${fileId} do banco:`, dbError);
-      return null;
+    // Suportar 3 formatos:
+    // 1) path do storage (contém "/")
+    // 2) id da linha em edital_pdfs
+    // 3) UUID do objeto no storage (storage.objects.id) — usado pelo n8n
+    let storagePath = ref;
+    if (!ref.includes('/')) {
+      // 2) tentar resolver como edital_pdfs.id
+      const { data: pdfRecord } = await supabase
+        .from('edital_pdfs')
+        .select('caminho_storage')
+        .eq('id', ref)
+        .maybeSingle();
+      if (pdfRecord?.caminho_storage) {
+        storagePath = pdfRecord.caminho_storage;
+      } else {
+        // 3) tentar resolver como storage.objects.id
+        const { data: obj } = await supabase
+          .from('storage.objects')
+          .select('name, bucket_id')
+          .eq('id', ref)
+          .maybeSingle();
+        if (obj?.name) {
+          storagePath = obj.name;
+        }
+      }
     }
 
-    // Baixar o arquivo do storage
     const { data: fileData, error: storageError } = await supabase.storage
       .from(STORAGE_BUCKET)
-      .download(pdfRecord.caminho_storage);
+      .download(storagePath);
 
     if (storageError || !fileData) {
-      console.error(`Erro ao baixar PDF ${pdfRecord.caminho_storage} do storage:`, storageError);
+      console.error(`Erro ao baixar PDF ${storagePath} do storage:`, storageError);
       return null;
     }
 
@@ -253,15 +270,18 @@ async function processWithGemini(
       ? 'application/pdf'
       : 'application/pdf'; // Default para PDF
 
-    // Buscar nome do arquivo do banco
-    if (!supabase) continue;
-    const { data: pdfRecord } = await supabase
-      .from('edital_pdfs')
-      .select('nome_arquivo')
-      .eq('id', fileId)
-      .single();
-
-    const fileName = pdfRecord?.nome_arquivo || `file_${fileId}.pdf`;
+    // Nome do arquivo: se for path, usar basename; senão, buscar no banco
+    let fileName = `file_${fileId}.pdf`;
+    if (String(fileId).includes('/')) {
+      fileName = path.basename(String(fileId));
+    } else if (supabase) {
+      const { data: pdfRecord } = await supabase
+        .from('edital_pdfs')
+        .select('nome_arquivo')
+        .eq('id', fileId)
+        .single();
+      fileName = pdfRecord?.nome_arquivo || fileName;
+    }
 
     // Fazer upload para o Gemini
     const fileUri = await uploadFileToGemini(pdfBuffer, mimeType, fileName);

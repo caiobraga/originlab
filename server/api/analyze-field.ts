@@ -11,6 +11,7 @@ const LOCAL_API_URL =
 const WEBHOOK_URL =
   process.env.N8N_WEBHOOK_URL ||
   "https://n8n.srv652789.hstgr.cloud/webhook/789b0959-b90f-40e8-afe8-03aa8e486b43";
+const WEBHOOK_LIGHT_URL = process.env.N8N_WEBHOOK_LIGHT_URL || WEBHOOK_URL;
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || "";
 const supabaseServiceKey =
@@ -95,23 +96,34 @@ function redactLarge(obj: any, maxTotalChars: number): string {
 }
 
 async function callWebhook(prompt: string, fileIds: string[]): Promise<string> {
-  if (!fileIds || fileIds.length === 0) {
-    throw new Error("Nenhum file_id disponível! Não é possível analisar sem os arquivos do edital.");
-  }
+  const isVectorInsertError = (txt: string) =>
+    String(txt || "").toLowerCase().includes("vector must have at least 1 dimension");
 
   const apiUrl = USE_LOCAL_API ? LOCAL_API_URL : WEBHOOK_URL;
-  const response = await fetch(apiUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message: prompt, file_ids: fileIds }),
-  });
+  const doRequest = (url: string, body: any) =>
+    fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+  let response = await doRequest(apiUrl, { message: prompt, file_ids: fileIds });
 
   if (!response.ok) {
     const errorText = await response.text().catch(() => "");
     if (response.status === 404) {
       throw new Error("Webhook não registrado (404). O workflow do n8n precisa estar ativo.");
     }
-    throw new Error(`Erro HTTP ${response.status}: ${errorText}`);
+    if (!USE_LOCAL_API && response.status === 400 && isVectorInsertError(errorText) && WEBHOOK_LIGHT_URL !== WEBHOOK_URL) {
+      console.warn("⚠️ n8n falhou ao inserir vector (embedding vazio). Tentando fallback (light)...");
+      response = await doRequest(WEBHOOK_LIGHT_URL, { message: prompt });
+      if (!response.ok) {
+        const errorText2 = await response.text().catch(() => "");
+        throw new Error(`Erro HTTP ${response.status} (light): ${errorText2}`);
+      }
+    } else {
+      throw new Error(`Erro HTTP ${response.status}: ${errorText}`);
+    }
   }
 
   const contentType = response.headers.get("content-type");

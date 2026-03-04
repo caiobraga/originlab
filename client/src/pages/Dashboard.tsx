@@ -399,6 +399,10 @@ export default function Dashboard() {
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
 
+    // 0) Se o prazo estiver como "Não informado", considerar inativo
+    const prazoFormatado = formatPrazoInscricao(edital.prazo_inscricao);
+    if (prazoFormatado.display === "Não informado") return false;
+
     // 1) Submissão (timeline_estimada)
     const deadlineSubmissao = extrairDeadlineSubmissao(edital.timeline_estimada);
     if (deadlineSubmissao && !isNaN(deadlineSubmissao.getTime())) {
@@ -857,20 +861,18 @@ export default function Dashboard() {
         {/* Editais List */}
         <div className="space-y-4">
           {editaisExibidos.map((edital) => (
-            <div key={edital.id} className="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-gray-200 hover:shadow-md hover:border-gray-300 transition-all duration-200 cursor-pointer">
+            <Link
+              key={edital.id}
+              href={`/edital/${edital.id}`}
+              className="block bg-white rounded-xl p-4 md:p-6 shadow-sm border border-gray-200 hover:shadow-md hover:border-gray-300 transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+            >
               <div className="flex flex-col md:flex-row items-start md:justify-between gap-4 mb-4">
                 <div className="flex-1 min-w-0 w-full">
                   {/* No mobile: título em linha própria para evitar compressão */}
                   <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 sm:gap-3 mb-2">
-                    <Link
-                      href={`/edital/${edital.id}`}
-                      className="order-1 w-full sm:w-auto sm:flex-1 sm:min-w-0"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <h3 className="text-base md:text-lg font-bold text-gray-900 break-words hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 rounded">
-                        {edital.titulo}
-                      </h3>
-                    </Link>
+                    <h3 className="order-1 w-full sm:w-auto sm:flex-1 sm:min-w-0 text-base md:text-lg font-bold text-gray-900 break-words hover:text-blue-700">
+                      {edital.titulo}
+                    </h3>
                     <div className="flex flex-wrap items-center gap-2 sm:gap-3 order-2">
                       <span className="text-xl md:text-2xl flex-shrink-0">{edital.flag}</span>
                       {/* Badges de tipo de edital com separadores visuais */}
@@ -961,7 +963,7 @@ export default function Dashboard() {
                     </p>
                   )}
 
-                  <div className="flex flex-wrap items-center gap-3 md:gap-6 text-xs md:text-sm">
+                  <div className="flex flex-wrap items-center gap-3 md:gap-6 text-xs md:text-sm min-w-0">
                     {(() => {
                       const valorFormatado = formatValorProjeto(edital.valor_projeto || edital.valor);
                       if (valorFormatado.display !== 'Não informado') {
@@ -1005,9 +1007,11 @@ export default function Dashboard() {
                       </span>
                     </div>
                     {edital.area && (
-                      <div className="flex items-center gap-2 flex-shrink-0 group/item">
+                      <div className="flex items-start gap-2 min-w-0 max-w-full w-full md:w-auto group/item">
                         <Target className="w-4 h-4 text-gray-400 flex-shrink-0 transition-transform duration-200 group-hover/item:scale-110 group-hover/item:text-purple-600" />
-                        <span className="text-gray-600 break-words">{edital.area}</span>
+                        <span className="text-gray-600 break-words min-w-0 overflow-hidden line-clamp-2" title={edital.area}>
+                          {edital.area}
+                        </span>
                       </div>
                     )}
                   </div>
@@ -1034,6 +1038,7 @@ export default function Dashboard() {
                             size="sm"
                             className="h-9 text-xs text-violet-600 hover:text-violet-700 hover:bg-violet-50"
                             onClick={(e) => {
+                              e.preventDefault();
                               e.stopPropagation();
                               recalcMutation.mutate({ edital });
                             }}
@@ -1065,35 +1070,7 @@ export default function Dashboard() {
                   </div>
                 </div>
               </div>
-
-              {/* Actions */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 pt-4 border-t border-gray-200">
-                <Button 
-                  onClick={() => handleGerarProposta(edital.id)}
-                  disabled={gerandoProposta === edital.id || !user}
-                  className="w-full sm:flex-1 bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] group"
-                >
-                  {gerandoProposta === edital.id ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      <span className="hidden sm:inline">Gerando...</span>
-                      <span className="sm:hidden">Gerando...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-4 h-4 mr-2 transition-transform duration-200 group-hover:scale-110 group-hover:rotate-12" />
-                      <span className="hidden sm:inline">Gerar proposta com IA</span>
-                      <span className="sm:hidden">Gerar proposta</span>
-                    </>
-                  )}
-                </Button>
-                <Button variant="outline" onClick={() => handleVerDetalhes(edital.id)} className="w-full sm:w-auto transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] group">
-                  <Eye className="w-4 h-4 mr-2 transition-transform duration-200 group-hover:scale-110" />
-                  <span className="hidden sm:inline">Ver detalhes</span>
-                  <span className="sm:hidden">Detalhes</span>
-                </Button>
-              </div>
-            </div>
+            </Link>
           ))}
         </div>
 

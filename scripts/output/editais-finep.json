@@ -1,0 +1,940 @@
+[
+  {
+    "numero": "FINEP-777",
+    "titulo": "Finep Mais Inovação Brasil – Rodada 2 – Economia Circular e Cidades Sustentáveis",
+    "descricao": "Esta Seleção Pública tem por objetivo conceder recursos de subvenção econômica para atividades de pesquisa, desenvolvimento tecnológico e inovação (PD&I) em projetos inovadores, com risco tecnológico associado, executados por empresas, obrigatoriamente com a parceria de Instituições Científicas, Tecnológicas e de Inovação (ICTs).",
+    "dataPublicacao": "13/02/2026",
+    "dataEncerramento": "31/08/2026",
+    "status": "Aberta",
+    "orgao": "FINEP",
+    "fonte": "finep",
+    "link": "http://www.finep.gov.br/chamadas-publicas/chamadapublica/777",
+    "area": "BIM - Building Information Modeling; Bioeconomia; Cidades inteligentes e sustentáveis; Química; Saneamento; Segurança hídrica; Sustentabilidade",
+    "pdfUrl": "http://www.finep.gov.br/images/chamadas-publicas/2026/13_02_2026_EC_Regulamento.pdf",
+    "pdfUrls": [
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/13_02_2026_EC_Regulamento.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/13_02_2026_EC_Anexo1.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/13_02_2026_EC_Anexo2.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/13_02_2026_EC_Anexo3.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/13_02_2026_EC_Anexo4.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/13_02_2026_EC_Anexo5.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/13_02_2026_EC_Anexo6.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/13_02_2026_EC_Apresentacao.pdf"
+    ],
+    "pdfPaths": [
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___economia_circular_e_c_01_1772297499547.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___economia_circular_e_c_02_1772297499880.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___economia_circular_e_c_03_1772297500110.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___economia_circular_e_c_04_1772297500354.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___economia_circular_e_c_05_1772297500557.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___economia_circular_e_c_06_1772297500780.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___economia_circular_e_c_07_1772297501012.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___economia_circular_e_c_08_1772297501208.pdf"
+    ],
+    "fonteRecurso": "FINEP ; FNDCT",
+    "publicoAlvo": "Empresas",
+    "temas": "BIM - Building Information Modeling; Bioeconomia; Cidades inteligentes e sustentáveis; Química; Saneamento; Segurança hídrica; Sustentabilidade",
+    "documentos": [
+      {
+        "dataPublicacao": "13/02/2026",
+        "nome": "Regulamento",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/13_02_2026_EC_Regulamento.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/13_02_2026_EC_Regulamento.odt"
+      },
+      {
+        "dataPublicacao": "13/02/2026",
+        "nome": "Anexo 1: Características Específicas da Seleção Pública",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/13_02_2026_EC_Anexo1.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/13_02_2026_EC_Anexo1.odt"
+      },
+      {
+        "dataPublicacao": "13/02/2026",
+        "nome": "Anexo 2: Minuta de Termo de Outorga de Subvenção Econômica",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/13_02_2026_EC_Anexo2.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/13_02_2026_EC_Anexo2.odt"
+      },
+      {
+        "dataPublicacao": "13/02/2026",
+        "nome": "Anexo 3: Declaração de ações coletivas",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/13_02_2026_EC_Anexo3.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/13_02_2026_EC_Anexo3.odt"
+      },
+      {
+        "dataPublicacao": "13/02/2026",
+        "nome": "Anexo 4: Declaração ambiental e outros aspectos regulatórios",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/13_02_2026_EC_Anexo4.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/13_02_2026_EC_Anexo4.odt"
+      },
+      {
+        "dataPublicacao": "13/02/2026",
+        "nome": "Anexo 5: Definição do Nível de Maturidade Tecnológica",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/13_02_2026_EC_Anexo5.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/13_02_2026_EC_Anexo5.odt"
+      },
+      {
+        "dataPublicacao": "13/02/2026",
+        "nome": "Anexo 6: Carta de Manifestação de Interesse",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/13_02_2026_EC_Anexo6.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/13_02_2026_EC_Anexo6.odt"
+      },
+      {
+        "dataPublicacao": "13/02/2026",
+        "nome": "Apresentação",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/13_02_2026_EC_Apresentacao.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/13_02_2026_EC_Apresentacao.odp"
+      }
+    ],
+    "processadoEm": "2026-02-28T16:51:41.676Z"
+  },
+  {
+    "numero": "FINEP-771",
+    "titulo": "Finep Mais Inovação Brasil – Rodada 2 – Transformação Mineral",
+    "descricao": "Esta Seleção Pública tem por objetivo conceder recursos de subvenção econômica para atividades de pesquisa, desenvolvimento tecnológico e inovação (PD&I) em projetos inovadores, com risco tecnológico associado, executados por empresas, obrigatoriamente com a parceria de Instituições Científicas, Tecnológicas e de Inovação (ICTs).",
+    "dataPublicacao": "06/02/2026",
+    "dataEncerramento": "31/08/2026",
+    "status": "Aberta",
+    "orgao": "FINEP",
+    "fonte": "finep",
+    "link": "http://www.finep.gov.br/chamadas-publicas/chamadapublica/771",
+    "area": "Energia renovável; Mineração; Química; Recursos minerais",
+    "pdfUrl": "http://www.finep.gov.br/images/chamadas-publicas/2026/26_02_2026_Transformacao_Mineral_Apresentacao.pdf",
+    "pdfUrls": [
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/26_02_2026_Transformacao_Mineral_Apresentacao.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_Mineral_Regulamento.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_Mineral_A1.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_Mineral_A2.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_Mineral_A3.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_Mineral_A4.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_Mineral_A5.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_Mineral_FAQ.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_Mineral_Apresentacao.pdf"
+    ],
+    "pdfPaths": [
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___transforma_o_mineral_01_1772297502498.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___transforma_o_mineral_02_1772297502959.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___transforma_o_mineral_03_1772297503200.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___transforma_o_mineral_04_1772297503426.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___transforma_o_mineral_05_1772297503671.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___transforma_o_mineral_06_1772297503869.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___transforma_o_mineral_07_1772297504093.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___transforma_o_mineral_08_1772297504319.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___transforma_o_mineral_09_1772297504582.pdf"
+    ],
+    "fonteRecurso": "FINEP ; FNDCT",
+    "publicoAlvo": "Empresas",
+    "temas": "Energia renovável; Mineração; Química; Recursos minerais",
+    "documentos": [
+      {
+        "dataPublicacao": "26/02/2026",
+        "nome": "Apresentação",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/26_02_2026_Transformacao_Mineral_Apresentacao.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/26_02_2026_Transformacao_Mineral_Apresentacao.odp"
+      },
+      {
+        "dataPublicacao": "06/02/2026",
+        "nome": "Regulamento",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_Mineral_Regulamento.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_Mineral_Regulamento.odt"
+      },
+      {
+        "dataPublicacao": "06/02/2026",
+        "nome": "Anexo 1: Características Específicas da Seleção Pública",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_Mineral_A1.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_Mineral_A1.odt"
+      },
+      {
+        "dataPublicacao": "06/02/2026",
+        "nome": "Anexo 2: Minuta de Termo de Outorga de Subvenção Econômica",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_Mineral_A2.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_Mineral_A2.odt"
+      },
+      {
+        "dataPublicacao": "06/02/2026",
+        "nome": "Anexo 3: Declaração de ações coletivas",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_Mineral_A3.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_Mineral_A3.odt"
+      },
+      {
+        "dataPublicacao": "06/02/2026",
+        "nome": "Anexo 4: Declaração ambiental e outros aspectos regulatórios",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_Mineral_A4.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_Mineral_A4.odt"
+      },
+      {
+        "dataPublicacao": "06/02/2026",
+        "nome": "Anexo 5: Definição do Nível de Maturidade Tecnológica",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_Mineral_A5.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_Mineral_A5.odt"
+      },
+      {
+        "dataPublicacao": "06/02/2026",
+        "nome": "FAQ - Perguntas Frequentes",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_Mineral_FAQ.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_Mineral_FAQ.odt"
+      },
+      {
+        "dataPublicacao": "06/02/2026",
+        "nome": "Apresentação",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_Mineral_Apresentacao.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_Mineral_Apresentacao.odp"
+      }
+    ],
+    "processadoEm": "2026-02-28T16:51:45.081Z"
+  },
+  {
+    "numero": "FINEP-772",
+    "titulo": "Finep Mais Inovação Brasil – Rodada 2 – Transição Energética",
+    "descricao": "Esta Seleção Pública tem por objetivo conceder recursos de subvenção econômica para atividades de pesquisa, desenvolvimento tecnológico e inovação (PD&I) em projetos inovadores, com risco tecnológico associado, executados por empresas, obrigatoriamente com a parceria de Instituições Científicas, Tecnológicas e de Inovação (ICTs).",
+    "dataPublicacao": "06/02/2026",
+    "dataEncerramento": "31/08/2026",
+    "status": "Aberta",
+    "orgao": "FINEP",
+    "fonte": "finep",
+    "link": "http://www.finep.gov.br/chamadas-publicas/chamadapublica/772",
+    "area": "Bioeconomia; Combustíveis; Eficiência energética; Energia; Energia renovável; Petróleo, gás e etanol; Eficiência energética de veículos movidos a biocombustíveis; Descarbonização Foco em Hidrogênio Verde - H2V",
+    "pdfUrl": "http://www.finep.gov.br/images/chamadas-publicas/2026/26_02_2026_Apresentacao.pdf",
+    "pdfUrls": [
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/26_02_2026_Apresentacao.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/09_02_2026_T_Energetica_Regulamento.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_T_Energetica_Anexo1.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_T_Energetica_Anexo2.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_T_Energetica_Anexo3.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_T_Energetica_Anexo4.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_T_Energetica_Anexo5.pdf"
+    ],
+    "pdfPaths": [
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___transi_o_energ_tica_01_1772297505843.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___transi_o_energ_tica_02_1772297506463.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___transi_o_energ_tica_03_1772297506703.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___transi_o_energ_tica_04_1772297506928.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___transi_o_energ_tica_05_1772297507169.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___transi_o_energ_tica_06_1772297507364.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___transi_o_energ_tica_07_1772297507561.pdf"
+    ],
+    "fonteRecurso": "FINEP ; FNDCT",
+    "publicoAlvo": "Empresas",
+    "temas": "Bioeconomia; Combustíveis; Eficiência energética; Energia; Energia renovável; Petróleo, gás e etanol; Eficiência energética de veículos movidos a biocombustíveis; Descarbonização Foco em Hidrogênio Verde - H2V",
+    "documentos": [
+      {
+        "dataPublicacao": "26/02/2026",
+        "nome": "Apresentação",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/26_02_2026_Apresentacao.pdf"
+      },
+      {
+        "dataPublicacao": "06/02/2026",
+        "nome": "Regulamento",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/09_02_2026_T_Energetica_Regulamento.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/09_02_2026_T_Energetica_Regulamento.odt"
+      },
+      {
+        "dataPublicacao": "06/02/2026",
+        "nome": "Anexo 1: Características Específicas da Seleção Pública",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_T_Energetica_Anexo1.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_T_Energetica_Anexo1.odt"
+      },
+      {
+        "dataPublicacao": "06/02/2026",
+        "nome": "Anexo 2: Minuta de Termo de Outorga de Subvenção Econômica",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_T_Energetica_Anexo2.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_T_Energetica_Anexo2.odt"
+      },
+      {
+        "dataPublicacao": "06/02/2026",
+        "nome": "Anexo 3: Declaração de ações coletivas",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_T_Energetica_Anexo3.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_T_Energetica_Anexo3.odt"
+      },
+      {
+        "dataPublicacao": "06/02/2026",
+        "nome": "Anexo 4: Declaração ambiental e outros aspectos regulatórios",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_T_Energetica_Anexo4.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_T_Energetica_Anexo4.odt"
+      },
+      {
+        "dataPublicacao": "06/02/2026",
+        "nome": "Anexo 5: Definição do Nível de Maturidade Tecnológica",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_T_Energetica_Anexo5.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_T_Energetica_Anexo5.odt"
+      }
+    ],
+    "processadoEm": "2026-02-28T16:51:47.784Z"
+  },
+  {
+    "numero": "FINEP-773",
+    "titulo": "Finep Mais Inovação Brasil - Rodada 2 - Saúde / Empresas",
+    "descricao": "Esta Seleção Pública objetiva conceder recursos de subvenção econômica para o desenvolvimento de produtos ou processos inovadores que atendam as finalidades definidas neste regulamento e em seus anexos.",
+    "dataPublicacao": "06/02/2026",
+    "dataEncerramento": "31/08/2026",
+    "status": "Aberta",
+    "orgao": "FINEP",
+    "fonte": "finep",
+    "link": "http://www.finep.gov.br/chamadas-publicas/chamadapublica/773",
+    "area": "Saúde e Fármacos",
+    "pdfUrl": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_Saude_Regulamento.pdf",
+    "pdfUrls": [
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_Saude_Regulamento.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_Saude_Anexo1.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_Saude_Anexo2.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_Saude_Anexo3.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_Saude_Anexo4.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_Saude_Anexo5.pdf"
+    ],
+    "pdfPaths": [
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___sa_de___empresas_01_1772297508499.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___sa_de___empresas_02_1772297508829.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___sa_de___empresas_03_1772297509061.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___sa_de___empresas_04_1772297509296.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___sa_de___empresas_05_1772297509518.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___sa_de___empresas_06_1772297509745.pdf"
+    ],
+    "fonteRecurso": "FINEP ; FNDCT",
+    "publicoAlvo": "Empresas",
+    "temas": "Saúde e Fármacos",
+    "documentos": [
+      {
+        "dataPublicacao": "06/02/2026",
+        "nome": "Regulamento",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_Saude_Regulamento.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_Saude_Regulamento.odt"
+      },
+      {
+        "dataPublicacao": "06/02/2026",
+        "nome": "Anexo 1: Características Específicas da Seleção Pública",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_Saude_Anexo1.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_Saude_Anexo1.odt"
+      },
+      {
+        "dataPublicacao": "06/02/2026",
+        "nome": "Anexo 2: Minuta de Termo de Outorga de Subvenção Econômica",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_Saude_Anexo2.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_Saude_Anexo2.odt"
+      },
+      {
+        "dataPublicacao": "06/02/2026",
+        "nome": "Anexo 3: Declaração de ações coletivas",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_Saude_Anexo3.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_Saude_Anexo3.odt"
+      },
+      {
+        "dataPublicacao": "06/02/2026",
+        "nome": "Anexo 4: Declaração ambiental e outros aspectos regulatórios",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_Saude_Anexo4.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_Saude_Anexo4.odt"
+      },
+      {
+        "dataPublicacao": "06/02/2026",
+        "nome": "Anexo 5: Definição do Nível de Maturidade Tecnológica",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_Saude_Anexo5.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_Saude_Anexo5.odt"
+      }
+    ],
+    "processadoEm": "2026-02-28T16:51:50.015Z"
+  },
+  {
+    "numero": "FINEP-774",
+    "titulo": "Finep Mais Inovação Brasil – Rodada 2 – Cadeias Agroindustriais Sustentáveis",
+    "descricao": "Esta Seleção Pública objetiva conceder recursos de subvenção econômica para o desenvolvimento de produtos ou processos inovadores, promovendo o desenvolvimento da agroindústria nacional visando a garantida da segurança alimentar e nutricional da população brasileira. Também visa promover parcerias para o desenvolvimento entre empresas e ICTs, no desenvolvimento de projetos em redes.",
+    "dataPublicacao": "06/02/2026",
+    "dataEncerramento": "30/09/2026",
+    "status": "Aberta",
+    "orgao": "FINEP",
+    "fonte": "finep",
+    "link": "http://www.finep.gov.br/chamadas-publicas/chamadapublica/774",
+    "area": "Agricultura, agronegócio e saúde animal; Foodtech; Outros",
+    "pdfUrl": "http://www.finep.gov.br/images/chamadas-publicas/2026/19_02_2026_Perguntas_Frequentes_Mais_Inovacao_Cadeias_Agro_Rodada_2.pdf",
+    "pdfUrls": [
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/19_02_2026_Perguntas_Frequentes_Mais_Inovacao_Cadeias_Agro_Rodada_2.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/06022026_C_Agro_Regulamento.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_C_Agro_Anexo1.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_C_Agro_Anexo2.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_C_Agro_Anexo3.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_C_Agro_Anexo4.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_C_Agro_Anexo5.pdf"
+    ],
+    "pdfPaths": [
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___cadeias_agroindustria_01_1772297510834.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___cadeias_agroindustria_02_1772297511277.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___cadeias_agroindustria_03_1772297511603.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___cadeias_agroindustria_04_1772297511904.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___cadeias_agroindustria_05_1772297512215.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___cadeias_agroindustria_06_1772297512488.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___cadeias_agroindustria_07_1772297512789.pdf"
+    ],
+    "fonteRecurso": "FINEP ; FNDCT",
+    "publicoAlvo": "Empresas",
+    "temas": "Agricultura, agronegócio e saúde animal; Foodtech; Outros",
+    "documentos": [
+      {
+        "dataPublicacao": "19/02/2026",
+        "nome": "FAQ - Perguntas frequentes",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/19_02_2026_Perguntas_Frequentes_Mais_Inovacao_Cadeias_Agro_Rodada_2.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/19_02_2026_Perguntas_Frequentes_Mais_Inovacao_Cadeias_Agro_Rodada_2.odt"
+      },
+      {
+        "dataPublicacao": "06/02/2026",
+        "nome": "Regulamento",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/06022026_C_Agro_Regulamento.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/06022026_C_Agro_Regulamento.odt"
+      },
+      {
+        "dataPublicacao": "06/02/2026",
+        "nome": "Anexo 1: Características Específicas da Seleção Pública",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_C_Agro_Anexo1.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_C_Agro_Anexo1.odt"
+      },
+      {
+        "dataPublicacao": "06/02/2026",
+        "nome": "Anexo 2: Minuta de Termo de Outorga de Subvenção Econômica",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_C_Agro_Anexo2.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_C_Agro_Anexo2.odt"
+      },
+      {
+        "dataPublicacao": "06/02/2026",
+        "nome": "Anexo 3: Declaração de ações coletivas",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_C_Agro_Anexo3.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_C_Agro_Anexo3.odt"
+      },
+      {
+        "dataPublicacao": "06/02/2026",
+        "nome": "Anexo 4: Declaração ambiental e outros aspectos regulatórios",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_C_Agro_Anexo4.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_C_Agro_Anexo4.odt"
+      },
+      {
+        "dataPublicacao": "06/02/2026",
+        "nome": "Anexo 5: Definição do Nível de Maturidade Tecnológica",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_C_Agro_Anexo5.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_C_Agro_Anexo5.odt"
+      }
+    ],
+    "processadoEm": "2026-02-28T16:51:53.096Z"
+  },
+  {
+    "numero": "FINEP-775",
+    "titulo": "Finep Mais Inovação Brasil – Rodada 2 - Base Industrial de Defesa",
+    "descricao": "Esta Seleção Pública objetiva conceder recursos de subvenção econômica para o desenvolvimento de produtos ou processos inovadores dentro do escopo das linhas temáticas Tecnologias para Defesa Nacional e Sustentabilidade econômica para Base Industrial de Defesa (BID), promovendo a integração ICT-empresa.",
+    "dataPublicacao": "06/02/2026",
+    "dataEncerramento": "30/09/2026",
+    "status": "Aberta",
+    "orgao": "FINEP",
+    "fonte": "finep",
+    "link": "http://www.finep.gov.br/chamadas-publicas/chamadapublica/775",
+    "area": "Defesa e segurança nacional; Sustentabilidade",
+    "pdfUrl": "http://www.finep.gov.br/images/chamadas-publicas/2026/12_02_2026_BID_FAQ.pdf",
+    "pdfUrls": [
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/12_02_2026_BID_FAQ.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_BID_Regulamento.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_BID_Anexo1.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_BID_Anexo2.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_BID_Anexo3.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_BID_Anexo4.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_BID_Anexo5.pdf"
+    ],
+    "pdfPaths": [
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___base_industrial_de_de_01_1772297513827.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___base_industrial_de_de_02_1772297514161.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___base_industrial_de_de_03_1772297514480.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___base_industrial_de_de_04_1772297514771.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___base_industrial_de_de_05_1772297515049.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___base_industrial_de_de_06_1772297515321.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___base_industrial_de_de_07_1772297515634.pdf"
+    ],
+    "fonteRecurso": "FINEP ; FNDCT",
+    "publicoAlvo": "Empresas",
+    "temas": "Defesa e segurança nacional; Sustentabilidade",
+    "documentos": [
+      {
+        "dataPublicacao": "12/02/2026",
+        "nome": "FAQ - Perguntas frequentes",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/12_02_2026_BID_FAQ.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/12_02_2026_BID_FAQ.odt"
+      },
+      {
+        "dataPublicacao": "06/02/2026",
+        "nome": "Regulamento",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_BID_Regulamento.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_BID_Regulamento.odt"
+      },
+      {
+        "dataPublicacao": "06/02/2026",
+        "nome": "Anexo 1: Características Específicas da Seleção Pública",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_BID_Anexo1.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_BID_Anexo1.odt"
+      },
+      {
+        "dataPublicacao": "06/02/2026",
+        "nome": "Anexo 2: Minuta de Termo de Outorga de Subvenção Econômica",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_BID_Anexo2.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_BID_Anexo2.odt"
+      },
+      {
+        "dataPublicacao": "06/02/2026",
+        "nome": "Anexo 3: Declaração de ações coletivas",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_BID_Anexo3.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_BID_Anexo3.odt"
+      },
+      {
+        "dataPublicacao": "06/02/2026",
+        "nome": "Anexo 4: Declaração ambiental e outros aspectos regulatórios",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_BID_Anexo4.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_BID_Anexo4.odt"
+      },
+      {
+        "dataPublicacao": "06/02/2026",
+        "nome": "Anexo 5: Definição do Nível de Maturidade Tecnológica",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_BID_Anexo5.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_BID_Anexo5.odt"
+      }
+    ],
+    "processadoEm": "2026-02-28T16:51:55.970Z"
+  },
+  {
+    "numero": "FINEP-776",
+    "titulo": "Finep Mais Inovação Brasil - Rodada 2 - Subvenção Econômica Regional",
+    "descricao": "Esta Seleção Pública objetiva conceder recursos de subvenção econômica para o desenvolvimento de produtos, processos ou serviços inovadores que envolvam risco tecnológico em projetos realizados nas regiões Nordeste, Norte e Centro-Oeste, apoiando atividades que se encontrem entre os níveis de maturidade tecnológica (TRL) 3 a 9. Essas iniciativas devem estar obrigatoriamente estar alinhadas às seis missões estratégicas da política Nova Indústria Brasil, as quais buscam impulsionar a produtividade e a soberania nacional por meio de temas como bioeconomia, saúde, transformação digital, cadeias agroindustriais sustentáveis e infraestrutura urbana",
+    "dataPublicacao": "06/02/2026",
+    "dataEncerramento": "07/04/2026",
+    "status": "Aberta",
+    "orgao": "FINEP",
+    "fonte": "finep",
+    "link": "http://www.finep.gov.br/chamadas-publicas/chamadapublica/776",
+    "area": "Manuais Manual do Cliente - Cadastro Manual do Cliente - Formulário de Apresentação de Proposta - FAP Manual do Cliente - Recursos Vídeos Tutorial geral Como se vincular a uma empresa já cadastrada Problemas de acesso à Plataforma da Finep Em caso de dúvida e orientações sobre CADASTRO: cp_cadastroempresas@finep.gov.br Data de Publicação: 06/02/2026 Prazo para envio de propostas até: 07/04/2026 Fonte de Recurso: FINEP ; FNDCT Público-alvo: Empresas",
+    "pdfUrl": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_SBV_Regulamento.pdf",
+    "pdfUrls": [
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_SBV_Regulamento.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_SBV_Anexo1.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_SBV_Anexo2.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_SBV_Anexo3.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_SBV_Anexo4.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_SBV_Anexo5.pdf"
+    ],
+    "pdfPaths": [
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___subven_o_econ_mica_re_01_1772297516664.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___subven_o_econ_mica_re_02_1772297516993.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___subven_o_econ_mica_re_03_1772297517222.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___subven_o_econ_mica_re_04_1772297517450.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___subven_o_econ_mica_re_05_1772297517686.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_finep_mais_inova_o_brasil___rodada_2___subven_o_econ_mica_re_06_1772297517888.pdf"
+    ],
+    "fonteRecurso": "FINEP ; FNDCT",
+    "temas": "Manuais Manual do Cliente - Cadastro Manual do Cliente - Formulário de Apresentação de Proposta - FAP Manual do Cliente - Recursos Vídeos Tutorial geral Como se vincular a uma empresa já cadastrada Problemas de acesso à Plataforma da Finep Em caso de dúvida e orientações sobre CADASTRO: cp_cadastroempresas@finep.gov.br Data de Publicação: 06/02/2026 Prazo para envio de propostas até: 07/04/2026 Fonte de Recurso: FINEP ; FNDCT Público-alvo: Empresas",
+    "documentos": [
+      {
+        "dataPublicacao": "06/02/2026",
+        "nome": "Edital",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_SBV_Regulamento.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_SBV_Regulamento.odt"
+      },
+      {
+        "dataPublicacao": "06/02/2026",
+        "nome": "Anexo 1 – Definição de Nível de Maturidade Tecnológica •",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_SBV_Anexo1.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_SBV_Anexo1.odt"
+      },
+      {
+        "dataPublicacao": "06/02/2026",
+        "nome": "Anexo 2 – Lista de Documentos para Apresentação da Proposta",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_SBV_Anexo2.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_SBV_Anexo2.odt"
+      },
+      {
+        "dataPublicacao": "06/02/2026",
+        "nome": "Anexo 3 – Termo de Outorga de Subvenção Econômica - Cláusulas Padrão",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_SBV_Anexo3.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_SBV_Anexo3.odt"
+      },
+      {
+        "dataPublicacao": "06/02/2026",
+        "nome": "Anexo 4 – Modelo de Declaração de Ações Coletivas",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_SBV_Anexo4.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_SBV_Anexo4.odt"
+      },
+      {
+        "dataPublicacao": "06/02/2026",
+        "nome": "Anexo 5 – Modelo de Declaração Ambiental e Outros Aspectos Regulatórios",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_SBV_Anexo5.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/06_02_2026_SBV_Anexo5.odt"
+      }
+    ],
+    "processadoEm": "2026-02-28T16:51:58.118Z"
+  },
+  {
+    "numero": "FINEP-769",
+    "titulo": "SELEÇÃO PÚBLICA MCTI/FINEP/FNDCT - Subvenção Econômica à Inovação - DESAFIOS TECNOLÓGICOS PARA AGRICULTURA FAMILIAR",
+    "descricao": "Esta Seleção Pública objetiva conceder recursos de subvenção econômica para apoiar o desenvolvimento de um pacote tecnológico de baixo custo, por empresas brasileiras, de modo a promover o aumento da oferta de alimentos, o combate à fome e à pobreza e o desenvolvimento econômico e social brasileiro. Também se busca promover parcerias entre empresas, ICTs e Cooperativas, visando conectar as soluções no território brasileiro, dentro do escopo do grupo de concorrência apresentado no item 2.",
+    "dataPublicacao": "23/12/2025",
+    "dataEncerramento": "03/03/2026",
+    "status": "Aberta",
+    "orgao": "FINEP",
+    "fonte": "finep",
+    "link": "http://www.finep.gov.br/chamadas-publicas/chamadapublica/769",
+    "area": "Agricultura, agronegócio e saúde animal; Agritech; Sustentabilidade",
+    "pdfUrl": "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_DFAF_Edital.pdf",
+    "pdfUrls": [
+      "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_DFAF_Edital.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_DFAF_AI.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_DFAF_AII.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_DFAF_AIII.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_DFAF_AIV.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_DFAF_AV.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_DFAF_AVI.pdf"
+    ],
+    "pdfPaths": [
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_sele_o_p_blica_mcti_finep_fndct___subven_o_econ_mica___inova_01_1772297519006.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_sele_o_p_blica_mcti_finep_fndct___subven_o_econ_mica___inova_02_1772297519395.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_sele_o_p_blica_mcti_finep_fndct___subven_o_econ_mica___inova_03_1772297519695.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_sele_o_p_blica_mcti_finep_fndct___subven_o_econ_mica___inova_04_1772297519950.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_sele_o_p_blica_mcti_finep_fndct___subven_o_econ_mica___inova_05_1772297520259.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_sele_o_p_blica_mcti_finep_fndct___subven_o_econ_mica___inova_06_1772297520518.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_sele_o_p_blica_mcti_finep_fndct___subven_o_econ_mica___inova_07_1772297520793.pdf"
+    ],
+    "fonteRecurso": "FINEP ; FNDCT",
+    "publicoAlvo": "Empresas e Cooperativas",
+    "temas": "Agricultura, agronegócio e saúde animal; Agritech; Sustentabilidade",
+    "documentos": [
+      {
+        "dataPublicacao": "23/12/2025",
+        "nome": "Edital",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_DFAF_Edital.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_DFAF_Edital.odt"
+      },
+      {
+        "dataPublicacao": "23/12/2025",
+        "nome": "Anexo 1 - DEFINIÇÃO DE NÍVEL DE MATURIDADE TECNOLÓGICA",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_DFAF_AI.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_DFAF_AI.odt"
+      },
+      {
+        "dataPublicacao": "23/12/2025",
+        "nome": "Anexo 2 - LISTA DE DOCUMENTOS PARA APRESENTAÇÃO DA PROPOSTA",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_DFAF_AII.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_DFAF_AII.odt"
+      },
+      {
+        "dataPublicacao": "23/12/2025",
+        "nome": "Anexo 3 - TERMO DE OUTORGA DE SUBVENÇÃO ECONÔMICA - CLÁUSULAS PADRÃO",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_DFAF_AIII.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_DFAF_AIII.odt"
+      },
+      {
+        "dataPublicacao": "23/12/2025",
+        "nome": "Anexo 4 - MODELO DE DECLARAÇÃO DE AÇÕES COLETIVAS",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_DFAF_AIV.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_DFAF_AIV.odt"
+      },
+      {
+        "dataPublicacao": "23/12/2025",
+        "nome": "Anexo 5 - MODELO DE DECLARAÇÃO AMBIENTAL E OUTROS ASPECTOS REGULATÓRIOS",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_DFAF_AV.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_DFAF_AV.odt"
+      },
+      {
+        "dataPublicacao": "23/12/2025",
+        "nome": "Anexo 6 – ESPECIFICAÇÕES TÉCNICAS DO DESAFIO TECNOLÓGICO",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_DFAF_AVI.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_DFAF_AVI.odt"
+      }
+    ],
+    "processadoEm": "2026-02-28T16:52:01.057Z"
+  },
+  {
+    "numero": "FINEP-770",
+    "titulo": "PROINFRA 2025 EXPANSÃO",
+    "descricao": "Objetivo Geral: Selecionar propostas para apoio financeiro à execução de projetos institucionais de expansão e desenvolvimento de infraestrutura de pesquisa.",
+    "dataPublicacao": "23/12/2025",
+    "dataEncerramento": "27/03/2026",
+    "status": "Aberta",
+    "orgao": "FINEP",
+    "fonte": "finep",
+    "link": "http://www.finep.gov.br/chamadas-publicas/chamadapublica/770",
+    "area": "Outros",
+    "pdfUrl": "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_Proinfra2025Expansao_Edital.pdf",
+    "pdfUrls": [
+      "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_Proinfra2025Expansao_Edital.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_Proinfra2025Expansao_AI.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_Proinfra2025Expansao_AII.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_Proinfra2025Expansao_AIII.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_Proinfra2025Expansao_AIV.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_Proinfra2025Expansao_AV.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_Proinfra2025Expansao_AVI.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_Proinfra2025Expansao_AVII.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_Proinfra2025Expansao_AVIII.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_Proinfra2025Expansao_AIX.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_Proinfra2025Expansao_AX.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_Proinfra2025Expansao_Telas.pdf"
+    ],
+    "pdfPaths": [
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_proinfra_2025_expans_o_01_1772297522022.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_proinfra_2025_expans_o_02_1772297522411.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_proinfra_2025_expans_o_03_1772297522662.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_proinfra_2025_expans_o_04_1772297522897.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_proinfra_2025_expans_o_05_1772297523130.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_proinfra_2025_expans_o_06_1772297523364.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_proinfra_2025_expans_o_07_1772297523560.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_proinfra_2025_expans_o_08_1772297523749.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_proinfra_2025_expans_o_09_1772297523971.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_proinfra_2025_expans_o_10_1772297524168.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_proinfra_2025_expans_o_11_1772297524372.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_proinfra_2025_expans_o_12_1772297524570.pdf"
+    ],
+    "fonteRecurso": "FINEP ; FNDCT",
+    "publicoAlvo": "Instituições de pesquisa",
+    "temas": "Outros",
+    "documentos": [
+      {
+        "dataPublicacao": "23/12/2025",
+        "nome": "Edital",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_Proinfra2025Expansao_Edital.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_Proinfra2025Expansao_Edital.odt"
+      },
+      {
+        "dataPublicacao": "23/12/2025",
+        "nome": "Anexo I - Minuta de Convênio - Cláusulas Padrão",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_Proinfra2025Expansao_AI.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_Proinfra2025Expansao_AI.odt"
+      },
+      {
+        "dataPublicacao": "23/12/2025",
+        "nome": "Anexo II - Orientações para apresentação de Projeto Resumido para pequenas adaptações de espaço físico",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_Proinfra2025Expansao_AII.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_Proinfra2025Expansao_AII.odt"
+      },
+      {
+        "dataPublicacao": "23/12/2025",
+        "nome": "Anexo III - Orientações para apresentação de Projeto Básico ou Executivo para obras complexas",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_Proinfra2025Expansao_AIII.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_Proinfra2025Expansao_AIII.odt"
+      },
+      {
+        "dataPublicacao": "23/12/2025",
+        "nome": "Anexo IV - Orientações para apresentação de Projeto Preliminar para confecção de projeto básico ou executivo",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_Proinfra2025Expansao_AIV.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_Proinfra2025Expansao_AIV.odt"
+      },
+      {
+        "dataPublicacao": "23/12/2025",
+        "nome": "Anexo V - Declaração para solicitação de equipamentos complementares",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_Proinfra2025Expansao_AV.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_Proinfra2025Expansao_AV.ods"
+      },
+      {
+        "dataPublicacao": "23/12/2025",
+        "nome": "Anexo VI - Declaração para solicitação de sistemas formados por equipamentos de pequeno porte",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_Proinfra2025Expansao_AVI.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_Proinfra2025Expansao_AVI.ods"
+      },
+      {
+        "dataPublicacao": "23/12/2025",
+        "nome": "Anexo VII - Orientações para apresentação de relatório fotográfico",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_Proinfra2025Expansao_AVII.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_Proinfra2025Expansao_AVII.odt"
+      },
+      {
+        "dataPublicacao": "23/12/2025",
+        "nome": "Anexo VIII - Cartas de apoio dos programas de Pós-graduação beneficiados",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_Proinfra2025Expansao_AVIII.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_Proinfra2025Expansao_AVIII.odt"
+      },
+      {
+        "dataPublicacao": "23/12/2025",
+        "nome": "Anexo IX - Detalhamento dos critérios de avaliação de mérito",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_Proinfra2025Expansao_AIX.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_Proinfra2025Expansao_AIX.odt"
+      },
+      {
+        "dataPublicacao": "23/12/2025",
+        "nome": "Anexo X - Detalhamento dos itens de orçamento",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_Proinfra2025Expansao_AX.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_Proinfra2025Expansao_AX.odt"
+      },
+      {
+        "dataPublicacao": "23/12/2025",
+        "nome": "Telas FAP e número de caracteres",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_Proinfra2025Expansao_Telas.pdf"
+      }
+    ],
+    "processadoEm": "2026-02-28T16:52:05.013Z"
+  },
+  {
+    "numero": "FINEP-768",
+    "titulo": "Pesquisa Aplicada Em Centros Temáticos 2025",
+    "descricao": "EDITAL DE APOIO A PROJETOS DE PESQUISA APLICADA REALIZADAS POR CENTROS NACIONAIS DE INFRAESTRUTURA CIENTÍFICA DE PESQUISA E TECNOLÓGICA DE CARÁTER TEMÁTICO, NAS ÁREAS DE CADEIAS AGROINDUSTRIAIS SUSTENTÁVEIS; SAÚDE; INFRAESTRUTURA URBANA E MOBILIDADE SUSTENTÁVEL; TRANSFORMAÇÃO DIGITAL; BIOECONOMIA, DESCARBONIZAÇÃO E TRANSIÇÃO E SEGURANÇA ENERGÉTICAS; E DEFESA.",
+    "dataPublicacao": "19/12/2025",
+    "status": "Aberta",
+    "orgao": "FINEP",
+    "fonte": "finep",
+    "link": "http://www.finep.gov.br/chamadas-publicas/chamadapublica/768",
+    "area": "Cadeias Agroindustriais Sustentáveis, Complexo da Saúde, Infraestrutura Urbana e Mobilidade Sustentável, Transformação Digital, Bioeconomia, descarbonização e transição e segurança energéticas e Tecnologias de interesse para a soberania e defesa nacionais. Mais detalhes sobre os subtemas estão disponíveis no Anexo I Data de Publicação: 19/12/2025 Fonte de Recurso: FNDCT Público-alvo: ICTs (Fundações) Tema(s): Agricultura, agronegócio e saúde animal; Agritech; Bioeconomia; Biotecnologia; Cidades inteligentes e sustentáveis; Cidades Sustentáveis; Defesa; Defesa e segurança nacional; Eficiência energética; Energia; Energia renovável; Habitação; Petroquimica; Petróleo, gás e etanol; Preservação ambiental; Saneamento; Saúde e Fármacos; Sustentabilidade; TICs - Tecnologia de Informação e Comunicação; Transportes; Tratamento da poluição e de resíduos sólidos",
+    "pdfUrl": "http://www.finep.gov.br/images/chamadas-publicas/2026/27_02_2026_PA_1a_Rerratificacao.pdf",
+    "pdfUrls": [
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/27_02_2026_PA_1a_Rerratificacao.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/27_02_2026_PA_Comunicado_de_Rerratificacao.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/27_02_2026_PA_Anexo_1_Rerratificado.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/27_02_2026_PA_Anexo_5_Rerratificado.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/10_02_2026_Centros_Tematicos_2025_FAQ.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/08_01_2026_Centros_Tematicos_2025_FAQ.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/08_01_2026_Telas_Plataforma_de_Apoio_e_Financiamento.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2025/22_12_2025_Minuta_Edital.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2025/19_12_25_Anexo_01_Detalhamento_dos_Temas_e_Subtemas.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2025/19_12_25_Anexo_02_Definio_TRL.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2025/19_12_25_Anexo_03_Projeto_Resumido_Centros_Temticos_2025.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2025/19_12_25_Anexo_04_Itens_de_Oramento_Centros_Temticos_2025.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2025/19_12_25_Anexo_05_Bolsas.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2025/19_12_25_Anexo_06_Pagamento_de_Pessoal.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2025/19_12_25_Anexo_07_Carta_de_Manifestacao_interesse.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2025/19_12_25_Anexo_08_Equipe_e_Atividades.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2025/19_12_25_Anexo_09_Metodolodia_de_Clculo_IDP.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2025/19_12_25_Anexo_10_Minuta_padro_de_convnio.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2025/19_12_25_Centros_Temticos_2025_FAQ.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_Guia_Rapido.pdf"
+    ],
+    "pdfPaths": [
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_pesquisa_aplicada_em_centros_tem_ticos_2025_01_1772297526255.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_pesquisa_aplicada_em_centros_tem_ticos_2025_02_1772297526622.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_pesquisa_aplicada_em_centros_tem_ticos_2025_03_1772297526849.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_pesquisa_aplicada_em_centros_tem_ticos_2025_04_1772297527090.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_pesquisa_aplicada_em_centros_tem_ticos_2025_05_1772297527333.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_pesquisa_aplicada_em_centros_tem_ticos_2025_06_1772297527638.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_pesquisa_aplicada_em_centros_tem_ticos_2025_07_1772297527880.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_pesquisa_aplicada_em_centros_tem_ticos_2025_08_1772297528767.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_pesquisa_aplicada_em_centros_tem_ticos_2025_09_1772297529049.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_pesquisa_aplicada_em_centros_tem_ticos_2025_10_1772297529287.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_pesquisa_aplicada_em_centros_tem_ticos_2025_11_1772297529515.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_pesquisa_aplicada_em_centros_tem_ticos_2025_12_1772297529750.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_pesquisa_aplicada_em_centros_tem_ticos_2025_13_1772297529984.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_pesquisa_aplicada_em_centros_tem_ticos_2025_14_1772297530223.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_pesquisa_aplicada_em_centros_tem_ticos_2025_15_1772297530459.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_pesquisa_aplicada_em_centros_tem_ticos_2025_16_1772297530667.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_pesquisa_aplicada_em_centros_tem_ticos_2025_17_1772297530873.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_pesquisa_aplicada_em_centros_tem_ticos_2025_18_1772297531096.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_pesquisa_aplicada_em_centros_tem_ticos_2025_19_1772297531346.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_pesquisa_aplicada_em_centros_tem_ticos_2025_20_1772297531577.pdf"
+    ],
+    "fonteRecurso": "FNDCT",
+    "publicoAlvo": "ICTs (Fundações)",
+    "temas": "Cadeias Agroindustriais Sustentáveis, Complexo da Saúde, Infraestrutura Urbana e Mobilidade Sustentável, Transformação Digital, Bioeconomia, descarbonização e transição e segurança energéticas e Tecnologias de interesse para a soberania e defesa nacionais. Mais detalhes sobre os subtemas estão disponíveis no Anexo I Data de Publicação: 19/12/2025 Fonte de Recurso: FNDCT Público-alvo: ICTs (Fundações) Tema(s): Agricultura, agronegócio e saúde animal; Agritech; Bioeconomia; Biotecnologia; Cidades inteligentes e sustentáveis; Cidades Sustentáveis; Defesa; Defesa e segurança nacional; Eficiência energética; Energia; Energia renovável; Habitação; Petroquimica; Petróleo, gás e etanol; Preservação ambiental; Saneamento; Saúde e Fármacos; Sustentabilidade; TICs - Tecnologia de Informação e Comunicação; Transportes; Tratamento da poluição e de resíduos sólidos",
+    "documentos": [
+      {
+        "dataPublicacao": "27/02/2026",
+        "nome": "Rerratificação - Edital rerratificado",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/27_02_2026_PA_1a_Rerratificacao.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/27_02_2026_PA_1a_Rerratificacao.odt"
+      },
+      {
+        "dataPublicacao": "27/02/2026",
+        "nome": "Comunicado de rerratificação",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/27_02_2026_PA_Comunicado_de_Rerratificacao.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/27_02_2026_PA_Comunicado_de_Rerratificacao.odt"
+      },
+      {
+        "dataPublicacao": "27/02/2026",
+        "nome": "Anexo 1 rerratificado",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/27_02_2026_PA_Anexo_1_Rerratificado.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/27_02_2026_PA_Anexo_1_Rerratificado.odt"
+      },
+      {
+        "dataPublicacao": "27/02/2026",
+        "nome": "Anexo 5 rerratificado",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/27_02_2026_PA_Anexo_5_Rerratificado.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/27_02_2026_PA_Anexo_5_Rerratificado.odt"
+      },
+      {
+        "dataPublicacao": "10/02/2026",
+        "nome": "FAQ Versão 3",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/10_02_2026_Centros_Tematicos_2025_FAQ.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/10_02_2026_Centros_Tematicos_2025_FAQ.odt"
+      },
+      {
+        "dataPublicacao": "09/01/2026",
+        "nome": "FAQ Versão 2",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/08_01_2026_Centros_Tematicos_2025_FAQ.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/08_01_2026_Centros_Tematicos_2025_FAQ.odt"
+      },
+      {
+        "dataPublicacao": "09/01/2026",
+        "nome": "Telas do FAP",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/08_01_2026_Telas_Plataforma_de_Apoio_e_Financiamento.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/08_01_2026_Telas_Plataforma_de_Apoio_e_Financiamento.odt"
+      },
+      {
+        "dataPublicacao": "19/12/2025",
+        "nome": "Edital",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2025/22_12_2025_Minuta_Edital.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2025/22_12_2025_Minuta_Edital.odt"
+      },
+      {
+        "dataPublicacao": "19/12/2025",
+        "nome": "Anexo I: Detalhamento dos Temas e Subtemas",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2025/19_12_25_Anexo_01_Detalhamento_dos_Temas_e_Subtemas.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2025/19_12_25_Anexo_01_Detalhamento_dos_Temas_e_Subtemas.odt"
+      },
+      {
+        "dataPublicacao": "19/12/2025",
+        "nome": "Anexo II: Definição de TRL",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2025/19_12_25_Anexo_02_Definio_TRL.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2025/19_12_25_Anexo_02_Definio_TRL.odt"
+      },
+      {
+        "dataPublicacao": "19/12/2025",
+        "nome": "Anexo III: Orientações para Apresentação de Projeto Resumido de Obras",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2025/19_12_25_Anexo_03_Projeto_Resumido_Centros_Temticos_2025.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2025/19_12_25_Anexo_03_Projeto_Resumido_Centros_Temticos_2025.odt"
+      },
+      {
+        "dataPublicacao": "19/12/2025",
+        "nome": "Anexo IV: Exigências para Avaliação dos Itens de Orçamento",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2025/19_12_25_Anexo_04_Itens_de_Oramento_Centros_Temticos_2025.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2025/19_12_25_Anexo_04_Itens_de_Oramento_Centros_Temticos_2025.odt"
+      },
+      {
+        "dataPublicacao": "19/12/2025",
+        "nome": "Anexo V: Condições para Despesas Relativas a Bolsas",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2025/19_12_25_Anexo_05_Bolsas.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2025/19_12_25_Anexo_05_Bolsas.odt"
+      },
+      {
+        "dataPublicacao": "19/12/2025",
+        "nome": "Anexo VI: Tabela com Requisitos e Valores para Pagamento de Pessoal",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2025/19_12_25_Anexo_06_Pagamento_de_Pessoal.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2025/19_12_25_Anexo_06_Pagamento_de_Pessoal.odt"
+      },
+      {
+        "dataPublicacao": "19/12/2025",
+        "nome": "Anexo VII: Modelo de Carta de Manifestação de interesse da empresa",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2025/19_12_25_Anexo_07_Carta_de_Manifestacao_interesse.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2025/19_12_25_Anexo_07_Carta_de_Manifestacao_interesse.odt"
+      },
+      {
+        "dataPublicacao": "19/12/2025",
+        "nome": "Anexo VIII: Modelo de apresentação de informações sobre equipe",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2025/19_12_25_Anexo_08_Equipe_e_Atividades.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2025/19_12_25_Anexo_08_Equipe_e_Atividades.ods"
+      },
+      {
+        "dataPublicacao": "19/12/2025",
+        "nome": "Anexo IX: Metodologia de Cálculo do Indicador de Desempenho de Prazos (IDP)",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2025/19_12_25_Anexo_09_Metodolodia_de_Clculo_IDP.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2025/19_12_25_Anexo_09_Metodolodia_de_Clculo_IDP.odt"
+      },
+      {
+        "dataPublicacao": "19/12/2025",
+        "nome": "Anexo X: Minuta de Convênio - Cláusulas Padrão",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2025/19_12_25_Anexo_10_Minuta_padro_de_convnio.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2025/19_12_25_Anexo_10_Minuta_padro_de_convnio.odt"
+      },
+      {
+        "dataPublicacao": "19/12/2025",
+        "nome": "FAQ",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2025/19_12_25_Centros_Temticos_2025_FAQ.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2025/19_12_25_Centros_Temticos_2025_FAQ.odt"
+      },
+      {
+        "dataPublicacao": "19/12/2025",
+        "nome": "Guia Rápido",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_Guia_Rapido.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2025/23_12_2025_Guia_Rapido.odt"
+      }
+    ],
+    "processadoEm": "2026-02-28T16:52:11.809Z"
+  }
+]

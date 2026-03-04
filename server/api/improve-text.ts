@@ -7,6 +7,7 @@ const router = express.Router();
 const USE_LOCAL_API = process.env.USE_LOCAL_API === 'true'; // Default: false (usa n8n)
 const LOCAL_API_URL = process.env.LOCAL_API_URL || "http://localhost:3000/api/extract-edital-info";
 const WEBHOOK_URL = process.env.N8N_WEBHOOK_URL || "https://n8n.srv652789.hstgr.cloud/webhook/789b0959-b90f-40e8-afe8-03aa8e486b43";
+const WEBHOOK_LIGHT_URL = process.env.N8N_WEBHOOK_LIGHT_URL || WEBHOOK_URL;
 
 // Inicializar Supabase
 const supabaseUrl = process.env.VITE_SUPABASE_URL || "";
@@ -123,10 +124,8 @@ Melhore o texto fornecido, mantendo o conteúdo e a essência, mas:
 Responda APENAS com o texto melhorado, sem explicações adicionais ou comentários.
 `;
 
-  // Verificar se file_ids está vazio
-  if (!fileIds || fileIds.length === 0) {
-    throw new Error("Nenhum file_id disponível! Não é possível melhorar o texto sem os arquivos do edital.");
-  }
+  const isVectorInsertError = (txt: string) =>
+    String(txt || '').toLowerCase().includes('vector must have at least 1 dimension');
 
   // Formato esperado pelo n8n: o body HTTP é acessado como $json.body
   const requestBody = {
@@ -136,16 +135,17 @@ Responda APENAS com o texto melhorado, sem explicações adicionais ou comentár
 
   const apiUrl = USE_LOCAL_API ? LOCAL_API_URL : WEBHOOK_URL;
   console.log(`  🔗 URL: ${apiUrl} ${USE_LOCAL_API ? '(API Local)' : '(n8n)'}`);
-  console.log(`  📁 File IDs: ${fileIds.length} arquivo(s)`);
+  console.log(`  📁 File IDs: ${fileIds?.length || 0} arquivo(s)`);
 
   try {
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestBody),
-    });
+    const doRequest = (url: string, body: any) =>
+      fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+    let response = await doRequest(apiUrl, requestBody);
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => '');
@@ -153,8 +153,18 @@ Responda APENAS com o texto melhorado, sem explicações adicionais ou comentár
       if (response.status === 404) {
         throw new Error('Webhook não registrado (404). O workflow do n8n precisa estar ativo.');
       }
-      
-      throw new Error(`Erro HTTP ${response.status}: ${errorText}`);
+
+      // Fallback para webhook "light" quando o n8n falha ao inserir embeddings no vector store
+      if (!USE_LOCAL_API && response.status === 400 && isVectorInsertError(errorText) && WEBHOOK_LIGHT_URL !== WEBHOOK_URL) {
+        console.warn('  ⚠️ n8n falhou ao inserir vector (embedding vazio). Tentando fallback (light)...');
+        response = await doRequest(WEBHOOK_LIGHT_URL, { message: prompt });
+        if (!response.ok) {
+          const errorText2 = await response.text().catch(() => '');
+          throw new Error(`Erro HTTP ${response.status} (light): ${errorText2}`);
+        }
+      } else {
+        throw new Error(`Erro HTTP ${response.status}: ${errorText}`);
+      }
     }
 
     // Processar resposta

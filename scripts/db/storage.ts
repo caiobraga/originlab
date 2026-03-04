@@ -96,7 +96,7 @@ export async function uploadPdfsToStorage(
 
       if (existingPdf) {
         // PDF já existe no banco
-        // Tentar obter o file_id do arquivo no storage se não tiver
+        // Obter UUID do objeto no Storage (para o n8n)
         let fileId: string | null = null;
         const { data: fileData } = await supabase.storage
           .from(STORAGE_BUCKET)
@@ -113,9 +113,7 @@ export async function uploadPdfsToStorage(
           if (existingPdf.edital_id !== editalId) {
             updateData.edital_id = editalId;
           }
-          if (fileId) {
-            updateData.file_id = fileId;
-          }
+          if (fileId) updateData.file_id = fileId;
 
           const { error: updateError } = await supabase
             .from('edital_pdfs')
@@ -186,33 +184,28 @@ export async function uploadPdfsToStorage(
             throw error;
           }
         } else {
-          // Capturar o ID do arquivo após upload bem-sucedido
-          // O Supabase Storage retorna o path no objeto data
-          // Usar o path como file_id (ou buscar informações adicionais se necessário)
+          // Obter UUID do objeto no Storage (list/search)
           if (data?.path) {
-            fileId = data.path;
-            // Tentar obter informações adicionais do arquivo (se houver id disponível)
             const { data: fileInfo } = await supabase.storage
               .from(STORAGE_BUCKET)
               .list(path.dirname(data.path), {
                 search: path.basename(data.path),
               });
-            if (fileInfo && fileInfo.length > 0 && fileInfo[0].id) {
-              fileId = fileInfo[0].id;
+            if (fileInfo && fileInfo.length > 0) {
+              fileId = fileInfo[0].id || null;
             }
           }
           console.log(`  📤 PDF enviado para storage: ${fileName}${fileId ? ` (file_id: ${fileId})` : ''}`);
         }
       } else {
         console.log(`  ℹ️ PDF já existe no storage: ${fileName}`);
-        // Tentar obter o ID do arquivo existente
         const { data: fileData } = await supabase.storage
           .from(STORAGE_BUCKET)
           .list(path.dirname(storagePath), {
             search: path.basename(storagePath),
           });
         if (fileData && fileData.length > 0) {
-          fileId = fileData[0].id || fileData[0].name || storagePath;
+          fileId = fileData[0].id || null;
         }
       }
 
