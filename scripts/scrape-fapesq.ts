@@ -2,7 +2,7 @@
 
 /**
  * Script para executar o scraper FAPESQ (PB) - Editais
- * Extrai apenas editais até 2024 (não extrai 2025 em diante).
+ * Extrai apenas editais de 2025 e 2026.
  *
  * Uso:
  *   npm run scrape:fapesq
@@ -22,7 +22,7 @@ import * as path from "path";
 async function main() {
   console.log("╔═══════════════════════════════════════════════════════════╗");
   console.log("║                SCRAPER FAPESQ (PB)                       ║");
-  console.log("║            (apenas editais até 2024)                       ║");
+  console.log("║            (editais 2025 e 2026)                            ║");
   console.log("╚═══════════════════════════════════════════════════════════╝\n");
 
   const scraper = new FapesqScraper();

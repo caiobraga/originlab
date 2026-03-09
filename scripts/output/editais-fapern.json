@@ -1,0 +1,63 @@
+[
+  {
+    "numero": "01/2026",
+    "titulo": "EDITAL SEMIÁRIDO MAIS CIENTÍFICO (VAGAS REMANESCENTES)",
+    "link": "http://www.fapern.rn.gov.br/Conteudo.asp?TRAN=ITEM&TARG=15517&ACT=&PAGE=0&PARM=&LBL=Editais+Abertos",
+    "orgao": "FAPERN",
+    "fonte": "fapern",
+    "pais": "Brasil",
+    "estado": "RN",
+    "pdfUrl": "http://www.adcon.rn.gov.br/ACERVO/FAPERN/DOC/DOC000000000366570.PDF",
+    "pdfUrls": [
+      "http://www.adcon.rn.gov.br/ACERVO/FAPERN/DOC/DOC000000000366570.PDF"
+    ],
+    "processadoEm": "2026-03-04T18:55:05.936Z",
+    "pdfPaths": [
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapern/fapern_01-2026_1_DOC000000000366570.PDF"
+    ]
+  },
+  {
+    "numero": "25/2025",
+    "titulo": "INSCRIÇÕES ABERTAS",
+    "link": "http://www.fapern.rn.gov.br/Conteudo.asp?TRAN=ITEM&TARG=15517&ACT=&PAGE=0&PARM=&LBL=Editais+Abertos",
+    "orgao": "FAPERN",
+    "fonte": "fapern",
+    "pais": "Brasil",
+    "estado": "RN",
+    "pdfUrl": "http://www.adcon.rn.gov.br/ACERVO/FAPERN/DOC/DOC000000000366305.PDF",
+    "pdfUrls": [
+      "http://www.adcon.rn.gov.br/ACERVO/FAPERN/DOC/DOC000000000366305.PDF",
+      "https://www.fappr.pr.gov.br/sites/fundacao-araucaria/arquivos_restritos/files/documento/2025-05/acesso_ao_sistema_scpa_-_manual_acesso_sisct_e_scpa.pdf",
+      "http://www.adcon.rn.gov.br/ACERVO/FAPERN/DOC/DOC000000000366057.PDF",
+      "http://www.adcon.rn.gov.br/ACERVO/FAPERN/DOC/DOC000000000366060.PDF",
+      "http://www.adcon.rn.gov.br/ACERVO/FAPERN/DOC/DOC000000000364094.PDF",
+      "http://www.adcon.rn.gov.br/ACERVO/FAPERN/DOC/DOC000000000364157.PDF"
+    ],
+    "processadoEm": "2026-03-04T18:55:07.388Z",
+    "pdfPaths": [
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapern/fapern_25-2025_1_DOC000000000366305.PDF",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapern/fapern_25-2025_2_acesso_ao_sistema_scpa_-_manual_acesso_sisct_e_scpa.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapern/fapern_25-2025_3_DOC000000000366057.PDF",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapern/fapern_25-2025_4_DOC000000000366060.PDF",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapern/fapern_25-2025_5_DOC000000000364094.PDF",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapern/fapern_25-2025_6_DOC000000000364157.PDF"
+    ]
+  },
+  {
+    "numero": "06/2025",
+    "titulo": "PROJETO DE INOVAÇÃO E MODERNIZAÇÃO NA GESTÃO DA FUNDAÇÃO JOSÉ AUGUSTO (FJA)",
+    "link": "http://www.fapern.rn.gov.br/Conteudo.asp?TRAN=ITEM&TARG=15517&ACT=&PAGE=0&PARM=&LBL=Editais+Abertos",
+    "orgao": "FAPERN",
+    "fonte": "fapern",
+    "pais": "Brasil",
+    "estado": "RN",
+    "pdfUrl": "http://www.adcon.rn.gov.br/ACERVO/FAPERN/DOC/DOC000000000351332.PDF",
+    "pdfUrls": [
+      "http://www.adcon.rn.gov.br/ACERVO/FAPERN/DOC/DOC000000000351332.PDF"
+    ],
+    "processadoEm": "2026-03-04T18:55:51.024Z",
+    "pdfPaths": [
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapern/fapern_06-2025_1_DOC000000000351332.PDF"
+    ]
+  }
+]

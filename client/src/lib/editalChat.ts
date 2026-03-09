@@ -7,7 +7,7 @@ export interface ChatMessage {
   timestamp: Date;
 }
 
-const WEBHOOK_URL = import.meta.env.VITE_N8N_WEBHOOK_URL || "https://n8n.srv652789.hstgr.cloud/webhook/789b0959-b90f-40e8-afe8-03aa8e486b43";
+const WEBHOOK_URL = import.meta.env.VITE_N8N_WEBHOOK_URL || "https://n8n.srv652789.hstgr.cloud/webhook/basic";
 
 /**
  * Fetches PDF file IDs for a specific edital

@@ -1,0 +1,25 @@
+[
+  {
+    "numero": "01/2026",
+    "titulo": "EDITAL FAPT Nº 01/2026 – ORGANIZAÇÃO DE EVENTO TÉCNICO CIENTÍFICO",
+    "link": "http://www.to.gov.br/fapt/edital-fapt-no-012026-organizacao-de-evento-tecnico-cientifico/6vzgefhwmwto",
+    "orgao": "FAPT",
+    "fonte": "fapt",
+    "pais": "Brasil",
+    "estado": "TO",
+    "pdfUrl": "https://central.to.gov.br/download/466454",
+    "pdfUrls": [
+      "https://central.to.gov.br/download/466454",
+      "https://central.to.gov.br/download/466451",
+      "https://central.to.gov.br/download/466316",
+      "https://central.to.gov.br/download/463721"
+    ],
+    "processadoEm": "2026-03-04T19:06:24.860Z",
+    "pdfPaths": [
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapt/fapt_01-2026_1_download_466454.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapt/fapt_01-2026_2_download_466451.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapt/fapt_01-2026_3_download_466316.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapt/fapt_01-2026_4_download_463721.pdf"
+    ]
+  }
+]

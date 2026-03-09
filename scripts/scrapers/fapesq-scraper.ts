@@ -5,8 +5,9 @@ import * as path from "path";
 
 const BASE = "https://fapesq.rpp.br";
 const LIST_URL = `${BASE}/editais/2026/editais-2025`;
-const LIST_URL_2024 = `${BASE}/editais/2025/editais-2024`;
-const MAX_YEAR = 2024;
+const LIST_URL_2026 = `${BASE}/editais/2027/editais-2026`;
+const MIN_YEAR = 2025;
+const MAX_YEAR = 2026;
 
 export class FapesqScraper implements Scraper {
   readonly name = "fapesq";
@@ -156,10 +157,10 @@ export class FapesqScraper implements Scraper {
     const allItems: { titulo: string; pdfUrl: string; dataPublicacao?: string }[] = [];
     const listUrls = [LIST_URL];
     try {
-      await this.fetchText(LIST_URL_2024);
-      listUrls.push(LIST_URL_2024);
+      await this.fetchText(LIST_URL_2026);
+      listUrls.push(LIST_URL_2026);
     } catch {
-      // editais-2024 pode não existir
+      // editais-2026 pode não existir ainda
     }
 
     for (const baseUrl of listUrls) {
@@ -185,7 +186,7 @@ export class FapesqScraper implements Scraper {
     for (const it of allItems) {
       const numero = this.extractNumero(it.titulo);
       const year = this.yearFromNumero(numero) ?? (it.dataPublicacao ? parseInt(it.dataPublicacao.slice(0, 4), 10) : null);
-      if (year != null && year > MAX_YEAR) continue;
+      if (year != null && (year < MIN_YEAR || year > MAX_YEAR)) continue;
 
       const key = numero || it.titulo.slice(0, 80);
       const existing = byNumero.get(key);
@@ -242,7 +243,7 @@ export class FapesqScraper implements Scraper {
       }
     }
 
-    console.log(`✅ FAPESQ: ${editais.length} edital(is) (apenas até ${MAX_YEAR})`);
+    console.log(`✅ FAPESQ: ${editais.length} edital(is) (${MIN_YEAR}-${MAX_YEAR})`);
     return editais;
   }
 

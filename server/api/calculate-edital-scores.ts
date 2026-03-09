@@ -326,7 +326,7 @@ router.post('/calculate-edital-scores', async (req, res) => {
     const editalInfo = formatEditalInfo(edital);
     const userData = formatUserData(user_data || {});
 
-    const n8nWebhookFull = process.env.N8N_WEBHOOK_URL || 'https://n8n.srv652789.hstgr.cloud/webhook/789b0959-b90f-40e8-afe8-03aa8e486b43';
+    const n8nWebhookFull = process.env.N8N_WEBHOOK_URL || 'https://n8n.srv652789.hstgr.cloud/webhook/basic';
     const n8nWebhookLight = process.env.N8N_WEBHOOK_LIGHT_URL || n8nWebhookFull;
 
     let scores: { match: number; probabilidade: number; justificativa: string };

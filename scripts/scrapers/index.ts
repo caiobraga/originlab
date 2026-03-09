@@ -18,6 +18,13 @@ import { FapemaScraper } from './fapema-scraper';
 import { FapematScraper } from './fapemat-scraper';
 import { FapespaScraper } from './fapespa-scraper';
 import { FapesqScraper } from './fapesq-scraper';
+import { FacepeScraper } from './facepe-scraper';
+import { FapepiScraper } from './fapepi-scraper';
+import { FapergsScraper } from './fapergs-scraper';
+import { FapernScraper } from './fapern-scraper';
+import { FapescScraper } from './fapesc-scraper';
+import { FapitecScraper } from './fapitec-scraper';
+import { FaptScraper } from './fapt-scraper';
 import { Scraper } from '../types';
 
 // Lista de todos os scrapers
@@ -39,12 +46,18 @@ export const scrapers: Scraper[] = [
   new FapematScraper(),
   new FapespaScraper(),
   new FapesqScraper(),
+  new FapepiScraper(),
+  new FapergsScraper(),
+  new FapernScraper(),
+  new FapescScraper(),
+  new FapitecScraper(),
+  new FaptScraper(),
   // Adicionar outros scrapers aqui no futuro:
   // new FapespScraper(),
   // etc.
 ];
 
-export { SigfapesScraper, FapesScraper, CnpqScraper, FinepScraper, SectiScraper, CaptaScraper, FapemigScraper, FaperjScraper, FapealScraper, FapacScraper, FapeamScraper, FuncapScraper, FapdfScraper, FapemaScraper, FapematScraper, FapespaScraper, FapesqScraper };
+export { SigfapesScraper, FapesScraper, CnpqScraper, FinepScraper, SectiScraper, CaptaScraper, FapemigScraper, FaperjScraper, FapealScraper, FapacScraper, FapeamScraper, FuncapScraper, FapdfScraper, FapemaScraper, FapematScraper, FapespaScraper, FapesqScraper, FacepeScraper, FapepiScraper, FapergsScraper, FapernScraper, FapescScraper, FapitecScraper, FaptScraper };
 
 
 

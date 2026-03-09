@@ -10,7 +10,7 @@ const LOCAL_API_URL =
   process.env.LOCAL_API_URL || "http://localhost:3000/api/extract-edital-info";
 const WEBHOOK_URL =
   process.env.N8N_WEBHOOK_URL ||
-  "https://n8n.srv652789.hstgr.cloud/webhook/789b0959-b90f-40e8-afe8-03aa8e486b43";
+  "https://n8n.srv652789.hstgr.cloud/webhook/basic";
 const WEBHOOK_LIGHT_URL = process.env.N8N_WEBHOOK_LIGHT_URL || WEBHOOK_URL;
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || "";

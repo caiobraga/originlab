@@ -3,10 +3,11 @@ import '../load-env';
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-// Usar n8n por padrão, API local apenas se explicitamente habilitada
+// Modo de extração: Ollama local > API local > n8n webhook
+const USE_OLLAMA = process.env.USE_OLLAMA === 'true';
 const USE_LOCAL_API = process.env.USE_LOCAL_API === 'true'; // Default: false (usa n8n)
 const LOCAL_API_URL = process.env.LOCAL_API_URL || "http://localhost:3000/api/extract-edital-info";
-const WEBHOOK_URL = process.env.N8N_WEBHOOK_URL || "https://n8n.srv652789.hstgr.cloud/webhook/789b0959-b90f-40e8-afe8-03aa8e486b43";
+const WEBHOOK_URL = process.env.N8N_WEBHOOK_URL || "https://n8n.srv652789.hstgr.cloud/webhook/basic";
 const WEBHOOK_LIGHT_URL = process.env.N8N_WEBHOOK_LIGHT_URL || WEBHOOK_URL;
 
 interface EditalInfo {
@@ -38,22 +39,21 @@ interface ProcessedInfo {
 }
 
 /**
- * Busca os file_ids dos PDFs de um edital (IDs do Supabase Storage, não IDs da tabela)
+ * Busca os IDs dos PDFs de um edital para uso no RAG (documents) e no Ollama.
+ * Retorna file_id (storage) quando existir, senão edital_pdfs.id, para bater com documents.file_id.
  */
 async function fetchEditalPdfIds(supabase: SupabaseClient, editalId: string): Promise<string[]> {
   try {
     const { data, error } = await supabase
       .from('edital_pdfs')
       .select('file_id, id')
-      .eq('edital_id', editalId)
-      .not('file_id', 'is', null); // Apenas PDFs que têm file_id
+      .eq('edital_id', editalId);
 
     if (error) {
       console.error(`Erro ao buscar PDFs do edital ${editalId}:`, error);
       return [];
     }
 
-    // Retornar file_id se disponível, caso contrário usar id como fallback
     return data?.map((pdf: any) => pdf.file_id || pdf.id).filter((p: any): p is string => typeof p === 'string' && p.trim().length > 0) || [];
   } catch (error) {
     console.error(`Erro ao buscar PDFs do edital ${editalId}:`, error);
@@ -395,32 +395,45 @@ Retorne APENAS o JSON válido: {"is_company": true/false/null}`,
       timeline_estimada: "IMPORTANTE: Você recebeu os arquivos do edital através dos file_ids fornecidos. Analise o conteúdo desses arquivos para responder esta pergunta. Quais são as fases e cronograma deste edital? Procure por seções como 'Cronograma', 'Timeline', 'Calendário', 'Fases do Edital', 'Etapas', 'Fases de Execução', 'Cronograma de Atividades', 'Calendário de Execução', 'Linha do Tempo'. Para cada fase encontrada, extraia: nome da fase, prazo (em dias ou datas), status (aberto/fechado/pendente), data de início (se disponível), data de fim (se disponível). IMPORTANTE: Retorne em formato JSON: {\"timeline_estimada\": {\"fases\": [{\"nome\": \"Inscrição\", \"prazo\": \"30 dias\", \"status\": \"aberto\", \"data_inicio\": \"2024-01-01\", \"data_fim\": \"2024-01-31\"}, {\"nome\": \"Fase 1\", \"prazo\": \"60 dias\", \"status\": \"pendente\"}, ...]}}. Se não encontrar informações sobre cronograma/fases, retorne: {\"timeline_estimada\": null}. LEMBRE-SE: Retorne APENAS o JSON, sem texto adicional antes ou depois.",
     };
 
-    // Formato esperado pelo n8n: o body HTTP é acessado como $json.body
-    // Então enviamos message e file_ids diretamente no root
-    const requestBody = {
-      message: fieldQuestions[field],
-      file_ids: fileIds,
-    };
-    
     // Verificar se file_ids está vazio
     if (!fileIds || fileIds.length === 0) {
       console.error(`  ❌ ERRO: Nenhum file_id disponível para ${field}! Não é possível extrair informações sem os arquivos.`);
       return null;
     }
-    
-    // Log para debug
+
     console.log(`  📝 Mensagem: ${fieldQuestions[field].substring(0, 80)}...`);
     console.log(`  📁 File IDs: ${fileIds.length} arquivo(s)`);
+
+    let responseText = '';
+    let contentType: string | null = null;
+    let response: Response | null = null;
+
+    if (USE_OLLAMA) {
+      const { extractInfoViaOllama } = await import('../lib/ollama-edital');
+      const model = process.env.OLLAMA_MODEL || 'qwen2.5:7b';
+      console.log(`  📤 Extraindo via Ollama (${model}) para: ${field}`);
+      const ollamaText = await extractInfoViaOllama(fieldQuestions[field], fileIds);
+      responseText = ollamaText ?? '';
+      if (!responseText.trim()) {
+        console.warn(`  ⚠️ Resposta vazia do Ollama para ${field}`);
+        return null;
+      }
+      console.log(`  📥 Resposta Ollama: ${responseText.length} caracteres`);
+    } else {
+    // Formato esperado pelo n8n: o body HTTP é acessado como $json.body
+    const requestBody = {
+      message: fieldQuestions[field],
+      file_ids: fileIds,
+    };
     console.log(`  📋 IDs completos sendo enviados:`, fileIds);
     const apiUrl = USE_LOCAL_API ? LOCAL_API_URL : WEBHOOK_URL;
     console.log(`  📤 Enviando requisição para extrair: ${field}`);
     console.log(`  🔗 URL: ${apiUrl} ${USE_LOCAL_API ? '(API Local)' : '(n8n)'}`);
     console.log(`  📦 Request body completo:`, JSON.stringify(requestBody, null, 2));
 
-    // Adicionar delay entre requisições para evitar rate limiting
-    // Com limites de 7 RPM (gemini-2.5-flash), precisamos de ~8.5s entre requisições
-    // Mas como estamos usando n8n, manter delay menor
-    const delayMs = parseInt(process.env.API_REQUEST_DELAY_MS || '3000', 10);
+    // Adicionar delay entre requisições para evitar rate limiting e sobrecarga do n8n
+    // Cloudflare tem timeout de 100s; n8n pode demorar se houver muitas requisições
+    const delayMs = parseInt(process.env.API_REQUEST_DELAY_MS || '12000', 10);
     if (delayMs > 0) {
       await new Promise(resolve => setTimeout(resolve, delayMs));
     }
@@ -428,14 +441,63 @@ Retorne APENAS o JSON válido: {"is_company": true/false/null}`,
     const isVectorInsertError = (txt: string) =>
       String(txt || '').toLowerCase().includes('vector must have at least 1 dimension');
 
-    const doRequest = (url: string) =>
+    const isCloudflareTimeout = (status: number, txt: string) =>
+      status === 524 || (status >= 520 && status <= 530 && txt.toLowerCase().includes('cloudflare'));
+
+    const webhookTimeoutMs = parseInt(process.env.N8N_WEBHOOK_TIMEOUT_MS || '240000', 10);
+    const maxEmptyRetries = parseInt(process.env.N8N_EMPTY_RESPONSE_RETRIES || '2', 10);
+    const emptyRetryDelayMs = parseInt(process.env.N8N_EMPTY_RETRY_DELAY_MS || '15000', 10);
+    const max524Retries = parseInt(process.env.N8N_524_RETRIES || '3', 10);
+    const initial524BackoffMs = parseInt(process.env.N8N_524_BACKOFF_MS || '30000', 10);
+
+    const doRequest = (url: string, signal?: AbortSignal) =>
       fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody),
+        signal,
       });
 
-    let response = await doRequest(apiUrl);
+    let response: Response;
+    let attempt524 = 0;
+
+    const tryRequest = async (): Promise<Response | null> => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), webhookTimeoutMs);
+      try {
+        const res = await doRequest(apiUrl, controller.signal);
+        clearTimeout(timeoutId);
+        return res;
+      } catch (err) {
+        clearTimeout(timeoutId);
+        const isTimeout = (err as Error & { name?: string }).name === 'AbortError';
+        console.error(`  ❌ Erro ao chamar webhook para ${field}: ${isTimeout ? `timeout após ${webhookTimeoutMs}ms` : (err as Error).message}`);
+        if (isTimeout) {
+          console.warn(`     Dica: Aumente N8N_WEBHOOK_TIMEOUT_MS (ex: 180000) se o workflow n8n demorar mais.`);
+        }
+        return null;
+      }
+    };
+
+    let firstRes = await tryRequest();
+    if (!firstRes) return null;
+    response = firstRes;
+
+    // Retry com backoff exponencial para erro 524 (Cloudflare timeout)
+    while (!response.ok && attempt524 < max524Retries) {
+      const errorText = await response.text().catch(() => '');
+      if (!isCloudflareTimeout(response.status, errorText)) break;
+
+      attempt524++;
+      const backoff = initial524BackoffMs * Math.pow(2, attempt524 - 1);
+      console.warn(`  ⚠️ Cloudflare timeout (524) para ${field}. Tentativa ${attempt524}/${max524Retries} após ${backoff / 1000}s...`);
+      console.warn(`     O servidor n8n está sobrecarregado. Aguardando antes de tentar novamente.`);
+      await new Promise((r) => setTimeout(r, backoff));
+
+      const retryRes = await tryRequest();
+      if (!retryRes) return null;
+      response = retryRes;
+    }
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => '');
@@ -444,6 +506,16 @@ Retorne APENAS o JSON válido: {"is_company": true/false/null}`,
       if (response.status === 404) {
         console.warn(`  ⚠️ Webhook não registrado (404) para ${field}. O workflow do n8n precisa estar ativo.`);
         console.warn(`     Dica: Execute o workflow no n8n ou ative-o em produção.`);
+        return null;
+      }
+
+      // Erro 524 após todas as tentativas
+      if (isCloudflareTimeout(response.status, errorText)) {
+        console.error(`  ❌ Cloudflare timeout (524) persistente para ${field} após ${attempt524} tentativa(s).`);
+        console.warn(`     O servidor n8n está muito sobrecarregado. Sugestões:`);
+        console.warn(`     1. Aumente API_REQUEST_DELAY_MS (ex: 20000 ou 30000)`);
+        console.warn(`     2. Processe menos editais por vez`);
+        console.warn(`     3. Verifique se há outros processos usando o n8n`);
         return null;
       }
 
@@ -457,15 +529,34 @@ Retorne APENAS o JSON válido: {"is_company": true/false/null}`,
           return null;
         }
       } else {
-      
         console.error(`  ❌ Erro HTTP ${response.status} ao extrair ${field}:`, errorText);
         return null;
       }
     }
 
     // Processar resposta
-    const contentType = response.headers.get('content-type');
+    let contentType = response.headers.get('content-type');
     let responseText = await response.text();
+
+    // Retry quando resposta é 200 mas corpo vazio (n8n às vezes responde antes de preencher o body)
+    let emptyAttempt = 0;
+    while ((!responseText || responseText.trim() === '') && emptyAttempt < maxEmptyRetries) {
+      emptyAttempt++;
+      console.warn(`  ⚠️ Resposta vazia para ${field}. Tentativa ${emptyAttempt}/${maxEmptyRetries} em ${emptyRetryDelayMs}ms...`);
+      await new Promise((r) => setTimeout(r, emptyRetryDelayMs));
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), webhookTimeoutMs);
+      try {
+        response = await doRequest(apiUrl, controller.signal);
+        clearTimeout(timeoutId);
+        if (!response.ok) break;
+        contentType = response.headers.get('content-type');
+        responseText = await response.text();
+      } catch {
+        clearTimeout(timeoutId);
+        break;
+      }
+    }
     
     // Se estiver usando API local, extrair o campo "result" do JSON
     if (USE_LOCAL_API && contentType?.includes('application/json')) {
@@ -477,22 +568,24 @@ Retorne APENAS o JSON válido: {"is_company": true/false/null}`,
       }
     }
 
-    // Log detalhado da resposta
-    console.log(`  📥 Status HTTP: ${response.status}`);
-    console.log(`  📥 Content-Type: ${contentType || 'não especificado'}`);
-    console.log(`  📥 Tamanho da resposta: ${responseText?.length || 0} caracteres`);
-
     if (!responseText || responseText.trim() === '') {
-      console.warn(`  ⚠️ Resposta vazia para ${field}`);
+      console.warn(`  ⚠️ Resposta vazia para ${field} (após ${emptyAttempt > 0 ? emptyAttempt + 1 : 1} tentativa(s))`);
       console.warn(`     Status: ${response.status}, Content-Type: ${contentType || 'não especificado'}`);
       console.warn(`     O webhook está respondendo, mas o corpo da resposta está vazio.`);
       console.warn(`     Possíveis causas:`);
-      console.warn(`     1. O workflow do n8n não tem um nó "Respond to Webhook" configurado`);
-      console.warn(`     2. O nó de resposta não está retornando o output do AI agent`);
-      console.warn(`     3. O workflow está processando mas falhando silenciosamente`);
+      console.warn(`     1. No n8n, no nó "Respond to Webhook" use "Respond When" = "When Last Node Finishes"`);
+      console.warn(`     2. O nó de resposta deve retornar o output do AI (ex: {{ $json.output }}) no body`);
+      console.warn(`     3. O workflow pode estar falhando antes do nó de resposta`);
       console.warn(`     Ação: Verifique os logs do workflow no n8n e certifique-se de que há um nó de resposta retornando os dados`);
       return null;
     }
+    } // fim else (n8n / API local)
+
+    // Log detalhado da resposta
+    const statusLabel = USE_OLLAMA ? 'Ollama' : (response ? String(response.status) : '');
+    console.log(`  📥 Status: ${statusLabel}`);
+    console.log(`  📥 Content-Type: ${contentType || 'não especificado'}`);
+    console.log(`  📥 Tamanho da resposta: ${responseText?.length || 0} caracteres`);
 
     // Log da resposta bruta para debug (apenas primeiros 500 caracteres)
     const preview = responseText.substring(0, 500);
@@ -1545,8 +1638,57 @@ export async function fetchEditaisToProcess(
   return editais;
 }
 
+/** Retorna true se o edital tem "Não informado" (ou null em campos chave) em algum campo. */
+function editalHasNotInformed(edital: EditalInfo): boolean {
+  return (
+    edital.valor_projeto === 'Não informado' ||
+    edital.prazo_inscricao === 'Não informado' ||
+    edital.localizacao === 'Não informado' ||
+    edital.vagas === 'Não informado' ||
+    edital.sobre_programa === 'Não informado' ||
+    edital.criterios_elegibilidade === 'Não informado' ||
+    (edital.timeline_estimada == null) ||
+    (edital.is_researcher == null) ||
+    (edital.is_company == null)
+  );
+}
+
 /**
- * Processa informações de todos os editais (apenas não processados)
+ * Busca editais que tenham pelo menos um dos campos (valor_projeto, prazo_inscricao, localizacao,
+ * vagas, sobre_programa, criterios_elegibilidade, timeline_estimada, is_researcher, is_company) = null.
+ */
+export async function fetchEditaisWithNullFields(supabase: SupabaseClient): Promise<EditalInfo[]> {
+  const { data: editais, error } = await supabase
+    .from('editais')
+    .select('id, numero, titulo, fonte, valor_projeto, prazo_inscricao, localizacao, vagas, is_researcher, is_company, sobre_programa, criterios_elegibilidade, timeline_estimada, informacoes_processadas_em')
+    .or('valor_projeto.is.null,prazo_inscricao.is.null,localizacao.is.null,vagas.is.null,sobre_programa.is.null,criterios_elegibilidade.is.null,timeline_estimada.is.null,is_researcher.is.null,is_company.is.null')
+    .order('criado_em', { ascending: false });
+
+  if (error) throw new Error(`Erro ao buscar editais: ${error.message}`);
+  return editais ?? [];
+}
+
+/**
+ * Busca apenas editais já processados que tenham "Não informado" em algum campo (para reprocessar).
+ */
+export async function fetchEditaisOnlyNotInformed(supabase: SupabaseClient): Promise<EditalInfo[]> {
+  const { data: editais, error } = await supabase
+    .from('editais')
+    .select('id, numero, titulo, fonte, valor_projeto, prazo_inscricao, localizacao, vagas, is_researcher, is_company, sobre_programa, criterios_elegibilidade, timeline_estimada, informacoes_processadas_em')
+    .not('informacoes_processadas_em', 'is', null)
+    .order('criado_em', { ascending: false });
+
+  if (error) throw new Error(`Erro ao buscar editais: ${error.message}`);
+  if (!editais?.length) return [];
+
+  return editais.filter(editalHasNotInformed);
+}
+
+/**
+ * Processa informações de todos os editais (modo definido por PROCESS_EDITAL_MODE).
+ * PROCESS_EDITAL_MODE=null → somente editais com algum campo null (valor_projeto, prazo_inscricao, sobre_programa, criterios_elegibilidade, timeline_estimada, etc.)
+ * PROCESS_EDITAL_MODE=nao-informado → somente editais já processados com "Não informado" em algum campo
+ * Caso contrário → editais não processados + editais com "Não informado" (comportamento anterior)
  */
 export async function processAllEditaisInfo(): Promise<void> {
   const supabaseUrl = process.env.VITE_SUPABASE_URL || 
@@ -1567,18 +1709,33 @@ export async function processAllEditaisInfo(): Promise<void> {
 
   const supabase = createClient(supabaseUrl, supabaseKey);
 
-  console.log('\n🔄 Iniciando processamento de informações dos editais...\n');
-  console.log('ℹ️  Processando editais não processados e editais com "Não informado".\n');
+  const mode = (process.env.PROCESS_EDITAL_MODE || '').toLowerCase().trim();
+  let editais: EditalInfo[];
 
-  // Buscar editais não processados E editais com "Não informado" para reprocessar
-  const editais = await fetchEditaisToProcess(supabase, false, true);
+  if (mode === 'null') {
+    console.log('\n🔄 Processamento: somente editais com algum campo null (sobre_programa, criterios_elegibilidade, timeline_estimada, etc.).\n');
+    editais = await fetchEditaisWithNullFields(supabase);
+  } else if (mode === 'nao-informado') {
+    console.log('\n🔄 Processamento: somente editais já processados com "Não informado" em algum campo.\n');
+    editais = await fetchEditaisOnlyNotInformed(supabase);
+  } else {
+    console.log('\n🔄 Iniciando processamento de informações dos editais...\n');
+    console.log('ℹ️  Processando editais não processados e editais com "Não informado".\n');
+    editais = await fetchEditaisToProcess(supabase, false, true);
+  }
 
   if (!editais || editais.length === 0) {
-    console.log('⚠️ Nenhum edital não processado encontrado no banco de dados');
+    if (mode === 'null') {
+      console.log('⚠️ Nenhum edital com campos null (sobre_programa, criterios_elegibilidade, timeline_estimada, etc.) encontrado.');
+    } else if (mode === 'nao-informado') {
+      console.log('⚠️ Nenhum edital já processado com "Não informado" encontrado.');
+    } else {
+      console.log('⚠️ Nenhum edital a processar encontrado no banco de dados.');
+    }
     return;
   }
 
-  console.log(`📊 Total de editais não processados encontrados: ${editais.length}`);
+  console.log(`📊 Total de editais a processar: ${editais.length}`);
   console.log('');
 
   let successCount = 0;
@@ -1594,10 +1751,10 @@ export async function processAllEditaisInfo(): Promise<void> {
       successCount++;
       console.log(`  ✅ Edital processado com sucesso\n`);
       
-      // Delay entre editais para evitar rate limiting
-      // Com 19 RPD (requests per day) para gemini-2.5-flash, precisamos ser muito conservadores
+      // Delay entre editais para evitar rate limiting e sobrecarga do n8n
+      // Cloudflare tem timeout de 100s; múltiplas requisições rápidas podem sobrecarregar
       if (i < editais.length - 1) {
-        const delayBetweenEditais = parseInt(process.env.DELAY_BETWEEN_EDITAIS_MS || '10000', 10);
+        const delayBetweenEditais = parseInt(process.env.DELAY_BETWEEN_EDITAIS_MS || '30000', 10);
         console.log(`⏳ Aguardando ${delayBetweenEditais / 1000}s antes do próximo edital...\n`);
         await new Promise(resolve => setTimeout(resolve, delayBetweenEditais));
       }
@@ -1629,7 +1786,11 @@ export async function processAllEditaisInfo(): Promise<void> {
 }
 
 // Executar se chamado diretamente (compatível com ESM)
-if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.includes('processEditalInfo')) {
+// Usa endsWith para evitar execução duplicada quando importado por processEditalInfoNull.ts
+const scriptFile = process.argv[1] || '';
+const isDirectRun = import.meta.url === `file://${scriptFile}` || 
+                    (scriptFile.endsWith('processEditalInfo.ts') && !scriptFile.includes('Null') && !scriptFile.includes('NaoInformado'));
+if (isDirectRun) {
   processAllEditaisInfo()
     .then(() => {
       console.log('\n✅ Processamento concluído!');
