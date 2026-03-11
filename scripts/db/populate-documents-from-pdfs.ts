@@ -89,14 +89,16 @@ async function fetchPdfBuffer(
       } else {
         // storage.objects: obter path pelo id do objeto (filtrar pelo bucket)
         const { data: bucketRow } = await supabaseClient
-          .from("storage.buckets")
+          .schema("storage")
+          .from("buckets")
           .select("id")
           .eq("name", STORAGE_BUCKET)
           .maybeSingle();
         const bucketId = (bucketRow as { id?: string } | null)?.id;
         if (bucketId) {
           const { data: obj } = await supabaseClient
-            .from("storage.objects")
+            .schema("storage")
+            .from("objects")
             .select("name")
             .eq("bucket_id", bucketId)
             .eq("id", ref)
@@ -127,9 +129,16 @@ async function fetchPdfBuffer(
     .from(STORAGE_BUCKET)
     .download(storagePath);
 
-  if (error || !fileData) return null;
+  if (error) {
+    if (process.env.DEBUG_POPULATE_PDF === "1") {
+      console.warn(`      [debug] Storage download "${storagePath}": ${error.message}`);
+    }
+    return null;
+  }
+  if (!fileData) return null;
   const arrayBuffer = await fileData.arrayBuffer();
-  return Buffer.from(arrayBuffer);
+  const buf = Buffer.from(arrayBuffer);
+  return buf.length > 0 ? buf : null;
 }
 
 async function extractTextFromPdf(buffer: Buffer): Promise<string> {
@@ -247,7 +256,8 @@ async function main() {
 
     const buffer = await fetchPdfBuffer(supabase, fileId, storagePath, editalPrefix);
     if (!buffer || buffer.length === 0) {
-      console.warn(`   ⚠️ [${i + 1}/${toProcess.length}] PDF não encontrado ou vazio: ${fileId}`);
+      const pathHint = storagePath && storagePath.includes("/") ? ` path=${storagePath}` : " (sem caminho_storage?)";
+      console.warn(`   ⚠️ [${i + 1}/${toProcess.length}] PDF não encontrado ou vazio: ${fileId}${pathHint}`);
       totalFail++;
       continue;
     }

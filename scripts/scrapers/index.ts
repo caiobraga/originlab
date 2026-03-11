@@ -25,6 +25,9 @@ import { FapernScraper } from './fapern-scraper';
 import { FapescScraper } from './fapesc-scraper';
 import { FapitecScraper } from './fapitec-scraper';
 import { FaptScraper } from './fapt-scraper';
+import { ProsasScraper } from './prosas-scraper';
+import { PlataformaInovacaoScraper } from './plataforma-inovacao-scraper';
+import { RotadofomentoScraper } from './rotadofomento-scraper';
 import { Scraper } from '../types';
 
 // Lista de todos os scrapers
@@ -52,12 +55,14 @@ export const scrapers: Scraper[] = [
   new FapescScraper(),
   new FapitecScraper(),
   new FaptScraper(),
+  new ProsasScraper(),
+  new PlataformaInovacaoScraper(),
   // Adicionar outros scrapers aqui no futuro:
   // new FapespScraper(),
   // etc.
 ];
 
-export { SigfapesScraper, FapesScraper, CnpqScraper, FinepScraper, SectiScraper, CaptaScraper, FapemigScraper, FaperjScraper, FapealScraper, FapacScraper, FapeamScraper, FuncapScraper, FapdfScraper, FapemaScraper, FapematScraper, FapespaScraper, FapesqScraper, FacepeScraper, FapepiScraper, FapergsScraper, FapernScraper, FapescScraper, FapitecScraper, FaptScraper };
+export { SigfapesScraper, FapesScraper, CnpqScraper, FinepScraper, SectiScraper, CaptaScraper, FapemigScraper, FaperjScraper, FapealScraper, FapacScraper, FapeamScraper, FuncapScraper, FapdfScraper, FapemaScraper, FapematScraper, FapespaScraper, FapesqScraper, FacepeScraper, FapepiScraper, FapergsScraper, FapernScraper, FapescScraper, FapitecScraper, FaptScraper, ProsasScraper, PlataformaInovacaoScraper, RotadofomentoScraper };
 
 
 

@@ -1,7 +1,6 @@
 /**
- * Preenche edital_pdfs.caminho_storage a partir de storage.objects quando está vazio.
- * Útil quando os PDFs foram criados/importados sem caminho_storage; o path real está
- * em storage.objects.name (e file_id = storage.objects.id).
+ * Preenche edital_pdfs.caminho_storage listando o bucket via Storage API (sem usar schema storage).
+ * Para cada edital_pdf com file_id e caminho_storage vazio, procura o path pelo id do objeto no bucket.
  *
  * Uso: npm run db:fill-caminho-storage-from-storage-objects
  *      npm run db:fill-caminho-storage-from-storage-objects -- --dry-run
@@ -28,25 +27,38 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+type ListItem = { name: string; id?: string };
+
+/** Lista o bucket recursivamente e retorna mapa id do objeto → path completo. */
+async function listBucketIdToPath(
+  prefix: string
+): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  const { data: items } = await supabase.storage.from(STORAGE_BUCKET).list(prefix);
+  if (!items?.length) return out;
+
+  for (const item of items as ListItem[]) {
+    const name = item?.name;
+    if (!name) continue;
+    const fullPath = prefix ? `${prefix}/${name}` : name;
+
+    if (item.id) {
+      out.set(item.id, fullPath);
+    } else {
+      const nested = await listBucketIdToPath(fullPath);
+      nested.forEach((path, id) => out.set(id, path));
+    }
+  }
+  return out;
+}
+
 async function main() {
   const dryRun = process.argv.includes("--dry-run");
 
   console.log("╔═══════════════════════════════════════════════════════════╗");
-  console.log("║   PREENCHER CAMINHO_STORAGE A PARTIR DE STORAGE.OBJECTS     ║");
+  console.log("║   PREENCHER CAMINHO_STORAGE (listando bucket via API)       ║");
   console.log("╚═══════════════════════════════════════════════════════════╝\n");
   if (dryRun) console.log("   Modo: --dry-run (nenhuma alteração no banco)\n");
-
-  const { data: bucketRow, error: bucketErr } = await supabase
-    .from("storage.buckets")
-    .select("id")
-    .eq("name", STORAGE_BUCKET)
-    .maybeSingle();
-
-  if (bucketErr || !bucketRow) {
-    console.error("❌ Erro ao obter bucket:", bucketErr?.message ?? "bucket não encontrado");
-    process.exit(1);
-  }
-  const bucketId = (bucketRow as { id: string }).id;
 
   const { data: pdfs, error: pdfsErr } = await supabase
     .from("edital_pdfs")
@@ -69,29 +81,12 @@ async function main() {
     return;
   }
 
-  console.log(`   Edital_pdfs com file_id e sem caminho_storage: ${toFix.length}\n`);
+  console.log(`   Edital_pdfs com file_id e sem caminho_storage: ${toFix.length}`);
+  console.log("   Listando bucket (pode demorar em buckets grandes)...\n");
 
-  const fileIds = [...new Set(toFix.map((p) => (p as { file_id: string }).file_id))];
-  const pathByFileId = new Map<string, string>();
+  const pathByFileId = await listBucketIdToPath("");
 
-  const BATCH = 100;
-  for (let i = 0; i < fileIds.length; i += BATCH) {
-    const batch = fileIds.slice(i, i + BATCH);
-    const { data: objs, error: objErr } = await supabase
-      .from("storage.objects")
-      .select("id, name")
-      .eq("bucket_id", bucketId)
-      .in("id", batch);
-
-    if (objErr) {
-      console.warn("   ⚠️ Erro ao buscar storage.objects:", objErr.message);
-      continue;
-    }
-    for (const o of objs || []) {
-      const row = o as { id: string; name: string };
-      if (row.name) pathByFileId.set(row.id, row.name);
-    }
-  }
+  console.log(`   Arquivos no bucket: ${pathByFileId.size}\n`);
 
   let updated = 0;
   for (const pdf of toFix) {
@@ -110,9 +105,9 @@ async function main() {
     if (!upErr) updated++;
   }
 
-  console.log(`\n   Atualizados: ${updated}/${toFix.length}`);
+  console.log(`   Atualizados: ${updated}/${toFix.length}`);
   if (toFix.length > updated && !dryRun) {
-    console.log("   Os demais têm file_id que não corresponde a nenhum id em storage.objects (ex.: file_id = edital_pdfs.id).");
+    console.log("   Os demais têm file_id que não bate com nenhum id de arquivo no bucket.");
     console.log("   Rode db:populate-documents-from-pdfs; ele tenta descobrir o path pela pasta do edital (fonte/numero).");
   }
   console.log("");
