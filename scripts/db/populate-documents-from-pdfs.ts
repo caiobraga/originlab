@@ -1,6 +1,8 @@
 /**
  * Extrai texto dos PDFs (Storage), divide em chunks e preenche a tabela documents
  * com content, metadata (file_id, edital_id, chunk_index) e embedding.
+ * Cada PDF gera todos os trechos extraídos (sem limite por PDF); o limite OLLAMA_MAX_CHUNKS
+ * só se aplica ao RAG (quantos chunks enviamos no prompt ao Ollama), não ao que é salvo aqui.
  * Processa apenas edital_pdfs ainda não processados (is_processed <> true) e marca
  * como processado ao concluir com sucesso.
  *
@@ -12,7 +14,7 @@
  *   npm run db:populate-documents-from-pdfs -- --all   # ignora is_processed e processa todos
  *   npm run db:populate-documents-from-pdfs -- --dry-run
  *
- * Env: CHUNK_SIZE (chars), CHUNK_OVERLAP (chars), OLLAMA_EMBED_MODEL, EMBED_DIMENSIONS, etc.
+ * Env: CHUNK_SIZE, CHUNK_OVERLAP, OLLAMA_EMBED_MODEL, EMBED_DIMENSIONS, EMBED_BATCH_SIZE, EMBED_MAX_CHARS_PER_BATCH (controlam tamanho do request ao Ollama para evitar "input length exceeds the context length").
  */
 import "../load-env";
 
@@ -41,6 +43,21 @@ const CHUNK_OVERLAP = parseInt(process.env.CHUNK_OVERLAP || "200", 10);
 const OLLAMA_BASE = (process.env.OLLAMA_BASE_URL || "http://localhost:11434").replace(/\/$/, "");
 const OLLAMA_EMBED_MODEL = process.env.OLLAMA_EMBED_MODEL || "mxbai-embed-large:latest";
 const EMBED_DIMENSIONS = process.env.EMBED_DIMENSIONS ? parseInt(process.env.EMBED_DIMENSIONS, 10) : null;
+/** Máximo de chunks por chamada ao Ollama. */
+const EMBED_BATCH_SIZE = Math.max(1, parseInt(process.env.EMBED_BATCH_SIZE || "8", 10));
+/** Máximo de caracteres totais por chamada. */
+const EMBED_MAX_CHARS_PER_BATCH = Math.max(100, parseInt(process.env.EMBED_MAX_CHARS_PER_BATCH || "2048", 10));
+/** Máximo de caracteres por string enviada ao embed (mxbai tem limite por entrada; truncamos antes de enviar, o content completo segue no DB). */
+const EMBED_MAX_CHARS_PER_INPUT = Math.max(100, parseInt(process.env.EMBED_MAX_CHARS_PER_INPUT || "512", 10));
+
+/** Remove caracteres de controle e backslashes problemáticos que geram "Unicode escape" / "invalid json" no insert. */
+function sanitizeChunkContent(s: string): string {
+  return s
+    .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, " ")
+    .replace(/\\/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
 function chunkText(text: string, size: number, overlap: number): string[] {
   const chunks: string[] = [];
@@ -175,6 +192,46 @@ async function embedWithOllama(texts: string[]): Promise<number[][]> {
   return data.embeddings || [];
 }
 
+/** Monta lotes respeitando EMBED_BATCH_SIZE e EMBED_MAX_CHARS_PER_BATCH para não exceder o context length do modelo. */
+function buildEmbedBatches(texts: string[]): string[][] {
+  if (texts.length === 0) return [];
+  const batches: string[][] = [];
+  let i = 0;
+  while (i < texts.length) {
+    const batch: string[] = [];
+    let totalChars = 0;
+    while (i < texts.length && batch.length < EMBED_BATCH_SIZE) {
+      const t = texts[i];
+      const len = t.length;
+      if (totalChars + len > EMBED_MAX_CHARS_PER_BATCH && batch.length > 0) break;
+      batch.push(t);
+      totalChars += len;
+      i++;
+    }
+    if (batch.length > 0) batches.push(batch);
+  }
+  return batches;
+}
+
+/** Trunca cada texto ao limite por entrada do modelo (embedding é calculado sobre o truncado; content completo fica no DB). */
+function truncateForEmbed(texts: string[]): string[] {
+  if (EMBED_MAX_CHARS_PER_INPUT <= 0) return texts;
+  return texts.map((t) => (t.length <= EMBED_MAX_CHARS_PER_INPUT ? t : t.slice(0, EMBED_MAX_CHARS_PER_INPUT)));
+}
+
+/** Gera embeddings em lotes (chunks + chars por request + trunc por entrada) para evitar "input length exceeds the context length". */
+async function embedWithOllamaBatched(texts: string[]): Promise<number[][]> {
+  if (texts.length === 0) return [];
+  const truncated = truncateForEmbed(texts);
+  const batches = buildEmbedBatches(truncated);
+  const out: number[][] = [];
+  for (const batch of batches) {
+    const batchEmbeddings = await embedWithOllama(batch);
+    out.push(...batchEmbeddings);
+  }
+  return out;
+}
+
 async function main() {
   const args = process.argv.slice(2);
   const dryRun = args.includes("--dry-run");
@@ -186,7 +243,7 @@ async function main() {
   console.log("║   PDF → TEXTO → CHUNKS → DOCUMENTS (content + embedding)  ║");
   console.log("╚═══════════════════════════════════════════════════════════╝\n");
   console.log(`   Chunk: size=${CHUNK_SIZE} overlap=${CHUNK_OVERLAP}`);
-  console.log(`   Embed: ${OLLAMA_EMBED_MODEL}${EMBED_DIMENSIONS ? ` dim=${EMBED_DIMENSIONS}` : ""}`);
+  console.log(`   Embed: ${OLLAMA_EMBED_MODEL}${EMBED_DIMENSIONS ? ` dim=${EMBED_DIMENSIONS}` : ""} (max ${EMBED_BATCH_SIZE} chunks, ${EMBED_MAX_CHARS_PER_BATCH} chars/request, ${EMBED_MAX_CHARS_PER_INPUT} chars/input)`);
   if (!processAll) console.log("   Filtro: apenas edital_pdfs com is_processed <> true");
   if (dryRun) console.log("   Modo: --dry-run");
   console.log("");
@@ -269,7 +326,8 @@ async function main() {
       continue;
     }
 
-    const chunks = chunkText(text, CHUNK_SIZE, CHUNK_OVERLAP);
+    const rawChunks = chunkText(text, CHUNK_SIZE, CHUNK_OVERLAP);
+    const chunks = rawChunks.map((c) => sanitizeChunkContent(c)).filter((c) => c.length > 0);
     if (chunks.length === 0) {
       console.warn(`   ⚠️ [${i + 1}/${toProcess.length}] Nenhum chunk gerado: ${fileId}`);
       totalFail++;
@@ -285,11 +343,11 @@ async function main() {
       console.warn(`   ⚠️ [${i + 1}] Erro ao remover documentos antigos para file_id=${fileId}:`, delErr.message);
     }
 
-    const metaBase = { file_id: fileId, edital_id: pdf.edital_id ?? null };
+    const editalIdSafe = pdf.edital_id != null && pdf.edital_id !== "" ? String(pdf.edital_id) : null;
     const inserts: { file_id: string; content: string; metadata: Record<string, unknown> }[] = chunks.map((c, idx) => ({
-      file_id: fileId,
+      file_id: String(fileId),
       content: c,
-      metadata: { ...metaBase, chunk_index: idx },
+      metadata: { file_id: String(fileId), edital_id: editalIdSafe, chunk_index: idx },
     }));
 
     const { data: inserted, error: insertErr } = await supabase
@@ -309,9 +367,23 @@ async function main() {
     const contents = rows.map((r) => r.content);
     let embeddings: number[][];
     try {
-      embeddings = await embedWithOllama(contents);
+      embeddings = await embedWithOllamaBatched(contents);
     } catch (e) {
       console.error(`   ❌ [${i + 1}] Erro ao gerar embeddings:`, (e as Error).message);
+      const idsToRemove = rows.map((r) => r.id);
+      const { error: delErr } = await supabase.from("documents").delete().in("id", idsToRemove);
+      if (delErr) console.warn(`   ⚠️ Chunks sem embedding não removidos:`, delErr.message);
+      else console.log(`   🗑️ Chunks removidos (evitar embedding null). PDF será reprocessado na próxima execução.`);
+      totalChunks -= rows.length;
+      totalFail++;
+      continue;
+    }
+
+    if (embeddings.length !== rows.length) {
+      console.warn(`   ⚠️ [${i + 1}] Embeddings retornados (${embeddings.length}) ≠ chunks (${rows.length}). Removendo chunks.`);
+      const { error: delErr } = await supabase.from("documents").delete().in("id", rows.map((r) => r.id));
+      if (delErr) console.warn(`   ⚠️ Chunks não removidos:`, delErr.message);
+      totalChunks -= rows.length;
       totalFail++;
       continue;
     }
@@ -319,7 +391,13 @@ async function main() {
     let ok = 0;
     for (let j = 0; j < rows.length; j++) {
       const emb = embeddings[j];
-      if (!emb?.length) continue;
+      if (!emb?.length) {
+        console.warn(`   ⚠️ [${i + 1}] Chunk ${j + 1} sem embedding. Removendo todos os chunks deste PDF.`);
+        const { error: delErr } = await supabase.from("documents").delete().in("id", rows.map((r) => r.id));
+        if (delErr) console.warn(`   ⚠️ Chunks não removidos:`, delErr.message);
+        totalFail++;
+        break;
+      }
       const { error: upErr } = await supabase
         .from("documents")
         .update({ embedding: emb })
@@ -328,23 +406,29 @@ async function main() {
         if (upErr.message.includes("expected 768 dimensions") && EMBED_DIMENSIONS == null) {
           console.warn(`   ⚠️ Defina EMBED_DIMENSIONS=768 no .env.local e rode de novo.`);
         }
+        const { error: delErr } = await supabase.from("documents").delete().in("id", rows.map((r) => r.id));
+        if (!delErr) console.log(`   🗑️ Chunks removidos (erro ao gravar embedding).`);
         totalFail++;
-      } else {
-        ok++;
-        totalOk++;
+        break;
       }
+      ok++;
+      totalOk++;
     }
 
-    const { error: markErr } = await supabase
-      .from("edital_pdfs")
-      .update({ is_processed: true })
-      .eq("id", pdf.id);
-
-    if (markErr) {
-      console.warn(`   ⚠️ [${i + 1}] edital_pdfs.is_processed = true não atualizado:`, markErr.message);
+    const markProcessed = ok === rows.length;
+    if (markProcessed) {
+      const { error: markErr } = await supabase
+        .from("edital_pdfs")
+        .update({ is_processed: true })
+        .eq("id", pdf.id);
+      if (markErr) console.warn(`   ⚠️ [${i + 1}] edital_pdfs.is_processed = true não atualizado:`, markErr.message);
     }
 
-    console.log(`   ✅ [${i + 1}/${toProcess.length}] ${pdf.edital_id || fileId}: ${chunks.length} chunks, ${ok} com embedding → is_processed = true`);
+    if (markProcessed) {
+      console.log(`   ✅ [${i + 1}/${toProcess.length}] ${pdf.edital_id || fileId}: ${chunks.length} chunks, ${ok} com embedding → is_processed = true`);
+    } else {
+      totalChunks -= rows.length;
+    }
   }
 
   console.log("\n╔═══════════════════════════════════════════════════════════╗");

@@ -415,14 +415,19 @@ export default function TextFieldWithAI({
         <div
           ref={previewRef}
           className={cn(
-            "rounded-md border border-input bg-white px-3 py-2 text-sm shadow-sm",
+            "rounded-md border border-input bg-white px-3 py-2 text-sm shadow-sm cursor-pointer",
             "prose prose-sm max-w-none select-text overflow-auto",
             isOverLimit && "border-red-500"
           )}
           style={{ minHeight: minFieldHeightPx }}
-          onDoubleClick={() => setShowPreview(false)}
-          role="region"
-          aria-label="Pré-visualização Markdown"
+          onClick={(e) => {
+            if ((e.target as HTMLElement).closest("a")) return;
+            setShowPreview(false);
+          }}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setShowPreview(false); } }}
+          aria-label="Clique para editar"
         >
           {value && value.trim() ? (
             <ReactMarkdown

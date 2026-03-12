@@ -28,7 +28,7 @@ const supabase: SupabaseClient | null =
 function getMaxContextChars(): number {
   return parseInt(process.env.OLLAMA_MAX_CONTEXT_CHARS || "22000", 10);
 }
-/** Limite de chunks. */
+/** Limite de chunks usados no prompt RAG (evita contexto gigante). Não afeta quantos trechos são salvos por PDF em documents. */
 function getMaxChunks(): number | null {
   const v = process.env.OLLAMA_MAX_CHUNKS;
   if (!v) return null;
