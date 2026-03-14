@@ -7,7 +7,9 @@ export class CnpqScraper implements Scraper {
   readonly name = 'cnpq';
   private browser: Browser | null = null;
   private page: Page | null = null;
-  private readonly editaisUrl = 'http://memoria2.cnpq.br/web/guest/chamadas-publicas';
+  /** URL da listagem de chamadas públicas (Liferay; opcional: CNPQ_CHAMADAS_URL no .env). */
+  private readonly editaisUrl =
+    process.env.CNPQ_CHAMADAS_URL || 'http://memoria2.cnpq.br/web/guest/chamadas-publicas';
   private readonly outputDir = path.join(process.cwd(), 'scripts', 'output', 'pdfs', 'cnpq');
 
   private async init() {

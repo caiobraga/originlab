@@ -1,12 +1,15 @@
 #!/usr/bin/env tsx
 
 /**
- * Script para executar apenas o scraper CNPq
- * 
+ * Script para executar o scraper CNPq (Chamadas Públicas - memoria2.cnpq.br).
+ * Abre a listagem, extrai cada edital, entra na página de detalhes e
+ * busca PDFs (links diretos e nas páginas resultado.cnpq.br).
+ *
  * Uso:
  *   npm run scrape:cnpq
- *   ou
  *   tsx scripts/scrape-cnpq.ts
+ *
+ * Opcional: CNPQ_CHAMADAS_URL no .env para outra URL (ex.: com filtro por aba).
  */
 
 // Carregar variáveis de ambiente primeiro
