@@ -1,6 +1,7 @@
 import puppeteer, { Browser, Page } from 'puppeteer';
 import * as fs from 'fs';
 import * as path from 'path';
+import { writeFilteredEditaisJson } from './lib/edital-json-filter';
 import libre from 'libreoffice-convert';
 import { promisify } from 'util';
 
@@ -2482,12 +2483,10 @@ class SigfapesScraper {
       }
     });
 
-    // Converter mapa de volta para array
+    // Converter mapa de volta para array e aplicar filtro (PDF + janela de anos)
     const updatedEditais = Array.from(editaisMap.values());
-    
-    // Salvar JSON atualizado
-    fs.writeFileSync(outputPath, JSON.stringify(updatedEditais, null, 2), 'utf-8');
-    console.log(`💾 ${updatedEditais.length} editais salvos em: ${outputPath}`);
+    const { kept, removed } = writeFilteredEditaisJson(outputPath, updatedEditais as any);
+    console.log(`💾 ${kept} editais salvos em: ${outputPath}${removed ? ` (${removed} removidos pelo filtro)` : ''}`);
   }
 
   async run() {

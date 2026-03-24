@@ -29,40 +29,6 @@
     ]
   },
   {
-    "numero": "FAPDF-2",
-    "titulo": "Edital FAPDF",
-    "link": "https://www.fap.df.gov.br/editais-fapdf-20261",
-    "orgao": "FAPDF",
-    "fonte": "fapdf",
-    "pais": "Brasil",
-    "estado": "DF",
-    "pdfUrl": "https://www.fap.df.gov.br/documents/d/fap/-publica-declaracao-de-veracidade-das-informacoes-pdf",
-    "pdfUrls": [
-      "https://www.fap.df.gov.br/documents/d/fap/-publica-declaracao-de-veracidade-das-informacoes-pdf"
-    ],
-    "processadoEm": "2026-03-02T18:04:17.239Z",
-    "pdfPaths": [
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapdf/fapdf_FAPDF-2_1_-publica-declaracao-de-veracidade-das-informacoes-pdf.pdf"
-    ]
-  },
-  {
-    "numero": "FAPDF-3",
-    "titulo": "Edital FAPDF",
-    "link": "https://www.fap.df.gov.br/editais-fapdf-20261",
-    "orgao": "FAPDF",
-    "fonte": "fapdf",
-    "pais": "Brasil",
-    "estado": "DF",
-    "pdfUrl": "https://www.fap.df.gov.br/documents/d/fap/-publica-declaracao-de-residencia-de-proprio-punho-pdf",
-    "pdfUrls": [
-      "https://www.fap.df.gov.br/documents/d/fap/-publica-declaracao-de-residencia-de-proprio-punho-pdf"
-    ],
-    "processadoEm": "2026-03-02T18:04:17.239Z",
-    "pdfPaths": [
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapdf/fapdf_FAPDF-3_1_-publica-declaracao-de-residencia-de-proprio-punho-pdf.pdf"
-    ]
-  },
-  {
     "numero": "02/2026",
     "titulo": "EDITAL 02/2026 FAPDF PARTICIPA – Seleção Pública de Propostas Apoio à Participação em Eventos, Cursos de Curta Duração ou Visitas Técnicas vinculada ao – PROGRAMA DIFUSÃO CIENTÍFICA FAPDF",
     "link": "https://www.fap.df.gov.br/editais-fapdf-20261",
@@ -111,57 +77,6 @@
     ]
   },
   {
-    "numero": "FAPDF-6",
-    "titulo": "Edital FAPDF",
-    "link": "https://www.fap.df.gov.br/editais-fapdf-20261",
-    "orgao": "FAPDF",
-    "fonte": "fapdf",
-    "pais": "Brasil",
-    "estado": "DF",
-    "pdfUrl": "https://www.fap.df.gov.br/documents/d/fap/-movimenta-declaracao-de-residencia-de-proprio-punho-pdf",
-    "pdfUrls": [
-      "https://www.fap.df.gov.br/documents/d/fap/-movimenta-declaracao-de-residencia-de-proprio-punho-pdf"
-    ],
-    "processadoEm": "2026-03-02T18:04:17.239Z",
-    "pdfPaths": [
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapdf/fapdf_FAPDF-6_1_-movimenta-declaracao-de-residencia-de-proprio-punho-pdf.pdf"
-    ]
-  },
-  {
-    "numero": "FAPDF-7",
-    "titulo": "Edital FAPDF",
-    "link": "https://www.fap.df.gov.br/editais-fapdf-20261",
-    "orgao": "FAPDF",
-    "fonte": "fapdf",
-    "pais": "Brasil",
-    "estado": "DF",
-    "pdfUrl": "https://www.fap.df.gov.br/documents/d/fap/-movimenta-termo_de_aceite_da_ie-pdf",
-    "pdfUrls": [
-      "https://www.fap.df.gov.br/documents/d/fap/-movimenta-termo_de_aceite_da_ie-pdf"
-    ],
-    "processadoEm": "2026-03-02T18:04:17.239Z",
-    "pdfPaths": [
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapdf/fapdf_FAPDF-7_1_-movimenta-termo_de_aceite_da_ie-pdf.pdf"
-    ]
-  },
-  {
-    "numero": "FAPDF-8",
-    "titulo": "Edital FAPDF",
-    "link": "https://www.fap.df.gov.br/editais-fapdf-20261",
-    "orgao": "FAPDF",
-    "fonte": "fapdf",
-    "pais": "Brasil",
-    "estado": "DF",
-    "pdfUrl": "https://www.fap.df.gov.br/documents/d/fap/-movimenta-declaracao-de-veracidade-das-informacoes-pdf",
-    "pdfUrls": [
-      "https://www.fap.df.gov.br/documents/d/fap/-movimenta-declaracao-de-veracidade-das-informacoes-pdf"
-    ],
-    "processadoEm": "2026-03-02T18:04:17.239Z",
-    "pdfPaths": [
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapdf/fapdf_FAPDF-8_1_-movimenta-declaracao-de-veracidade-das-informacoes-pdf.pdf"
-    ]
-  },
-  {
     "numero": "04/2026",
     "titulo": "CHAMADA 04/2026 AGRO LEARNING - Programa de Fomento Estratégico na macro área da linha de pesquisa, vinculada ao Edital 07/2026 – Programa FAPDF LEARNING",
     "link": "https://www.fap.df.gov.br/editais-fapdf-20261",
@@ -205,23 +120,6 @@
       "/home/caio/development/sites/originlab/scripts/output/pdfs/fapdf/fapdf_06-2026_2_extrato-do-edital-06-2026-demanda-espontanea-1-retificacao-pdf.pdf",
       "/home/caio/development/sites/originlab/scripts/output/pdfs/fapdf/fapdf_06-2026_3_edital-06-edital-demanda-espontanea-pdf.pdf",
       "/home/caio/development/sites/originlab/scripts/output/pdfs/fapdf/fapdf_06-2026_4_extrato-de-publicacao-edital-06-2026-fapdf-demanda-espontanea-pdf.pdf"
-    ]
-  },
-  {
-    "numero": "FAPDF-11",
-    "titulo": "Edital FAPDF",
-    "link": "https://www.fap.df.gov.br/editais-fapdf-20261",
-    "orgao": "FAPDF",
-    "fonte": "fapdf",
-    "pais": "Brasil",
-    "estado": "DF",
-    "pdfUrl": "https://www.fap.df.gov.br/documents/d/fap/declaracao-de-residencia-de-proprio-punho-pdf-1",
-    "pdfUrls": [
-      "https://www.fap.df.gov.br/documents/d/fap/declaracao-de-residencia-de-proprio-punho-pdf-1"
-    ],
-    "processadoEm": "2026-03-02T18:04:17.239Z",
-    "pdfPaths": [
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapdf/fapdf_FAPDF-11_1_declaracao-de-residencia-de-proprio-punho-pdf-1.pdf"
     ]
   },
   {

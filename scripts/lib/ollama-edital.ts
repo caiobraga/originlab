@@ -7,6 +7,13 @@
  * - Contexto grande (muitos chars/tokens): reduza OLLAMA_MAX_CONTEXT_CHARS (ex: 40000).
  * - Modelo 7B em CPU é lento: aumente OLLAMA_TIMEOUT_MS (ex: 300000) ou use modelo menor (qwen2.5:3b).
  * - Rode com OLLAMA_VERBOSE=1 para ver tamanho do prompt e ajustar.
+ * - Timeout na tabela documents: a coluna `content` existe, mas um SELECT gigante com texto grande estoura o statement timeout.
+ *   O script usa 2 fases (só `id` → depois `content` em lotes). Ainda assim, crie índice: `scripts/db/migration-documents-index-file-id.sql`.
+ *   `OLLAMA_RAG_CONTENT_BATCH_SIZE` (default 30) = linhas por pedido ao buscar `content`.
+ * - RAG vazio: por defeito tenta PDF do storage (`OLLAMA_RAG_FALLBACK_PDF=0` para desligar).
+ * - `UPDATE_EDITAL_DEBUG_CONTENT=1`: imprime preview do bloco "CONTEÚDO DOS DOCUMENTOS" antes do Ollama (usado em `npm run api:update-edital-info`). `UPDATE_EDITAL_DEBUG_CONTENT_CHARS` (default 1500) limita o preview. Mostra também a **fonte** (ex.: coluna `content` em `documents` vs PDF no storage).
+ * - `OLLAMA_RAG_CONTENT_ONLY=1`: só lê a coluna `content` em `documents` (não tenta name/data/text…).
+ * - `OLLAMA_NO_SANITIZE_PAGE_MARKERS=1`: não remove marcadores tipo `-- 1 of 48 --` do texto antes do prompt.
  */
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
@@ -39,113 +46,254 @@ function getMaxChunks(): number | null {
 /** Se true, usa a tabela documents (RAG) para contexto; senão usa extração direta dos PDFs. */
 const USE_RAG_DOCUMENTS = process.env.OLLAMA_USE_RAG !== "0" && process.env.OLLAMA_USE_RAG !== "false";
 
+export type RagDocumentContextResult = {
+  text: string;
+  /** Ex.: `documents.content (match file_id)` — para debug / logs. */
+  sourceLabel: string;
+};
+
+/** Remove marcadores de página comuns da extração PDF (`-- 1 of 48 --`) antes de enviar ao modelo. */
+function sanitizePdfPageMarkersInContext(text: string): string {
+  if (process.env.OLLAMA_NO_SANITIZE_PAGE_MARKERS === "1" || process.env.OLLAMA_NO_SANITIZE_PAGE_MARKERS === "true") {
+    return text;
+  }
+  return text
+    .replace(/\s*--\s*\d+\s+of\s+\d+\s+--\s*/gi, "\n")
+    .replace(/\s*--\s*\d+\s*\/\s*\d+\s*--\s*/gi, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 /**
- * Resolve fileIds para o que está em documents.file_id.
- * Os IDs recebidos podem ser edital_pdfs.id OU edital_pdfs.file_id (storage).
- * Buscamos em edital_pdfs por id e por file_id e montamos a lista de file_id
- * (storage) para consultar documents.
+ * Junta linhas de `documents` num único texto para o prompt (ordenando por chunk_index).
+ */
+function joinDocumentRowsToContext(rows: Record<string, unknown>[], col: string): string {
+  const withIndex = rows.map((r) => {
+    const meta = r.metadata as Record<string, unknown> | undefined;
+    const idx = typeof meta?.chunk_index === "number" ? meta.chunk_index : -1;
+    return { row: r, chunkIndex: idx };
+  });
+  withIndex.sort((a, b) => a.chunkIndex - b.chunkIndex);
+  const parts: string[] = [];
+  for (const { row: r } of withIndex) {
+    const content = r[col];
+    if (typeof content === "string" && content.trim().length > 0) {
+      const fileLabel =
+        (r.file_id as string) ||
+        (r.metadata as Record<string, unknown>)?.["file_id"] as string ||
+        String(r.id);
+      parts.push(`--- Documento ${String(fileLabel).slice(0, 8)} ---\n${content.trim()}`);
+    }
+  }
+  if (parts.length === 0) return "";
+  const maxCh = getMaxChunks();
+  const limited = maxCh != null && maxCh > 0 ? parts.slice(0, maxCh) : parts;
+  return limited.join("\n\n");
+}
+
+/**
+ * Resolve IDs para consultar `documents.file_id`.
+ * Inclui SEMPRE, por linha de edital_pdfs, tanto `id` (UUID da linha) quanto `file_id` (storage),
+ * porque o populate pode ter gravado documents com um ou outro — se só buscarmos o storage UUID
+ * e os chunks estiverem com o id do edital_pdf, o RAG fica vazio.
  */
 async function resolveFileIdsForDocuments(fileIds: string[]): Promise<string[]> {
   if (!supabase || fileIds.length === 0) return fileIds;
   const trimmed = fileIds.map((id) => id.trim()).filter(Boolean);
-  const { data: byId } = await supabase
-    .from("edital_pdfs")
-    .select("id, file_id")
-    .in("id", trimmed);
-  const { data: byFileId } = await supabase
-    .from("edital_pdfs")
-    .select("id, file_id")
-    .in("file_id", trimmed);
+  const docFileIds = new Set<string>(trimmed);
 
-  const docFileIds = new Set<string>();
-  for (const p of byId || []) {
-    const r = p as Record<string, unknown>;
-    const fid = r.file_id;
-    docFileIds.add(typeof fid === "string" && fid ? fid : String(r.id));
-  }
-  for (const p of byFileId || []) {
-    const r = p as Record<string, unknown>;
-    const fid = r.file_id;
-    docFileIds.add(typeof fid === "string" && fid ? fid : String(r.id));
-  }
+  const { data: byId } = await supabase.from("edital_pdfs").select("id, file_id").in("id", trimmed);
+  const { data: byFileId } = await supabase.from("edital_pdfs").select("id, file_id").in("file_id", trimmed);
+
+  const addRow = (r: { id: string; file_id?: string | null }) => {
+    docFileIds.add(String(r.id));
+    if (r.file_id && String(r.file_id).trim()) docFileIds.add(String(r.file_id).trim());
+  };
+  for (const p of byId || []) addRow(p as { id: string; file_id?: string | null });
+  for (const p of byFileId || []) addRow(p as { id: string; file_id?: string | null });
+
   return [...docFileIds];
 }
 
+/** 1ª fase: só UUIDs — leve; com índice em file_id evita scan completo. */
+async function listDocumentIdsByFileIdIn(
+  client: SupabaseClient,
+  resolvedIds: string[],
+  maxIds: number,
+): Promise<{ ids: string[]; error: { message: string } | null }> {
+  const { data, error } = await client
+    .from("documents")
+    .select("id")
+    .in("file_id", resolvedIds)
+    .order("id", { ascending: true })
+    .limit(maxIds);
+  if (error) return { ids: [], error };
+  return { ids: (data ?? []).map((r: { id: string }) => String(r.id)), error: null };
+}
+
+async function listDocumentIdsByMetadataFileIdOr(
+  client: SupabaseClient,
+  resolvedIds: string[],
+  maxIds: number,
+): Promise<{ ids: string[]; error: { message: string } | null }> {
+  if (resolvedIds.length === 0) return { ids: [], error: null };
+  const orFilter = resolvedIds.map((id) => `metadata->>file_id.eq.${id}`).join(",");
+  const { data, error } = await client
+    .from("documents")
+    .select("id")
+    .or(orFilter)
+    .order("id", { ascending: true })
+    .limit(maxIds);
+  if (error) return { ids: [], error };
+  return { ids: (data ?? []).map((r: { id: string }) => String(r.id)), error: null };
+}
+
+async function listDocumentIdsByEditalId(
+  client: SupabaseClient,
+  editalId: string,
+  maxIds: number,
+): Promise<{ ids: string[]; error: { message: string } | null }> {
+  const { data, error } = await client
+    .from("documents")
+    .select("id")
+    .eq("metadata->>edital_id", editalId)
+    .order("id", { ascending: true })
+    .limit(maxIds);
+  if (error) return { ids: [], error };
+  return { ids: (data ?? []).map((r: { id: string }) => String(r.id)), error: null };
+}
+
+/** 2ª fase: traz coluna de texto em lotes (evita timeout num único SELECT com milhares de `content`). */
+async function fetchDocumentRowsByIdsBatched(
+  client: SupabaseClient,
+  ids: string[],
+  col: string,
+): Promise<{ rows: Record<string, unknown>[]; error: { message: string } | null }> {
+  const selectCols = "id, file_id, metadata, " + col;
+  const batchSize = Math.max(5, parseInt(process.env.OLLAMA_RAG_CONTENT_BATCH_SIZE || "30", 10) || 30);
+  const rows: Record<string, unknown>[] = [];
+  for (let i = 0; i < ids.length; i += batchSize) {
+    const slice = ids.slice(i, i + batchSize);
+    const { data, error } = await client.from("documents").select(selectCols).in("id", slice);
+    if (error) return { rows, error };
+    rows.push(...((data ?? []) as Record<string, unknown>[]));
+  }
+  return { rows, error: null };
+}
+
+function logRagTimeoutHint(msg: string): void {
+  const m = msg.toLowerCase();
+  if (m.includes("timeout") || m.includes("canceling statement")) {
+    console.warn(
+      "  💡 RAG: timeout no Postgres ao ler `documents`. Rode no Supabase: scripts/db/migration-documents-index-file-id.sql (índice em file_id).",
+    );
+  }
+}
+
 /**
- * Busca conteúdo dos documentos na tabela `documents` por file_id (RAG).
- * Considera file_id na coluna top-level OU dentro de metadata (metadata->>'file_id').
- * Tenta colunas de conteúdo: name, content, text, body, page_content, chunk.
+ * Busca conteúdo na tabela `documents` (RAG). Usa 2 fases: listar só `id`, depois buscar `content` (etc.) em lotes.
  */
-async function fetchDocumentContextByFileIds(fileIds: string[]): Promise<string> {
-  if (!supabase || fileIds.length === 0) return "";
+async function fetchDocumentContextByFileIds(
+  fileIds: string[],
+  opts?: { editalId?: string },
+): Promise<RagDocumentContextResult> {
+  const empty = (label: string): RagDocumentContextResult => ({ text: "", sourceLabel: label });
+
+  if (!supabase || fileIds.length === 0) return empty("(sem supabase ou file ids)");
 
   const resolvedIds = await resolveFileIdsForDocuments(fileIds);
-  if (resolvedIds.length === 0) return "";
+  if (resolvedIds.length === 0) return empty("(nenhum id resolvido em edital_pdfs)");
 
-  const contentColumns = ["name", "content", "text", "body", "page_content", "chunk"];
-  for (const col of contentColumns) {
-    let rows: unknown[] | null = null;
-    let error: { message: string } | null = null;
+  if (process.env.OLLAMA_DEBUG_RAG === "1") {
+    const sample = resolvedIds.slice(0, 10);
+    console.log(
+      `  [RAG debug] resolvedIds count=${resolvedIds.length} sample=${sample.map((x) => String(x)).join(", ")}`,
+    );
+  }
 
-    const selectCols = "id, file_id, metadata, " + col;
+  const contentOnly =
+    process.env.OLLAMA_RAG_CONTENT_ONLY === "1" || process.env.OLLAMA_RAG_CONTENT_ONLY === "true";
+  const contentColumns = contentOnly
+    ? ["content"]
+    : ["content", "data", "value", "text", "body", "page_content", "chunk", "name"];
+  const ragSelectLimit = Math.max(100, parseInt(process.env.OLLAMA_RAG_DOCUMENTS_LIMIT || "2000", 10) || 2000);
 
-    const byColumn = supabase
-      .from("documents")
-      .select(selectCols)
-      .in("file_id", resolvedIds)
-      .order("file_id", { ascending: true })
-      .order("id", { ascending: true });
-    const resColumn = await byColumn;
-    error = resColumn.error;
-    rows = resColumn.data;
-
-    const tryMetadata =
-      error != null && (error.message?.includes("file_id") || error.message?.includes("column")) ||
-      (error == null && (!rows || rows.length === 0));
-    if (tryMetadata && resolvedIds.length > 0) {
-      const orFilter = resolvedIds.map((id) => `metadata->>file_id.eq.${id}`).join(",");
-      const byMetadata = await supabase
-        .from("documents")
-        .select(selectCols)
-        .or(orFilter)
-        .order("id", { ascending: true });
-      error = byMetadata.error;
-      rows = byMetadata.data;
-    }
-
-    if (error != null) {
+  const tryColumnWithIds = async (
+    col: string,
+    candidateIds: string[],
+    sourceHint: string,
+  ): Promise<RagDocumentContextResult | null> => {
+    if (candidateIds.length === 0) return null;
+    const { rows, error } = await fetchDocumentRowsByIdsBatched(supabase, candidateIds, col);
+    if (error) {
       if (process.env.OLLAMA_DEBUG_RAG === "1") {
-        console.warn(`  [RAG debug] coluna "${col}": ${error.message}`);
+        console.warn(`  [RAG debug] lote coluna "${col}": ${error.message}`);
+        logRagTimeoutHint(error.message);
       }
-      continue;
+      return null;
     }
-    if (!rows?.length) continue;
-
-    const withIndex = (rows as Record<string, unknown>[]).map((r) => {
-      const meta = r.metadata as Record<string, unknown> | undefined;
-      const idx = typeof meta?.chunk_index === "number" ? meta.chunk_index : -1;
-      return { row: r, chunkIndex: idx };
-    });
-    withIndex.sort((a, b) => a.chunkIndex - b.chunkIndex);
-
-    const parts: string[] = [];
-    for (const { row: r } of withIndex) {
-      const content = r[col];
-      if (typeof content === "string" && content.trim().length > 0) {
-        const fileLabel =
-          (r.file_id as string) ||
-          (r.metadata as Record<string, unknown>)?.["file_id"] as string ||
-          String(r.id);
-        parts.push(`--- Documento ${String(fileLabel).slice(0, 8)} ---\n${content.trim()}`);
+    const joined = joinDocumentRowsToContext(rows, col);
+    if (joined.length > 0) {
+      if (process.env.OLLAMA_DEBUG_RAG === "1") {
+        console.log(
+          `  [RAG debug] col=${col} ids=${candidateIds.length} rows=${rows.length} joinedChars=${joined.length} (${sourceHint})`,
+        );
       }
+      return {
+        text: joined,
+        sourceLabel: `documents.${col} (${sourceHint})`,
+      };
     }
-    if (parts.length > 0) {
-      const maxCh = getMaxChunks();
-      const limited = maxCh != null && maxCh > 0 ? parts.slice(0, maxCh) : parts;
-      if (limited.length < parts.length && process.env.OLLAMA_VERBOSE === "1") {
-        console.log(`  📑 RAG: usando ${limited.length}/${parts.length} chunks (OLLAMA_MAX_CHUNKS=${maxCh})`);
+    if (process.env.OLLAMA_DEBUG_RAG === "1" && rows.length > 0) {
+      console.log(`  [RAG debug] col=${col} ${rows.length} linha(s) mas texto vazio em "${col}"`);
+    }
+    return null;
+  };
+
+  const idByFile = await listDocumentIdsByFileIdIn(supabase, resolvedIds, ragSelectLimit);
+  if (idByFile.error && process.env.OLLAMA_DEBUG_RAG === "1") {
+    console.warn(`  [RAG debug] listagem id por file_id: ${idByFile.error.message}`);
+    logRagTimeoutHint(idByFile.error.message);
+  }
+
+  let candidateIds = idByFile.ids;
+  if (candidateIds.length === 0) {
+    const idByMeta = await listDocumentIdsByMetadataFileIdOr(supabase, resolvedIds, ragSelectLimit);
+    candidateIds = idByMeta.ids;
+    if (idByMeta.error && process.env.OLLAMA_DEBUG_RAG === "1") {
+      console.warn(`  [RAG debug] listagem id por metadata.file_id: ${idByMeta.error.message}`);
+      logRagTimeoutHint(idByMeta.error.message);
+    }
+  }
+
+  const uniqueIds = [...new Set(candidateIds)];
+
+  for (const col of contentColumns) {
+    const hit = await tryColumnWithIds(col, uniqueIds, "file_id ou metadata.file_id → ids → coluna em lotes");
+    if (hit) return hit;
+  }
+
+  if (opts?.editalId) {
+    const { ids: editalIds, error: eErr } = await listDocumentIdsByEditalId(
+      supabase,
+      opts.editalId,
+      ragSelectLimit,
+    );
+    if (eErr && process.env.OLLAMA_DEBUG_RAG === "1") {
+      console.warn(`  [RAG debug] listagem id por edital_id: ${eErr.message}`);
+      logRagTimeoutHint(eErr.message);
+    }
+    const editalUnique = [...new Set(editalIds)];
+    if (editalUnique.length > 0) {
+      for (const col of contentColumns) {
+        const hit = await tryColumnWithIds(col, editalUnique, "metadata.edital_id → ids → coluna em lotes");
+        if (hit) {
+          console.log(
+            `  📑 Ollama RAG: ${hit.sourceLabel} (${editalUnique.length} id(s) por edital)`,
+          );
+          return hit;
+        }
       }
-      return limited.join("\n\n");
     }
   }
 
@@ -164,10 +312,16 @@ async function fetchDocumentContextByFileIds(fileIds: string[]): Promise<string>
       count = byMeta.count ?? 0;
     }
     console.warn(
-      `  [RAG debug] resolvedIds (${resolvedIds.length}): ${resolvedIds.slice(0, 2).map((x) => x.slice(0, 8)).join(", ")}...; documentos: ${count}`
+      `  [RAG debug] resolvedIds (${resolvedIds.length}): ${resolvedIds.slice(0, 2).map((x) => x.slice(0, 8)).join(", ")}...; documentos (count): ${count}`,
     );
+    if (uniqueIds.length === 0) {
+      console.warn(
+        "  [RAG debug] Nenhum id de document encontrado para estes file_ids — a coluna content existe, mas não há linhas que correspondam (ou falhou a listagem por timeout).",
+      );
+    }
   }
-  return "";
+
+  return empty("(nenhuma coluna com texto útil em documents)");
 }
 
 async function fetchPdfBuffer(fileId: string): Promise<Buffer | null> {
@@ -221,7 +375,8 @@ async function extractTextFromPdf(buffer: Buffer): Promise<string> {
  */
 export async function extractInfoViaOllama(
   message: string,
-  fileIds: string[]
+  fileIds: string[],
+  options?: { editalId?: string },
 ): Promise<string | null> {
   const baseUrl = (process.env.OLLAMA_BASE_URL || "http://localhost:11434").replace(/\/$/, "");
   const model = process.env.OLLAMA_MODEL || "qwen2.5:7b";
@@ -233,16 +388,45 @@ export async function extractInfoViaOllama(
   }
 
   let fullContext = "";
+  let contextSourceLabel = "";
+
+  const ragFallbackPdf =
+    process.env.OLLAMA_RAG_FALLBACK_PDF !== "0" && process.env.OLLAMA_RAG_FALLBACK_PDF !== "false";
 
   if (USE_RAG_DOCUMENTS) {
-    fullContext = await fetchDocumentContextByFileIds(fileIds);
+    const rag = await fetchDocumentContextByFileIds(fileIds, { editalId: options?.editalId });
+    fullContext = rag.text;
     if (fullContext.length > 0) {
+      contextSourceLabel = rag.sourceLabel;
       if (process.env.OLLAMA_VERBOSE === "1") {
-        console.log(`  📑 Ollama RAG: contexto da tabela documents (${fullContext.length} caracteres)`);
+        console.log(`  📑 Ollama RAG: ${contextSourceLabel} — ${fullContext.length} caracteres`);
       }
-    } else {
+    } else if (ragFallbackPdf) {
       console.warn(
-        "  ⚠️ Ollama RAG: tabela documents não retornou conteúdo para estes file_ids. Verifique se a tabela tem alguma coluna de texto (name, content, text, body, page_content ou chunk) e se documents.file_id corresponde aos IDs enviados."
+        "  ℹ️ Ollama RAG: documents sem texto útil; usando extração direta do PDF no storage (não é a coluna content).",
+      );
+      const textParts: string[] = [];
+      for (const fileId of fileIds) {
+        const buffer = await fetchPdfBuffer(fileId);
+        if (!buffer) {
+          console.warn(`  ⚠️ Ollama fallback: não foi possível baixar PDF ${fileId}`);
+          continue;
+        }
+        const text = await extractTextFromPdf(buffer);
+        if (text.length > 0) {
+          textParts.push(`--- Documento ${fileId.slice(0, 8)} ---\n${text}`);
+        }
+      }
+      fullContext = textParts.join("\n\n");
+      contextSourceLabel =
+        fullContext.length > 0
+          ? "PDF via storage + pdf-parse (fallback; não veio de documents.content)"
+          : rag.sourceLabel || "(RAG vazio)";
+    }
+
+    if (fullContext.length === 0) {
+      console.warn(
+        "  ⚠️ Ollama RAG: sem contexto (documents vazio e fallback PDF falhou). Confirme índice em documents(file_id), rode populate, ou defina OLLAMA_USE_RAG=0 para só PDF.",
       );
       return null;
     }
@@ -260,17 +444,43 @@ export async function extractInfoViaOllama(
       }
     }
     fullContext = textParts.join("\n\n");
+    contextSourceLabel = "PDF via storage (OLLAMA_USE_RAG=0)";
     if (fullContext.length === 0) {
       console.warn("  ⚠️ Ollama: nenhum texto extraído dos PDFs.");
       return null;
     }
   }
 
+  fullContext = sanitizePdfPageMarkersInContext(fullContext);
+
   const maxContextChars = getMaxContextChars();
   const context =
     fullContext.length > maxContextChars
       ? fullContext.slice(0, maxContextChars) + "\n\n[... texto truncado ...]"
       : fullContext;
+
+  // Debug para api:update-edital-info (UPDATE_EDITAL_DEBUG_CONTENT=1 no package.json ou .env)
+  const updateEditalContentDebug =
+    process.env.UPDATE_EDITAL_DEBUG_CONTENT === "1" ||
+    process.env.UPDATE_EDITAL_DEBUG_CONTENT === "true";
+  if (updateEditalContentDebug && context.length > 0) {
+    const maxDbg = Math.max(
+      200,
+      parseInt(process.env.UPDATE_EDITAL_DEBUG_CONTENT_CHARS || "1500", 10) || 1500,
+    );
+    const preview =
+      context.length > maxDbg
+        ? `${context.slice(0, maxDbg)}\n... [debug: +${context.length - maxDbg} caracteres omitidos]`
+        : context;
+    const sanitizedNote =
+      process.env.OLLAMA_NO_SANITIZE_PAGE_MARKERS === "1"
+        ? " (sanitização de marcadores de página desligada)"
+        : " (marcadores tipo «-- N of M --» removidos antes do prompt, se existirem)";
+    console.log(
+      `  🐛 [update-edital-debug] FONTE: ${contextSourceLabel}${sanitizedNote}\n` +
+        `  🐛 [update-edital-debug] CONTEÚDO enviado ao Ollama: ${context.length} caracteres (preview até ${maxDbg}):\n${"─".repeat(60)}\n${preview}\n${"─".repeat(60)}`,
+    );
+  }
 
   const prompt = `Você é um assistente que analisa editais. Use APENAS o conteúdo dos documentos abaixo para responder. Retorne somente o que for pedido (ex.: JSON quando solicitado).
 

@@ -9,7 +9,10 @@ import {
 } from './processEditalInfo';
 
 /**
- * Força a atualização de TODOS os editais, mesmo os já processados
+ * Força a atualização de TODOS os editais, mesmo os já processados.
+ *
+ * O trabalho de extração (Ollama / webhook) faz-se dentro de `processEditalInfo`,
+ * que já envia `edital.id` ao RAG (documents por file_id + metadata.edital_id + fallback PDF).
  */
 export async function updateAllEditaisInfo(): Promise<void> {
   const supabaseUrl = process.env.VITE_SUPABASE_URL || 
@@ -51,7 +54,11 @@ export async function updateAllEditaisInfo(): Promise<void> {
   // Processar cada edital (forçando atualização)
   for (const edital of editais) {
     try {
-      const processedInfo = await processEditalInfo(supabase, edital);
+      const processedInfo = await processEditalInfo(supabase, edital, {
+        // Processa mesmo os já processados, mas não substitui por valor vazio.
+        forceReextract: true,
+        keepExistingOnEmpty: true,
+      });
       
       // Atualizar no banco usando a função exportada
       await updateEditalInfo(supabase, edital.id, processedInfo);

@@ -90,26 +90,6 @@
     "pdfPath": "/home/caio/development/sites/originlab/scripts/output/pdfs/faperj/faperj_06-2026_1_Edital_FAPERJ_Nº_06_2026_-_Programa_Pesquisador_Visitante_Emérito_(PVE).pdf"
   },
   {
-    "numero": "FAPERJ-6",
-    "titulo": "Chamada de Propostas FAPESP-FAPERJ para Projetos em Tecnologias Quânticas – 2025_Diretrizes FAPERJ",
-    "link": "https://www.faperj.br/?id=28.5.7",
-    "orgao": "FAPERJ",
-    "fonte": "faperj",
-    "pais": "Brasil",
-    "estado": "RJ",
-    "pdfUrl": "https://www.faperj.br/rp/downloads/Chamada_de_Propostas_FAPESP-FAPERJ_para_Projetos_em_Tecnologias_Qu%C3%A2nticas_%E2%80%93_2025_Diretrizes_FAPERJ.pdf",
-    "pdfUrls": [
-      "https://www.faperj.br/rp/downloads/Chamada_de_Propostas_FAPESP-FAPERJ_para_Projetos_em_Tecnologias_Qu%C3%A2nticas_%E2%80%93_2025_Diretrizes_FAPERJ.pdf",
-      "https://www.faperj.br/rp/downloads/Resultado_Preliminar_Chamada_de_Propostas_FAPESP-FAPERJ_para_Projetos_em_Tecnologias_Qu%C3%A2nticas_2025.pdf"
-    ],
-    "processadoEm": "2026-03-02T03:00:36.237Z",
-    "pdfPaths": [
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/faperj/faperj_FAPERJ-6_1_Chamada_de_Propostas_FAPESP-FAPERJ_para_Projetos_em_Tecnologias_Quânticas_–_2025_Diretrizes_FAPE.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/faperj/faperj_FAPERJ-6_2_Resultado_Preliminar_Chamada_de_Propostas_FAPESP-FAPERJ_para_Projetos_em_Tecnologias_Quânticas_2.pdf"
-    ],
-    "pdfPath": "/home/caio/development/sites/originlab/scripts/output/pdfs/faperj/faperj_FAPERJ-6_1_Chamada_de_Propostas_FAPESP-FAPERJ_para_Projetos_em_Tecnologias_Quânticas_–_2025_Diretrizes_FAPE.pdf"
-  },
-  {
     "numero": "11/2025",
     "titulo": "Edital FAPERJ Nº 11/2025 – Programa Pesquisa para o SUS: Gestão Compartilhada em Saúde – 2025",
     "link": "https://www.faperj.br/?id=28.5.7",

@@ -18,6 +18,7 @@ import './load-env';
 import { CnpqScraper } from './scrapers/cnpq-scraper';
 import * as fs from 'fs';
 import * as path from 'path';
+import { writeFilteredEditaisJson } from './lib/edital-json-filter';
 
 async function main() {
   console.log('╔═══════════════════════════════════════════════════════════╗');
@@ -197,9 +198,8 @@ async function main() {
         updatedEditais.push(...editaisArray);
       });
       
-      // Salvar JSON atualizado
-      fs.writeFileSync(outputFile, JSON.stringify(updatedEditais, null, 2), 'utf-8');
-      console.log(`\n💾 ${updatedEditais.length} edital(is) salvos em: ${outputFile}`);
+      const { kept, removed } = writeFilteredEditaisJson(outputFile, updatedEditais);
+      console.log(`\n💾 ${kept} edital(is) salvos em: ${outputFile}${removed ? ` (${removed} removidos pelo filtro PDF/ano)` : ''}`);
       console.log(`   (${editais.length} editais do CNPq)`);
     } else {
       console.log('\n⚠️ Nenhum edital foi extraído.');

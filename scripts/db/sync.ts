@@ -6,6 +6,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { Edital } from '../types';
 import { uploadPdfsToStorage } from './storage';
+import { editalSyncKey, wantedKeySetFromEditais } from './edital-sync-key';
 
 const STORAGE_BUCKET = 'edital-pdfs';
 
@@ -26,7 +27,19 @@ interface DatabaseEdital {
 }
 
 /**
- * Sincroniza editais do JSON com o banco de dados Supabase
+ * Sincroniza editais do JSON com o banco de dados Supabase.
+ *
+ * Prune (remover da base o que não está no JSON):
+ * - `SYNC_PRUNE_MISSING=1` ou `tsx scripts/db/sync.ts --prune`
+ * - `SYNC_PRUNE_DRY_RUN=1` ou `--prune-dry-run` — só lista o que seria removido
+ * - `SYNC_PRUNE_SKIP_STORAGE=1` ou `--prune-no-storage` — não apaga ficheiros no bucket
+ * - `SYNC_PRUNE_ALLOW_EMPTY_JSON=1` — permite prune quando o JSON filtrado está vazio (apaga todos os editais)
+ * - `SYNC_PRUNE_IGNORE_SYNC_ERRORS=1` — executa prune mesmo se o sync tiver erros
+ * - `SYNC_PRUNE_DOC_DELAY_MS=N` — pausa entre cada delete por `file_id` em documents (reduz carga no DB)
+ *
+ * O conjunto de chaves do prune usa **todo** o JSON válido (título/anexo), **não** respeita `SYNC_FONTE` nem `SYNC_LIMIT`.
+ *
+ * Ordem no prune: apaga `documents` (metadata->edital_id + file_id um a um), storage, `editais` (CASCADE em `edital_pdfs`).
  */
 export async function syncEditaisToDatabase(): Promise<void> {
   // Tentar múltiplas variáveis de ambiente (VITE_* para compatibilidade com frontend, sem prefixo para scripts)
@@ -169,17 +182,10 @@ export async function syncEditaisToDatabase(): Promise<void> {
   }
 
   // De-dup básico para evitar processar o mesmo edital múltiplas vezes
-  const keyOf = (e: Edital): string => {
-    const fonte = (e.fonte || 'unknown').trim().toLowerCase();
-    const numero = (e.numero || '').trim().toLowerCase();
-    const titulo = (e.titulo || '').trim().toLowerCase().replace(/\s+/g, ' ').slice(0, 200);
-    return numero ? `${fonte}:${numero}` : `${fonte}:${titulo}`;
-  };
-
   const allEditais: Edital[] = [];
   const seen = new Set<string>();
   for (const e of loaded) {
-    const k = keyOf(e);
+    const k = editalSyncKey(e);
     if (seen.has(k)) continue;
     seen.add(k);
     allEditais.push(e);
@@ -224,6 +230,9 @@ export async function syncEditaisToDatabase(): Promise<void> {
     
     return true;
   });
+
+  /** Conjunto “o que o JSON considera válido” para prune — sem SYNC_FONTE / SYNC_LIMIT (evita apagar a base inteira por engano). */
+  const editaisJsonKeysForPrune = editais;
 
   // Opcional: filtrar por fonte (ex.: SYNC_FONTE=finep) e limitar (ex.: SYNC_LIMIT=10)
   const onlyFonte = String(process.env.SYNC_FONTE || '').trim().toLowerCase();
@@ -451,6 +460,195 @@ export async function syncEditaisToDatabase(): Promise<void> {
       console.log(`   - ${edital}: ${error}`);
     });
   }
+
+  // ─── Opcional: remover da base editais que não existem mais no JSON (e documents + storage) ───
+  const argv = process.argv.slice(2);
+  const pruneRequested =
+    process.env.SYNC_PRUNE_MISSING === '1' ||
+    process.env.SYNC_PRUNE_MISSING === 'true' ||
+    argv.includes('--prune');
+  const pruneDryRun =
+    process.env.SYNC_PRUNE_DRY_RUN === '1' ||
+    process.env.SYNC_PRUNE_DRY_RUN === 'true' ||
+    argv.includes('--prune-dry-run');
+  const pruneSkipStorage =
+    process.env.SYNC_PRUNE_SKIP_STORAGE === '1' ||
+    process.env.SYNC_PRUNE_SKIP_STORAGE === 'true' ||
+    argv.includes('--prune-no-storage');
+
+  if (pruneRequested) {
+    if (
+      errorCount > 0 &&
+      process.env.SYNC_PRUNE_IGNORE_SYNC_ERRORS !== '1' &&
+      process.env.SYNC_PRUNE_IGNORE_SYNC_ERRORS !== 'true'
+    ) {
+      console.warn(
+        '\n⚠️ Prune não executado: houve erro(s) na sincronização. Corrija e rode de novo, ou defina SYNC_PRUNE_IGNORE_SYNC_ERRORS=1.',
+      );
+    } else {
+      const wantedKeys = wantedKeySetFromEditais(editaisJsonKeysForPrune);
+      if (wantedKeys.size === 0 && process.env.SYNC_PRUNE_ALLOW_EMPTY_JSON !== '1') {
+        console.error(
+          '\n❌ Prune cancelado: nenhum edital no JSON após filtros (conjunto de chaves vazio).',
+        );
+        console.error(
+          '   Isso apagaria todos os editais na base. Para forçar, defina SYNC_PRUNE_ALLOW_EMPTY_JSON=1',
+        );
+        throw new Error('SYNC_PRUNE: conjunto JSON vazio');
+      }
+
+      await pruneEditaisNotInJsonSet(supabase, wantedKeys, {
+        dryRun: pruneDryRun,
+        deleteStorage: !pruneSkipStorage,
+      });
+    }
+  }
+}
+
+/**
+ * Remove editais cuja chave (fonte+numero ou fonte+título) não está no JSON carregado,
+ * apagando antes os chunks em `documents` (por file_id = storage id ou id do edital_pdf)
+ * e opcionalmente os objetos no bucket `edital-pdfs`.
+ * `edital_pdfs` some em cascata ao apagar `editais` (ON DELETE CASCADE).
+ */
+async function pruneEditaisNotInJsonSet(
+  supabase: SupabaseClient,
+  wantedKeys: Set<string>,
+  options: { dryRun: boolean; deleteStorage: boolean },
+): Promise<void> {
+  const PAGE = 500;
+  let offset = 0;
+  const toRemove: Array<{ id: string; key: string }> = [];
+
+  for (;;) {
+    const { data: rows, error } = await supabase
+      .from('editais')
+      .select('id, numero, titulo, fonte')
+      .range(offset, offset + PAGE - 1);
+    if (error) throw error;
+    if (!rows?.length) break;
+
+    for (const row of rows) {
+      const key = editalSyncKey(row);
+      if (!wantedKeys.has(key)) {
+        toRemove.push({ id: row.id as string, key });
+      }
+    }
+    if (rows.length < PAGE) break;
+    offset += PAGE;
+  }
+
+  if (toRemove.length === 0) {
+    console.log('\n🧹 Prune: todos os editais da base têm correspondência no JSON.');
+    return;
+  }
+
+  console.log('\n' + '═'.repeat(50));
+  console.log('🧹 PRUNE: editais ausentes do JSON');
+  console.log('═'.repeat(50));
+  console.log(`   Encontrados ${toRemove.length} edital(is) na base sem chave no JSON atual.`);
+  if (options.dryRun) {
+    console.log('   Modo dry-run: nada será apagado.\n');
+    toRemove.slice(0, 30).forEach((r) => console.log(`   • id=${r.id} key=${r.key}`));
+    if (toRemove.length > 30) console.log(`   • ... e mais ${toRemove.length - 30}`);
+    console.log('');
+    return;
+  }
+
+  const EDITAL_BATCH = 35;
+  let removedEditais = 0;
+  let removedDocDeletes = 0;
+  let storageRemovedPaths = 0;
+
+  for (let i = 0; i < toRemove.length; i += EDITAL_BATCH) {
+    const batch = toRemove.slice(i, i + EDITAL_BATCH);
+    const ids = batch.map((b) => b.id);
+
+    const { data: pdfs, error: pdfErr } = await supabase
+      .from('edital_pdfs')
+      .select('id, file_id, caminho_storage')
+      .in('edital_id', ids);
+
+    if (pdfErr) throw pdfErr;
+
+    const documentFileIdValues = new Set<string>();
+    const storagePaths: string[] = [];
+
+    for (const p of pdfs || []) {
+      const row = p as { id: string; file_id?: string | null; caminho_storage?: string | null };
+      if (row.file_id && String(row.file_id).trim()) {
+        documentFileIdValues.add(String(row.file_id).trim());
+      }
+      documentFileIdValues.add(String(row.id));
+      const path = row.caminho_storage ? String(row.caminho_storage).trim() : '';
+      if (path) storagePaths.push(path);
+    }
+
+    const docIds = [...documentFileIdValues];
+    const docDelayMs = Math.max(
+      0,
+      Number(process.env.SYNC_PRUNE_DOC_DELAY_MS || '0') || 0,
+    );
+    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+    // 1) Apagar chunks por edital_id em metadata (1 DELETE por edital; rápido se houver índice / poucas linhas)
+    let warnedMeta = false;
+    for (const eid of ids) {
+      const { error: metaErr } = await supabase
+        .from('documents')
+        .delete()
+        .eq('metadata->>edital_id', eid);
+      if (metaErr && !warnedMeta) {
+        console.warn(
+          '   ⚠️ Delete por metadata->edital_id:',
+          metaErr.message,
+          '(continuando com file_id)',
+        );
+        warnedMeta = true;
+      }
+    }
+
+    // 2) Reforço: um file_id por vez (evita timeout de `.in(...)` grande no Supabase/Postgres)
+    for (const fid of docIds) {
+      const { error: oneErr } = await supabase.from('documents').delete().eq('file_id', fid);
+      if (oneErr) {
+        console.warn('   ⚠️ Erro ao apagar documents (file_id):', oneErr.message);
+      } else {
+        removedDocDeletes += 1;
+      }
+      if (docDelayMs > 0) await sleep(docDelayMs);
+    }
+
+    if (options.deleteStorage && storagePaths.length > 0) {
+      const uniquePaths = [...new Set(storagePaths)];
+      const { error: stErr } = await supabase.storage.from(STORAGE_BUCKET).remove(uniquePaths);
+      if (stErr) {
+        console.warn(
+          '   ⚠️ Storage: alguns arquivos podem não existir —',
+          stErr.message,
+        );
+      } else {
+        storageRemovedPaths += uniquePaths.length;
+      }
+    }
+
+    const { error: delEditalErr } = await supabase.from('editais').delete().in('id', ids);
+    if (delEditalErr) throw delEditalErr;
+    removedEditais += batch.length;
+    console.log(`   ✅ Removidos ${removedEditais}/${toRemove.length} editais (lote)...`);
+  }
+
+  console.log('\n📊 Resumo do prune:');
+  console.log(`   • Editais removidos: ${removedEditais}`);
+  console.log(
+    `   • Operações de delete em documents (file_id, 1 por vez): ${removedDocDeletes}`,
+  );
+  if (options.deleteStorage) {
+    console.log(`   • Caminhos removidos do storage: ${storageRemovedPaths}`);
+  } else {
+    console.log('   • Storage não alterado (SYNC_PRUNE_SKIP_STORAGE ou --prune-no-storage)');
+  }
+  console.log('');
 }
 
 /**
@@ -583,7 +781,8 @@ async function uploadPdfsFromUrls(
               .list(path.dirname(storagePath), { search: path.basename(storagePath) });
             const id = fileData && fileData.length > 0 ? (fileData[0] as any).id : null;
             if (id) {
-              await supabase.from('edital_pdfs').update({ file_id: id }).eq('caminho_storage', storagePath);
+              // Se antes não havia file_id, forçamos reprocessamento para gerar/alinhar documents.
+              await supabase.from('edital_pdfs').update({ file_id: id, is_processed: false }).eq('caminho_storage', storagePath);
             }
           } catch {
             // ignore
@@ -618,7 +817,7 @@ async function uploadPdfsFromUrls(
         // ignore
       }
 
-      // Salvar registro na tabela edital_pdfs
+      // Salvar registro na tabela edital_pdfs sem sobrescrever file_id existente.
       const { error: dbError } = await supabase
         .from('edital_pdfs')
         .upsert({
@@ -628,7 +827,7 @@ async function uploadPdfsFromUrls(
           url_original: pdfUrl,
           tamanho_bytes: buffer.length,
           tipo_mime: contentType,
-          file_id: fileId,
+          is_processed: false,
         }, {
           onConflict: 'caminho_storage',
           ignoreDuplicates: false,
@@ -637,6 +836,14 @@ async function uploadPdfsFromUrls(
       if (dbError) {
         console.warn(`  ⚠️ Erro ao salvar registro do PDF ${fileName}:`, dbError.message);
       } else {
+        // Preenche file_id somente quando estiver null (não altera IDs já existentes).
+        if (fileId) {
+          await supabase
+            .from('edital_pdfs')
+            .update({ file_id: fileId })
+            .eq('caminho_storage', storagePath)
+            .is('file_id', null);
+        }
         console.log(`  ✅ PDF salvo: ${fileName} (${(buffer.length / 1024).toFixed(2)} KB)`);
       }
 

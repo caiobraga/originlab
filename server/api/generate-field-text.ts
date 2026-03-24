@@ -15,6 +15,12 @@ const WEBHOOK_LIGHT_URL = process.env.N8N_WEBHOOK_LIGHT_URL || WEBHOOK_URL;
 /** Timeout para a chamada ao webhook (n8n/Ollama). Padrão 5 min. */
 const WEBHOOK_TIMEOUT_MS = Math.max(60000, parseInt(process.env.WEBHOOK_TIMEOUT_MS || "300000", 10) || 300000);
 
+/** Tamanho do contexto no prompt (geração com IA local / n8n). Aumente para respostas mais ricas (cuidado com VRAM/tempo). */
+const GEN_FIELD_EXISTING_DOC_CHARS = Math.max(1000, parseInt(process.env.GEN_FIELD_EXISTING_DOC_CHARS || "7000", 10) || 7000);
+const GEN_FIELD_EDITAL_DESCR_MAX = Math.max(200, parseInt(process.env.GEN_FIELD_EDITAL_DESCR_MAX || "900", 10) || 900);
+const GEN_FIELD_EDITAL_CRITERIOS_MAX = Math.max(200, parseInt(process.env.GEN_FIELD_EDITAL_CRITERIOS_MAX || "900", 10) || 900);
+const GEN_FIELD_EDITAL_SOBRE_MAX = Math.max(200, parseInt(process.env.GEN_FIELD_EDITAL_SOBRE_MAX || "700", 10) || 700);
+
 /** Tunnel para Ollama local (ex.: https://aisecretary.com). Quando definido, a geração usa esse endpoint com contexto RAG + edital + usuário. */
 function normalizeAiSecretaryUrl(raw: string): string {
   const s = (raw || "").trim().replace(/\/$/, "");
@@ -506,7 +512,7 @@ router.post("/generate-field-text", async (req, res) => {
       lattesId ? fetchLattesSummary(lattesId) : Promise.resolve(null),
     ]);
 
-    const existingDoc = form_data ? redactLarge(form_data, 7000) : "";
+    const existingDoc = form_data ? redactLarge(form_data, GEN_FIELD_EXISTING_DOC_CHARS) : "";
     const limitText = word_limit
       ? `IMPORTANTE: O texto gerado DEVE ter no máximo ${word_limit} palavras.`
       : "";
@@ -533,9 +539,9 @@ Informações do Edital (resumo):
 - Título: ${safeTrim(editalInfo.titulo, 200) || "N/A"}
 - Número: ${safeTrim(editalInfo.numero, 80) || "N/A"}
 - Órgão: ${safeTrim(editalInfo.orgao, 120) || "N/A"}
-- Descrição: ${safeTrim(editalInfo.descricao, 900) || "N/A"}
-- Critérios de elegibilidade: ${safeTrim(editalInfo.criterios_elegibilidade, 900) || "N/A"}
-- Sobre o programa: ${safeTrim(editalInfo.sobre_programa, 700) || "N/A"}
+- Descrição: ${safeTrim(editalInfo.descricao, GEN_FIELD_EDITAL_DESCR_MAX) || "N/A"}
+- Critérios de elegibilidade: ${safeTrim(editalInfo.criterios_elegibilidade, GEN_FIELD_EDITAL_CRITERIOS_MAX) || "N/A"}
+- Sobre o programa: ${safeTrim(editalInfo.sobre_programa, GEN_FIELD_EDITAL_SOBRE_MAX) || "N/A"}
 
 Contexto do usuário/organização (quando disponível):
 - CNPJ (informado): ${cnpj || "N/A"}

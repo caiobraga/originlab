@@ -1,16 +1,5 @@
 [
   {
-    "numero": "003/2026",
-    "titulo": "CHAMADA FAPEMIG-SEDE 03/2026 Novo SEED: Aceleração de Startups por meio dos Ambientes Promotores de Inovação",
-    "link": "https://fapemig.br/oportunidades/chamadas-e-editais/chamada-fapemig-sede-003-2026-novo-seed-aceleracao-de-startups-por-meio-dos-ambientes-promotores-de-inovacao",
-    "orgao": "FAPEMIG",
-    "fonte": "fapemig",
-    "pais": "Brasil",
-    "estado": "MG",
-    "pdfUrls": [],
-    "processadoEm": "2026-03-02T02:42:19.094Z"
-  },
-  {
     "numero": "02/2026",
     "titulo": "Chamada FAPEMIG 02/2026 - Fortalecimento do Papel da EPAMIG na Disseminação do Conhecimento Científico e Difusão de Tecnologias",
     "link": "https://fapemig.br/oportunidades/chamadas-e-editais/chamada-fapemig-02-2026-fortalecimento-do-papel-da-epamig-na-disseminacao-do-conhecimento-cientifico-e-difusao-de-tecnologias-10796",
@@ -42,17 +31,6 @@
     "processadoEm": "2026-03-02T02:42:23.888Z"
   },
   {
-    "numero": "01/2026",
-    "titulo": "CHAMADA FAPEMIG 01/2026 - Demanda Universal",
-    "link": "https://fapemig.br/oportunidades/chamadas-e-editais/chamada-fapemig-01-2026-demanda-universal-10765",
-    "orgao": "FAPEMIG",
-    "fonte": "fapemig",
-    "pais": "Brasil",
-    "estado": "MG",
-    "pdfUrls": [],
-    "processadoEm": "2026-03-02T02:42:25.772Z"
-  },
-  {
     "numero": "015/2025",
     "titulo": "Chamada FAPEMIG 015/2025 - Organização de Eventos de Caráter Técnico-Científico - 1ª Entrada",
     "link": "https://fapemig.br/oportunidades/chamadas-e-editais/chamada-fapemig-015-2025-organizacao-de-eventos-de-carater-tecnico-cientifico-1a-entrada-10365",
@@ -65,34 +43,6 @@
       "https://api.site.fapemig.br/wp-content/uploads/10365_ANEXO-II-TO-com-fundacao-de-apoio.pdf"
     ],
     "processadoEm": "2026-03-02T02:42:27.461Z"
-  },
-  {
-    "numero": "14/2025",
-    "titulo": "Chamada FAPEMIG 14/2025 - Programa de apoio à infraestrutura para pesquisa na UEMG e UNIMONTES",
-    "link": "https://fapemig.br/oportunidades/chamadas-e-editais/chamada-fapemig-14-2025-programa-de-apoio-a-infraestrutura-para-pesquisa-na-uemg-e-unimontes-9972",
-    "orgao": "FAPEMIG",
-    "fonte": "fapemig",
-    "pais": "Brasil",
-    "estado": "MG",
-    "pdfUrls": [],
-    "processadoEm": "2026-03-02T02:42:30.081Z"
-  },
-  {
-    "numero": "015/2024",
-    "titulo": "Chamada FAPEMIG 015/2024 – Cientista Empreendedor",
-    "link": "https://fapemig.br/oportunidades/chamadas-e-editais/chamada-fapemig-015-2024-cientista-empreendedor-9732",
-    "orgao": "FAPEMIG",
-    "fonte": "fapemig",
-    "pais": "Brasil",
-    "estado": "MG",
-    "pdfUrl": "https://api.site.fapemig.br/wp-content/uploads/9732_Chamada-FAPEMIG-0152024.pdf",
-    "pdfUrls": [
-      "https://api.site.fapemig.br/wp-content/uploads/9732_Chamada-FAPEMIG-0152024.pdf"
-    ],
-    "pdfPaths": [
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapemig/fapemig_015-2024_1_9732_Chamada-FAPEMIG-0152024.pdf"
-    ],
-    "processadoEm": "2026-03-02T02:42:33.412Z"
   },
   {
     "numero": "02/2025",
@@ -110,28 +60,6 @@
       "/home/caio/development/sites/originlab/scripts/output/pdfs/fapemig/fapemig_02-2025_1_9731_Publicacao-DOEMG-05022025.pdf"
     ],
     "processadoEm": "2026-03-02T02:42:39.192Z"
-  },
-  {
-    "numero": "09/2023",
-    "titulo": "Chamada FAPEMIG 09/2023 - Fomento à Internacionalização das ICTMGs",
-    "link": "https://fapemig.br/oportunidades/chamadas-e-editais/chamada-fapemig-09-2023-fomento-a-internacionalizacao-das-ictmgs-9506",
-    "orgao": "FAPEMIG",
-    "fonte": "fapemig",
-    "pais": "Brasil",
-    "estado": "MG",
-    "pdfUrls": [],
-    "processadoEm": "2026-03-02T02:42:41.050Z"
-  },
-  {
-    "numero": "003/2026",
-    "titulo": "CHAMADA FAPEMIG-SEDE 03/2026 Novo SEED: Aceleração de Startups por meio dos Ambientes Promotores de Inovação",
-    "link": "https://fapemig.br/oportunidades/chamadas-e-editais/chamada-fapemig-sede-003-2026-novo-seed-aceleracao-de-startups-por-meio-dos-ambientes-promotores-de-inovacao",
-    "orgao": "FAPEMIG",
-    "fonte": "fapemig",
-    "pais": "Brasil",
-    "estado": "MG",
-    "pdfUrls": [],
-    "processadoEm": "2026-03-02T02:42:41.123Z"
   },
   {
     "numero": "02/2026",
@@ -165,17 +93,6 @@
     "processadoEm": "2026-03-02T02:42:41.707Z"
   },
   {
-    "numero": "01/2026",
-    "titulo": "CHAMADA FAPEMIG 01/2026 - Demanda Universal",
-    "link": "https://fapemig.br/oportunidades/chamadas-e-editais/chamada-fapemig-01-2026-demanda-universal-10765",
-    "orgao": "FAPEMIG",
-    "fonte": "fapemig",
-    "pais": "Brasil",
-    "estado": "MG",
-    "pdfUrls": [],
-    "processadoEm": "2026-03-02T02:42:41.760Z"
-  },
-  {
     "numero": "015/2025",
     "titulo": "Chamada FAPEMIG 015/2025 - Organização de Eventos de Caráter Técnico-Científico - 1ª Entrada",
     "link": "https://fapemig.br/oportunidades/chamadas-e-editais/chamada-fapemig-015-2025-organizacao-de-eventos-de-carater-tecnico-cientifico-1a-entrada-10365",
@@ -188,34 +105,6 @@
       "https://api.site.fapemig.br/wp-content/uploads/10365_ANEXO-II-TO-com-fundacao-de-apoio.pdf"
     ],
     "processadoEm": "2026-03-02T02:42:42.096Z"
-  },
-  {
-    "numero": "14/2025",
-    "titulo": "Chamada FAPEMIG 14/2025 - Programa de apoio à infraestrutura para pesquisa na UEMG e UNIMONTES",
-    "link": "https://fapemig.br/oportunidades/chamadas-e-editais/chamada-fapemig-14-2025-programa-de-apoio-a-infraestrutura-para-pesquisa-na-uemg-e-unimontes-9972",
-    "orgao": "FAPEMIG",
-    "fonte": "fapemig",
-    "pais": "Brasil",
-    "estado": "MG",
-    "pdfUrls": [],
-    "processadoEm": "2026-03-02T02:42:42.159Z"
-  },
-  {
-    "numero": "015/2024",
-    "titulo": "Chamada FAPEMIG 015/2024 – Cientista Empreendedor",
-    "link": "https://fapemig.br/oportunidades/chamadas-e-editais/chamada-fapemig-015-2024-cientista-empreendedor-9732",
-    "orgao": "FAPEMIG",
-    "fonte": "fapemig",
-    "pais": "Brasil",
-    "estado": "MG",
-    "pdfUrl": "https://api.site.fapemig.br/wp-content/uploads/9732_Chamada-FAPEMIG-0152024.pdf",
-    "pdfUrls": [
-      "https://api.site.fapemig.br/wp-content/uploads/9732_Chamada-FAPEMIG-0152024.pdf"
-    ],
-    "pdfPaths": [
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapemig/fapemig_015-2024_1_9732_Chamada-FAPEMIG-0152024.pdf"
-    ],
-    "processadoEm": "2026-03-02T02:42:42.429Z"
   },
   {
     "numero": "02/2025",
@@ -233,16 +122,5 @@
       "/home/caio/development/sites/originlab/scripts/output/pdfs/fapemig/fapemig_02-2025_1_9731_Publicacao-DOEMG-05022025.pdf"
     ],
     "processadoEm": "2026-03-02T02:42:42.760Z"
-  },
-  {
-    "numero": "09/2023",
-    "titulo": "Chamada FAPEMIG 09/2023 - Fomento à Internacionalização das ICTMGs",
-    "link": "https://fapemig.br/oportunidades/chamadas-e-editais/chamada-fapemig-09-2023-fomento-a-internacionalizacao-das-ictmgs-9506",
-    "orgao": "FAPEMIG",
-    "fonte": "fapemig",
-    "pais": "Brasil",
-    "estado": "MG",
-    "pdfUrls": [],
-    "processadoEm": "2026-03-02T02:42:42.821Z"
   }
 ]

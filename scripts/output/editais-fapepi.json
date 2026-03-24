@@ -260,34 +260,5 @@
       "/home/caio/development/sites/originlab/scripts/output/pdfs/fapepi/fapepi_001-2025_13_ANEXO-II-FORMULARIO-DE-PRODUCAO-CIENTIFICA.pdf",
       "/home/caio/development/sites/originlab/scripts/output/pdfs/fapepi/fapepi_001-2025_14_ANEXO-III-AUTODECLARACAO-DE-ADIMPLENCIA-JUNTO-A-FAPEPI.pdf"
     ]
-  },
-  {
-    "numero": "FAPEPI-42",
-    "titulo": "PROGRAMA BOLSA DE APOIO TÉCNICO (PBAT) – BOLSAS FAPEPI/SEPLAN",
-    "link": "https://www.fapepi.pi.gov.br/edital/programa-bolsa-de-apoio-tecnico-pbat-bolsas-fapepi-seplan/",
-    "orgao": "FAPEPI",
-    "fonte": "fapepi",
-    "pais": "Brasil",
-    "estado": "PI",
-    "pdfUrl": "https://www.fapepi.pi.gov.br/wp-content/uploads/2021/04/SEI_GOV-PI-1413180-Edital.pdf",
-    "pdfUrls": [
-      "https://www.fapepi.pi.gov.br/wp-content/uploads/2021/04/SEI_GOV-PI-1413180-Edital.pdf",
-      "https://www.fapepi.pi.gov.br/wp-content/uploads/2021/04/Anexo-I-Edital-Seplan.pdf",
-      "https://www.fapepi.pi.gov.br/wp-content/uploads/2021/04/Formulario-II-Edital-Seplan.pdf",
-      "https://www.fapepi.pi.gov.br/wp-content/uploads/2021/04/Declaracao-Edital-Seplan.pdf",
-      "https://www.fapepi.pi.gov.br/wp-content/uploads/2021/04/Formulario-Candidato-Edital-Seplan.pdf",
-      "https://www.fapepi.pi.gov.br/wp-content/uploads/2021/04/SEI_GOV-PI-1627946-Edital.pdf",
-      "https://www.fapepi.pi.gov.br/wp-content/uploads/2021/04/SEI_GOV-PI-1659055-Edital.pdf"
-    ],
-    "processadoEm": "2026-03-04T18:50:53.427Z",
-    "pdfPaths": [
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapepi/fapepi_FAPEPI-42_1_SEI_GOV-PI-1413180-Edital.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapepi/fapepi_FAPEPI-42_2_Anexo-I-Edital-Seplan.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapepi/fapepi_FAPEPI-42_3_Formulario-II-Edital-Seplan.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapepi/fapepi_FAPEPI-42_4_Declaracao-Edital-Seplan.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapepi/fapepi_FAPEPI-42_5_Formulario-Candidato-Edital-Seplan.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapepi/fapepi_FAPEPI-42_6_SEI_GOV-PI-1627946-Edital.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapepi/fapepi_FAPEPI-42_7_SEI_GOV-PI-1659055-Edital.pdf"
-    ]
   }
 ]

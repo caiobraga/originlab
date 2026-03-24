@@ -1,44 +1,5 @@
 [
   {
-    "numero": "5/2024",
-    "titulo": "Edital Fapeal Nº5/2024 – Credenciamento de Avaliadores Ad hoc",
-    "link": "https://www.fapeal.br/2026/01/edital-consultores-adhoc/",
-    "orgao": "FAPEAL",
-    "fonte": "fapeal",
-    "pais": "Brasil",
-    "estado": "AL",
-    "pdfUrl": "https://www.fapeal.br/wp-content/uploads/2026/01/15.01.26-LISTA-DE-CONSULTORES-AD-HOC-CREDENCIADOS.pdf",
-    "pdfUrls": [
-      "https://www.fapeal.br/wp-content/uploads/2026/01/15.01.26-LISTA-DE-CONSULTORES-AD-HOC-CREDENCIADOS.pdf",
-      "https://www.fapeal.br/wp-content/uploads/2025/11/15.11.25-LISTA-DE-CONSULTORES-AD-HOC-CREDENCIADOS-1-1-2.pdf",
-      "https://www.fapeal.br/wp-content/uploads/2025/09/15.09.25-LISTA-DE-CONSULTORES-AD-HOC-CREDENCIADOS-1-1.pdf",
-      "https://www.fapeal.br/wp-content/uploads/2025/07/15.07.25-LISTA-DE-CONSULTORES-AD-HOC-CREDENCIADOS.pdf",
-      "https://www.fapeal.br/wp-content/uploads/2025/01/15.01.2025-LISTA-DE-CONSULTORES-AD-HOC-CREDENCIADOS.pdf",
-      "https://www.fapeal.br/wp-content/uploads/2024/12/15.12.2024-LISTA-DE-CONSULTORES-AD-HOC-CREDENCIADOs.pdf",
-      "https://www.fapeal.br/wp-content/uploads/2024/11/LISTA-DE-CONSULTORES-AD-HOC-15NOV24.pdf",
-      "https://www.fapeal.br/wp-content/uploads/2024/10/15.10.24-LISTA-DE-CONSULTORES-AD-HOC-CREDENCIADOS.docx.pdf",
-      "https://www.fapeal.br/wp-content/uploads/2024/09/15.09.24-LISTA-DE-CONSULTORES-AD-HOC-CREDENCIADOS.pdf",
-      "https://www.fapeal.br/wp-content/uploads/2024/08/15.08.24-LISTA-DE-CONSULTORES-AD-HOC-CREDENCIADOS.pdf",
-      "https://www.fapeal.br/wp-content/uploads/2024/07/15.07.2024-LISTA-DE-CONSULTORES-AD-HOC-CREDENCIADOS.pdf",
-      "https://www.fapeal.br/wp-content/uploads/2024/06/II-Retificacao-EDITAL-FAPEAL-No-05.2024-Credenciamento-de-avaliador-Ad-hoc-03.06.2024.pdf"
-    ],
-    "pdfPaths": [
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapeal/fapeal_5-2024_1_15.01.26-LISTA-DE-CONSULTORES-AD-HOC-CREDENCIADOS.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapeal/fapeal_5-2024_2_15.11.25-LISTA-DE-CONSULTORES-AD-HOC-CREDENCIADOS-1-1-2.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapeal/fapeal_5-2024_3_15.09.25-LISTA-DE-CONSULTORES-AD-HOC-CREDENCIADOS-1-1.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapeal/fapeal_5-2024_4_15.07.25-LISTA-DE-CONSULTORES-AD-HOC-CREDENCIADOS.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapeal/fapeal_5-2024_5_15.01.2025-LISTA-DE-CONSULTORES-AD-HOC-CREDENCIADOS.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapeal/fapeal_5-2024_6_15.12.2024-LISTA-DE-CONSULTORES-AD-HOC-CREDENCIADOs.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapeal/fapeal_5-2024_7_LISTA-DE-CONSULTORES-AD-HOC-15NOV24.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapeal/fapeal_5-2024_8_15.10.24-LISTA-DE-CONSULTORES-AD-HOC-CREDENCIADOS.docx.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapeal/fapeal_5-2024_9_15.09.24-LISTA-DE-CONSULTORES-AD-HOC-CREDENCIADOS.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapeal/fapeal_5-2024_10_15.08.24-LISTA-DE-CONSULTORES-AD-HOC-CREDENCIADOS.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapeal/fapeal_5-2024_11_15.07.2024-LISTA-DE-CONSULTORES-AD-HOC-CREDENCIADOS.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapeal/fapeal_5-2024_12_II-Retificacao-EDITAL-FAPEAL-No-05.2024-Credenciamento-de-avaliador-Ad-hoc-03.06.2024.pdf"
-    ],
-    "processadoEm": "2026-03-02T11:47:31.505Z"
-  },
-  {
     "numero": "07/2025",
     "titulo": "Edital Fapeal/CNPq 07/2025 – PPP Programa de Infraestrutura Para Jovens Pesquisadores (Programa Primeiros Projetos – PPP)",
     "link": "https://www.fapeal.br/2025/12/edital-fapeal-cnpq-07-2025-ppp/",
@@ -124,36 +85,6 @@
       "/home/caio/development/sites/originlab/scripts/output/pdfs/fapeal/fapeal_02-2025_9_12.-Chamada-FAPEAL-N.-02.2025_PPSUS_8aEdicao_FINAL.pdf"
     ],
     "processadoEm": "2026-03-02T11:47:51.266Z"
-  },
-  {
-    "numero": "FAPEAL-5",
-    "titulo": "PacQuali – Edital Interno para Servidores da Fapeal",
-    "link": "https://www.fapeal.br/2025/10/pacquali/",
-    "orgao": "FAPEAL",
-    "fonte": "fapeal",
-    "pais": "Brasil",
-    "estado": "AL",
-    "pdfUrl": "https://www.fapeal.br/wp-content/uploads/2025/10/SEI_34800754_Despacho.pdf",
-    "pdfUrls": [
-      "https://www.fapeal.br/wp-content/uploads/2025/10/SEI_34800754_Despacho.pdf",
-      "https://www.fapeal.br/wp-content/uploads/2025/08/PORTARIA_FAPEAL_N_97_2025___PACQUALI.pdf"
-    ],
-    "pdfPaths": [
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapeal/fapeal_FAPEAL-5_1_SEI_34800754_Despacho.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapeal/fapeal_FAPEAL-5_2_PORTARIA_FAPEAL_N_97_2025___PACQUALI.pdf"
-    ],
-    "processadoEm": "2026-03-02T11:48:06.022Z"
-  },
-  {
-    "numero": "FAPEAL-6",
-    "titulo": "Governo de Alagoas celebra cooperação com Universidade de Lisboa",
-    "link": "https://www.fapeal.br/2025/09/cooperacao-universidade-de-lisboa/",
-    "orgao": "FAPEAL",
-    "fonte": "fapeal",
-    "pais": "Brasil",
-    "estado": "AL",
-    "pdfUrls": [],
-    "processadoEm": "2026-03-02T11:48:08.076Z"
   },
   {
     "numero": "13/2025",

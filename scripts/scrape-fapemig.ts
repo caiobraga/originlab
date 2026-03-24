@@ -18,6 +18,7 @@ import "./load-env";
 import { FapemigScraper } from "./scrapers/fapemig-scraper";
 import * as fs from "fs";
 import * as path from "path";
+import { writeFilteredEditaisJson } from "./lib/edital-json-filter";
 
 async function main() {
   console.log("╔═══════════════════════════════════════════════════════════╗");
@@ -36,8 +37,8 @@ async function main() {
       fs.mkdirSync(outputDir, { recursive: true });
     }
 
-    fs.writeFileSync(outputFile, JSON.stringify(editais, null, 2), "utf-8");
-    console.log(`\n✅ ${editais.length} edital(is) extraído(s) e salvo(s) em: ${outputFile}`);
+    const { kept, removed } = writeFilteredEditaisJson(outputFile, editais);
+    console.log(`\n✅ ${editais.length} extraído(s) → ${kept} gravados no JSON (${removed} filtrados por PDF/ano): ${outputFile}`);
   } catch (error) {
     console.error("\n❌ Erro:", error);
     process.exit(1);

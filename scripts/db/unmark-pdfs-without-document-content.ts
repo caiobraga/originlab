@@ -23,105 +23,170 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-/** Colunas de conteúdo tentadas pelo RAG (ollama-edital.ts). */
-const CONTENT_COLUMNS = ['name', 'content', 'text', 'body', 'page_content', 'chunk'] as const;
-
 /**
  * Marca como não processados (is_processed = false) os edital_pdfs para os quais
- * a tabela documents não retorna conteúdo (mesmo critério do Ollama RAG):
- * - não existe registro em documents para o file_id, ou
- * - existe registro mas todas as colunas de conteúdo estão vazias.
+ * a tabela documents tem linhas, mas `content` está vazio.
+ *
+ * Regra pedida:
+ * - "sem conteúdo" = apenas quando há registro em documents e content é null/vazio.
+ * - se não há registro em documents para o file_id, não altera is_processed.
+ * - também sincroniza para true quando há content preenchido.
  *
  * Uso: npm run db:unmark-pdfs-without-document-content
  */
 async function unmarkPdfsWithoutDocumentContent() {
+  const dryRun = process.argv.includes('--dry-run');
+  const forceLargeUpdate = process.argv.includes('--force-large-update');
+  const maxAutoUpdateRatio = parseFloat(process.env.UNMARK_MAX_RATIO || '0.5'); // 50% por padrão
+
   console.log('╔═══════════════════════════════════════════════════════════╗');
   console.log('║   MARCAR EDITAL_PDFs SEM CONTEÚDO EM DOCUMENTS (RAG)      ║');
   console.log('╚═══════════════════════════════════════════════════════════╝');
   console.log('');
-  console.log('   • edital_pdfs.is_processed = false quando documents não tem conteúdo para o file_id');
-  console.log('   (mesmo critério do aviso "tabela documents não retornou conteúdo").\n');
+  console.log('   • Sincroniza is_processed usando SOMENTE documents.content');
+  console.log('   • false: existe documents para o file_id, mas content está vazio');
+  console.log('   • true: existe documents para o file_id, e content está preenchido');
+  console.log('   • sem registro em documents: não altera\n');
+  if (dryRun) {
+    console.log('   • Modo: --dry-run (não altera is_processed)\n');
+  }
 
   try {
-    // 1. Buscar file_ids que têm pelo menos um conteúdo não vazio em documents
-    console.log('📑 Passo 1: Buscando file_ids em documents com conteúdo (name, content, text, body, page_content, chunk)...');
+    // 1) Buscar presença/estado de content por file_id em documents.
+    console.log('📑 Passo 1: Lendo documents (file_id, metadata, content)...');
+    const fileIdsSeenInDocuments = new Set<string>();
     const fileIdsWithContent = new Set<string>();
-
-    for (const col of CONTENT_COLUMNS) {
-      let rows: unknown[] | null = null;
-      let error: { message: string } | null = null;
-      const res = await supabase.from('documents').select('file_id, metadata, ' + col);
-      error = res.error;
-      rows = res.data;
-
-      if (error) {
-        if (process.env.OLLAMA_DEBUG_RAG === '1') {
-          console.warn(`   [debug] coluna "${col}": ${error.message}`);
-        }
-        continue;
+    const rows: Record<string, unknown>[] = [];
+    const DOCS_PAGE = 1000;
+    let docsOffset = 0;
+    while (true) {
+      const { data: page, error: docsErr } = await supabase
+        .from('documents')
+        .select('file_id, metadata, content')
+        .range(docsOffset, docsOffset + DOCS_PAGE - 1);
+      if (docsErr) {
+        console.error('❌ Erro ao ler documents:', docsErr.message);
+        throw docsErr;
       }
-      for (const row of rows || []) {
-        const r = row as unknown as Record<string, unknown>;
-        const content = r[col];
-        const fid = (typeof r.file_id === 'string' && r.file_id.trim() ? r.file_id : null) ||
-          (typeof (r.metadata as Record<string, unknown>)?.file_id === 'string' ? (r.metadata as Record<string, unknown>).file_id as string : null);
-        if (fid && fid.trim() && typeof content === 'string' && content.trim().length > 0) {
-          fileIdsWithContent.add(fid.trim());
-        }
+      const pageRows = (page || []) as Record<string, unknown>[];
+      rows.push(...pageRows);
+      if (pageRows.length < DOCS_PAGE) break;
+      docsOffset += DOCS_PAGE;
+    }
+
+    for (const row of rows || []) {
+      const r = row as Record<string, unknown>;
+      const fid = (
+        typeof r.file_id === 'string' && r.file_id.trim()
+          ? r.file_id
+          : (typeof (r.metadata as Record<string, unknown>)?.file_id === 'string'
+              ? (r.metadata as Record<string, unknown>).file_id as string
+              : null)
+      );
+      if (!fid || !fid.trim()) continue;
+      const key = fid.trim();
+      fileIdsSeenInDocuments.add(key);
+
+      const content = r.content;
+      if (typeof content === 'string' && content.trim().length > 0) {
+        fileIdsWithContent.add(key);
       }
     }
 
-    console.log(`   ✅ ${fileIdsWithContent.size} file_id(s) com conteúdo em documents\n`);
+    console.log(`   ✅ ${fileIdsSeenInDocuments.size} file_id(s) que aparecem em documents`);
+    console.log(`   ✅ ${fileIdsWithContent.size} file_id(s) com content preenchido\n`);
 
-    if (fileIdsWithContent.size === 0) {
-      console.log('⚠️  Nenhum registro em documents tem conteúdo (colunas name, content, text, body, page_content ou chunk).');
-      console.log('   Para não desmarcar todos os PDFs, nenhuma alteração foi feita.');
-      console.log('   Verifique no Supabase se a tabela documents existe e qual é o nome da coluna de texto.');
-      console.log('   Se a tabela estiver vazia ou com outro esquema, popule documents primeiro e rode o script de novo.\n');
+    if (fileIdsSeenInDocuments.size === 0) {
+      console.log('⚠️  Nenhum registro com file_id em documents. Nenhuma alteração aplicada.\n');
       return;
     }
 
-    // 2. Buscar todos os edital_pdfs (id e file_id; o RAG usa file_id quando existe, senão id)
+    // 2) Buscar edital_pdfs atuais para sincronizar status.
     console.log('📄 Passo 2: Buscando edital_pdfs...');
-    const { data: pdfs, error: pdfsError } = await supabase
-      .from('edital_pdfs')
-      .select('id, file_id, edital_id');
-
-    if (pdfsError) {
-      console.error('❌ Erro ao buscar edital_pdfs:', pdfsError);
-      throw pdfsError;
+    const pdfs: { id: string; file_id?: string | null; edital_id?: string | null; is_processed?: boolean | null }[] = [];
+    const PDFS_PAGE = 1000;
+    let pdfsOffset = 0;
+    while (true) {
+      const { data: page, error: pdfsError } = await supabase
+        .from('edital_pdfs')
+        .select('id, file_id, edital_id, is_processed')
+        .range(pdfsOffset, pdfsOffset + PDFS_PAGE - 1);
+      if (pdfsError) {
+        console.error('❌ Erro ao buscar edital_pdfs:', pdfsError);
+        throw pdfsError;
+      }
+      const pageRows = (page || []) as { id: string; file_id?: string | null; edital_id?: string | null; is_processed?: boolean | null }[];
+      pdfs.push(...pageRows);
+      if (pageRows.length < PDFS_PAGE) break;
+      pdfsOffset += PDFS_PAGE;
     }
 
     const normalize = (x: string | null | undefined) => (x != null ? String(x).trim() : '');
-    const pdfsWithoutContent: { id: string; edital_id: string }[] = [];
+    const toFalse: { id: string; edital_id: string }[] = [];
+    const toTrue: { id: string; edital_id: string }[] = [];
+    let unchangedNoDocuments = 0;
 
     for (const p of pdfs || []) {
-      const r = p as { id: string; file_id?: string | null; edital_id?: string | null };
+      const r = p;
       const docKey1 = normalize(r.file_id) || normalize(r.id);
       const docKey2 = r.file_id ? normalize(r.id) : '';
-      const hasContent = (docKey1 && fileIdsWithContent.has(docKey1)) || (docKey2 && fileIdsWithContent.has(docKey2));
-      if (!hasContent) {
-        pdfsWithoutContent.push({ id: String(r.id), edital_id: String(r.edital_id || '') });
+
+      const appearsInDocuments =
+        (docKey1 && fileIdsSeenInDocuments.has(docKey1)) ||
+        (docKey2 && fileIdsSeenInDocuments.has(docKey2));
+      if (!appearsInDocuments) {
+        unchangedNoDocuments++;
+        continue;
+      }
+
+      const hasContent =
+        (docKey1 && fileIdsWithContent.has(docKey1)) ||
+        (docKey2 && fileIdsWithContent.has(docKey2));
+
+      if (hasContent) {
+        if (r.is_processed !== true) {
+          toTrue.push({ id: String(r.id), edital_id: String(r.edital_id || '') });
+        }
+      } else {
+        if (r.is_processed !== false) {
+          toFalse.push({ id: String(r.id), edital_id: String(r.edital_id || '') });
+        }
       }
     }
 
     console.log(`   ✅ ${(pdfs || []).length} edital_pdf(s) no total`);
-    console.log(`   ✅ ${pdfsWithoutContent.length} edital_pdf(s) sem conteúdo em documents\n`);
+    console.log(`   ✅ ${unchangedNoDocuments} sem registro em documents (inalterados)`);
+    console.log(`   ✅ ${toFalse.length} para marcar is_processed=false (content vazio)`);
+    console.log(`   ✅ ${toTrue.length} para marcar is_processed=true (content preenchido)\n`);
 
-    if (pdfsWithoutContent.length === 0) {
-      console.log('✅ Nenhum edital_pdf sem conteúdo. Nada a desmarcar.\n');
+    const totalPdfs = (pdfs || []).length;
+    const totalChanges = toFalse.length + toTrue.length;
+    const ratio = totalPdfs > 0 ? totalChanges / totalPdfs : 0;
+
+    // Proteção para evitar desmarcar tudo por mismatch de coluna/esquema/configuração.
+    if (!forceLargeUpdate && ratio > maxAutoUpdateRatio) {
+      console.warn(`⚠️  Proteção ativada: o script alteraria ${totalChanges}/${totalPdfs} PDFs (${(ratio * 100).toFixed(1)}%).`);
+      console.warn(`   Isso geralmente indica problema de schema/colunas de conteúdo ou dados incompletos em documents.`);
+      console.warn(`   Nenhuma alteração foi aplicada.`);
+      console.warn(`   Para executar mesmo assim: npm run db:unmark-pdfs-without-document-content -- --force-large-update`);
+      console.warn(`   Ou ajuste UNMARK_MAX_RATIO no .env.local (ex.: UNMARK_MAX_RATIO=0.9)\n`);
+      return;
+    }
+
+    if (totalChanges === 0) {
+      console.log('✅ Nenhuma alteração necessária. is_processed já está sincronizado.\n');
       return;
     }
 
     // 3. Opcional: listar alguns editais afetados
-    const editalIds = [...new Set(pdfsWithoutContent.map((x) => x.edital_id).filter(Boolean))];
+    const editalIds = [...new Set([...toFalse, ...toTrue].map((x) => x.edital_id).filter(Boolean))];
     if (editalIds.length > 0) {
       const { data: editaisInfo } = await supabase
         .from('editais')
         .select('id, numero, titulo, fonte')
         .in('id', editalIds.slice(0, 50));
       if (editaisInfo?.length) {
-        console.log('   Editais com PDFs sem conteúdo (amostra):');
+        console.log('   Editais afetados (amostra):');
         for (const e of editaisInfo.slice(0, 10)) {
           const ei = e as { numero?: string; fonte?: string; titulo?: string };
           console.log(`   - ${ei.numero || '?'} (${ei.fonte || '?'}) ${(ei.titulo || '').slice(0, 45)}...`);
@@ -133,11 +198,16 @@ async function unmarkPdfsWithoutDocumentContent() {
       }
     }
 
-    // 4. Atualizar edital_pdfs em lotes: is_processed = false
+    // 4) Atualizar edital_pdfs em lotes.
     const BATCH = 100;
-    let updated = 0;
-    for (let i = 0; i < pdfsWithoutContent.length; i += BATCH) {
-      const batch = pdfsWithoutContent.slice(i, i + BATCH).map((x) => x.id);
+    let updatedFalse = 0;
+    for (let i = 0; i < toFalse.length; i += BATCH) {
+      const batch = toFalse.slice(i, i + BATCH).map((x) => x.id);
+      if (dryRun) {
+        updatedFalse += batch.length;
+        console.log(`   [dry-run] is_processed=false: ${updatedFalse}/${toFalse.length}`);
+        continue;
+      }
       const { error: updateError } = await supabase
         .from('edital_pdfs')
         .update({ is_processed: false })
@@ -152,14 +222,41 @@ async function unmarkPdfsWithoutDocumentContent() {
         }
         break;
       }
-      updated += batch.length;
-      console.log(`   ✅ edital_pdfs.is_processed = false: ${updated}/${pdfsWithoutContent.length}`);
+      updatedFalse += batch.length;
+      console.log(`   ✅ is_processed=false: ${updatedFalse}/${toFalse.length}`);
+    }
+
+    let updatedTrue = 0;
+    for (let i = 0; i < toTrue.length; i += BATCH) {
+      const batch = toTrue.slice(i, i + BATCH).map((x) => x.id);
+      if (dryRun) {
+        updatedTrue += batch.length;
+        console.log(`   [dry-run] is_processed=true: ${updatedTrue}/${toTrue.length}`);
+        continue;
+      }
+      const { error: updateError } = await supabase
+        .from('edital_pdfs')
+        .update({ is_processed: true })
+        .in('id', batch);
+
+      if (updateError) {
+        if (updateError.message?.includes('is_processed') || updateError.message?.includes('column')) {
+          console.warn('   ⚠️ Coluna edital_pdfs.is_processed não existe. Execute: scripts/db/migration-add-edital-pdfs-is-processed.sql');
+        } else {
+          console.error('❌ Erro ao atualizar edital_pdfs:', updateError.message);
+          throw updateError;
+        }
+        break;
+      }
+      updatedTrue += batch.length;
+      console.log(`   ✅ is_processed=true: ${updatedTrue}/${toTrue.length}`);
     }
 
     console.log('\n╔═══════════════════════════════════════════════════════════╗');
     console.log('║                        RESUMO                             ║');
     console.log('╚═══════════════════════════════════════════════════════════╝');
-    console.log(`   edital_pdfs.is_processed = false: ${updated}`);
+    console.log(`   is_processed=false: ${updatedFalse}${dryRun ? ' (simulado)' : ''}`);
+    console.log(`   is_processed=true:  ${updatedTrue}${dryRun ? ' (simulado)' : ''}`);
     console.log(`   editais afetados (com pelo menos um PDF sem conteúdo): ${editalIds.length}`);
     console.log('');
   } catch (error: unknown) {

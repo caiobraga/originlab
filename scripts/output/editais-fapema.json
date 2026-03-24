@@ -442,29 +442,6 @@
     "processadoEm": "2026-03-02T19:03:25.020Z"
   },
   {
-    "numero": "FAPEMA-19",
-    "titulo": "3º CONCURSO DE ARTIGOS CIENTÍFICOS EM HOMENAGEM AO DES. MILSON COUTINHO",
-    "link": "https://www.fapema.br/3o-concurso-de-artigos-cientificos-em-homenagem-ao-des-milson-coutinho/",
-    "orgao": "FAPEMA",
-    "fonte": "fapema",
-    "pais": "Brasil",
-    "estado": "MA",
-    "pdfUrl": "https://www.fapema.br/wp-content/uploads/2025/10/PUBLICACAO-artigos_deferidos_pos_recurso_29_09_2025_15_56_07.pdf",
-    "pdfUrls": [
-      "https://www.fapema.br/wp-content/uploads/2025/10/PUBLICACAO-artigos_deferidos_pos_recurso_29_09_2025_15_56_07.pdf",
-      "https://www.fapema.br/wp-content/uploads/2025/09/tabela_de_inscricoes_deferidas_e_indeferidas_2_22_09_2025_12_15_23.pdf",
-      "https://www.fapema.br/wp-content/uploads/2025/09/tabela_de_inscricoes_deferidas_e_indeferidas_1_19_09_2025_16_03_19.pdf",
-      "https://www.fapema.br/wp-content/uploads/2025/07/edital_publicado_assinado_20_05_2025_15_29_04-tj.pdf"
-    ],
-    "pdfPaths": [
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_FAPEMA-19_1_PUBLICACAO-artigos_deferidos_pos_recurso_29_09_2025_15_56_07.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_FAPEMA-19_2_tabela_de_inscricoes_deferidas_e_indeferidas_2_22_09_2025_12_15_23.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_FAPEMA-19_3_tabela_de_inscricoes_deferidas_e_indeferidas_1_19_09_2025_16_03_19.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_FAPEMA-19_4_edital_publicado_assinado_20_05_2025_15_29_04-tj.pdf"
-    ],
-    "processadoEm": "2026-03-02T19:03:36.360Z"
-  },
-  {
     "numero": "10/2025",
     "titulo": "Edital FAPEMA/SETRES/UFMA/UEMA/UEMASUL no 10/2025",
     "link": "https://www.fapema.br/edital-fapema-setres-ufma-uema-uemasul-no-10-2025/",
@@ -536,31 +513,6 @@
       "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_09-2025_6_PROGRAMA-DE-APOIO-A-PUBLICACAO-DE-LIVROS-COLETANEAS.pdf"
     ],
     "processadoEm": "2026-03-02T19:04:01.978Z"
-  },
-  {
-    "numero": "FAPEMA-22",
-    "titulo": "Normas: Seleção de Propostas para o Programa de Incentivo Acadêmico: Bolsa Mérito e Prêmio Estudante Destaque Universitário",
-    "link": "https://www.fapema.br/normas-selecao-de-propostas-para-o-programa-de-incentivo-academico-bolsa-merito-e-premio-estudante-destaque-universitario/",
-    "orgao": "FAPEMA",
-    "fonte": "fapema",
-    "pais": "Brasil",
-    "estado": "MA",
-    "pdfUrl": "https://www.fapema.br/wp-content/uploads/2025/06/RESULTADO-FINAL-DAS-PROPOSTAS-CONTEMPLADAS.pdf",
-    "pdfUrls": [
-      "https://www.fapema.br/wp-content/uploads/2025/06/RESULTADO-FINAL-DAS-PROPOSTAS-CONTEMPLADAS.pdf",
-      "https://www.fapema.br/wp-content/uploads/2025/06/RESULTADO-FINAL-DAS-CANDIDATURAS-INDEFERIDAS.pdf",
-      "https://www.fapema.br/wp-content/uploads/2025/06/download-3.pdf",
-      "https://www.fapema.br/wp-content/uploads/2025/04/Selecao_Propostas_Programa_Incentivo_Academico_2025.pdf",
-      "https://www.fapema.br/wp-content/uploads/2025/04/EDITAL-ESTUDANTE-NOTA-DEZ.pdf"
-    ],
-    "pdfPaths": [
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_FAPEMA-22_1_RESULTADO-FINAL-DAS-PROPOSTAS-CONTEMPLADAS.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_FAPEMA-22_2_RESULTADO-FINAL-DAS-CANDIDATURAS-INDEFERIDAS.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_FAPEMA-22_3_download-3.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_FAPEMA-22_4_Selecao_Propostas_Programa_Incentivo_Academico_2025.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_FAPEMA-22_5_EDITAL-ESTUDANTE-NOTA-DEZ.pdf"
-    ],
-    "processadoEm": "2026-03-02T19:04:08.079Z"
   },
   {
     "numero": "08/2025",
@@ -639,79 +591,5 @@
       "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_07-2025_16_EDITAL-FAPEMA_EMAP-No-07_2025-PREMIO-PORTO-ASSINADO.pdf"
     ],
     "processadoEm": "2026-03-02T19:04:40.906Z"
-  },
-  {
-    "numero": "FAPEMA-25",
-    "titulo": "DIRETRIZES DA CHAMADA PÚBLICA DE COOPERAÇÃO INTERNACIONAL",
-    "link": "https://www.fapema.br/diretrizes-da-chamada-publica-de-cooperacao-internacional/",
-    "orgao": "FAPEMA",
-    "fonte": "fapema",
-    "pais": "Brasil",
-    "estado": "MA",
-    "pdfUrl": "https://www.fapema.br/wp-content/uploads/2025/10/MOBILITY-CONFAP-ITALY-CALL-2025.pdf",
-    "pdfUrls": [
-      "https://www.fapema.br/wp-content/uploads/2025/10/MOBILITY-CONFAP-ITALY-CALL-2025.pdf",
-      "https://www.fapema.br/wp-content/uploads/2025/09/87190.pdf",
-      "https://www.fapema.br/wp-content/uploads/2025/09/Aditivo_Diretrizes_Mobility-1.pdf",
-      "https://www.fapema.br/wp-content/uploads/2025/03/Diretrizes-MCI.pdf"
-    ],
-    "pdfPaths": [
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_FAPEMA-25_1_MOBILITY-CONFAP-ITALY-CALL-2025.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_FAPEMA-25_2_87190.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_FAPEMA-25_3_Aditivo_Diretrizes_Mobility-1.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_FAPEMA-25_4_Diretrizes-MCI.pdf"
-    ],
-    "processadoEm": "2026-03-02T19:04:47.436Z"
-  },
-  {
-    "numero": "FAPEMA-26",
-    "titulo": "RESOLUÇÃO Nº 04 DE 27 DE JUNHO DE 2023",
-    "link": "https://www.fapema.br/resolucao-no-04-de-27-de-julho-de-2023/",
-    "orgao": "FAPEMA",
-    "fonte": "fapema",
-    "pais": "Brasil",
-    "estado": "MA",
-    "pdfUrl": "https://www.fapema.br/wp-content/uploads/2025/11/RESULTADO-FINAL-RESOLUCAO-04-de-2023-PUBLICACAO-DE-ARTIGOS-Agosto-Setembro-e-Outubro-2025.pdf",
-    "pdfUrls": [
-      "https://www.fapema.br/wp-content/uploads/2025/11/RESULTADO-FINAL-RESOLUCAO-04-de-2023-PUBLICACAO-DE-ARTIGOS-Agosto-Setembro-e-Outubro-2025.pdf",
-      "https://www.fapema.br/wp-content/uploads/2025/08/Resultado-final-Resolucao-n°04-de-27-de-junho-de-2023-Artigos-cientificos.pdf",
-      "https://www.fapema.br/wp-content/uploads/2025/05/RESOLUCAO-FAPEMA-No-04-DE-27-DE-JUNHO-DE-2023-APOIO-A-PUBLICACAO-DE-ARTIGOS.pdf",
-      "https://www.fapema.br/wp-content/uploads/2025/03/RESULTADO-FINAL-artigos.pdf",
-      "https://www.fapema.br/wp-content/uploads/2025/03/RESOLUCAO-FAPEMA-No-04-DE-27-DE-JUNHO-DE-2023-APOIO-A-PUBLICACAO-DE-ARTIGOS.pdf",
-      "https://www.fapema.br/wp-content/uploads/2024/10/RESULTADO-FINAL-RESOLUCAO-04-de-2023-PUBLICACAO-DE-ARTIGOS-Agosto-e-Setembro-2024-1.pdf",
-      "https://www.fapema.br/wp-content/uploads/2024/08/Assinado-Resultado-final-Resolucao-04-de-2023-Publicacao-de-Artigos.pdf",
-      "https://www.fapema.br/wp-content/uploads/2024/06/RESULTADO-ARTIGOS-ABRIL-E-MAIO-1.pdf",
-      "https://www.fapema.br/wp-content/uploads/2023/06/RESULTADO-FINAL-ARTIGOS.pdf",
-      "https://www.fapema.br/wp-content/uploads/2023/10/RESULTADO-FINAL-RESOLUCAO-04-de-2023-PUBLICACAO-DE-ARTIGOS-agosto-a-setembro-de-2023-4-ASSINADO.pdf",
-      "https://www.fapema.br/wp-content/uploads/2023/06/Resolucao-FAPEMA-No-04-DE-27-06-2023.pdf",
-      "https://www.fapema.br/wp-content/uploads/2022/05/RESULTADO-FINAL-RESOLUCAO-07-03.05.2022-PUBLICACAO-DE-ARTIGOS-PPPG-NOV.2022-MAIO2023-2-1.pdf",
-      "https://www.fapema.br/wp-content/uploads/2022/05/RESULTADO-FINAL-RESOLUCAO-07-03.05.2022-PUBLICACAO-DE-ARTIGOS-PPPG-assinado.pdf",
-      "https://www.fapema.br/wp-content/uploads/2022/05/RESULTADO-FINAL-RESOLUCAO-07-03.05.2022-PUBLICACAO-DE-ARTIGOS-PPPG-OUTUBRO.-2022-1.pdf",
-      "https://www.fapema.br/wp-content/uploads/2022/05/RESULTADO-FINAL-RESOLUCAO-07-03.05.2022-PUBLICACAO-DE-ARTIGOS-PPPG-Setembro.2022-1.pdf",
-      "https://www.fapema.br/wp-content/uploads/2022/05/RESULTADO-FINAL-RESOLUCAO-07-03.05.2022-PUBLICACAO-DE-ARTIGOS-PPPG-Julho.2022-ASSINADO.pdf",
-      "https://www.fapema.br/wp-content/uploads/2022/05/RESULTADO-FINAL-RESOLUCAO-07-03.05.2022-PUBLICACAO-DE-ARTIGOS-PPPG-Julho.2022-ASSINADO-1.pdf",
-      "https://www.fapema.br/wp-content/uploads/2022/05/ResoluFAPEMA-N-07de-03_05_2022-Artigos.pdf"
-    ],
-    "pdfPaths": [
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_FAPEMA-26_1_RESULTADO-FINAL-RESOLUCAO-04-de-2023-PUBLICACAO-DE-ARTIGOS-Agosto-Setembro-e-Outubro-2025.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_FAPEMA-26_2_Resultado-final-Resolucao-n°04-de-27-de-junho-de-2023-Artigos-cientificos.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_FAPEMA-26_3_RESOLUCAO-FAPEMA-No-04-DE-27-DE-JUNHO-DE-2023-APOIO-A-PUBLICACAO-DE-ARTIGOS.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_FAPEMA-26_4_RESULTADO-FINAL-artigos.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_FAPEMA-26_5_RESOLUCAO-FAPEMA-No-04-DE-27-DE-JUNHO-DE-2023-APOIO-A-PUBLICACAO-DE-ARTIGOS.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_FAPEMA-26_6_RESULTADO-FINAL-RESOLUCAO-04-de-2023-PUBLICACAO-DE-ARTIGOS-Agosto-e-Setembro-2024-1.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_FAPEMA-26_7_Assinado-Resultado-final-Resolucao-04-de-2023-Publicacao-de-Artigos.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_FAPEMA-26_8_RESULTADO-ARTIGOS-ABRIL-E-MAIO-1.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_FAPEMA-26_9_RESULTADO-FINAL-ARTIGOS.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_FAPEMA-26_10_RESULTADO-FINAL-RESOLUCAO-04-de-2023-PUBLICACAO-DE-ARTIGOS-agosto-a-setembro-de-2023-4-ASSINADO.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_FAPEMA-26_11_Resolucao-FAPEMA-No-04-DE-27-06-2023.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_FAPEMA-26_12_RESULTADO-FINAL-RESOLUCAO-07-03.05.2022-PUBLICACAO-DE-ARTIGOS-PPPG-NOV.2022-MAIO2023-2-1.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_FAPEMA-26_13_RESULTADO-FINAL-RESOLUCAO-07-03.05.2022-PUBLICACAO-DE-ARTIGOS-PPPG-assinado.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_FAPEMA-26_14_RESULTADO-FINAL-RESOLUCAO-07-03.05.2022-PUBLICACAO-DE-ARTIGOS-PPPG-OUTUBRO.-2022-1.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_FAPEMA-26_15_RESULTADO-FINAL-RESOLUCAO-07-03.05.2022-PUBLICACAO-DE-ARTIGOS-PPPG-Setembro.2022-1.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_FAPEMA-26_16_RESULTADO-FINAL-RESOLUCAO-07-03.05.2022-PUBLICACAO-DE-ARTIGOS-PPPG-Julho.2022-ASSINADO.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_FAPEMA-26_17_RESULTADO-FINAL-RESOLUCAO-07-03.05.2022-PUBLICACAO-DE-ARTIGOS-PPPG-Julho.2022-ASSINADO-1.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_FAPEMA-26_18_ResoluFAPEMA-N-07de-03_05_2022-Artigos.pdf"
-    ],
-    "processadoEm": "2026-03-02T19:05:02.173Z"
   }
 ]

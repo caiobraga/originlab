@@ -212,7 +212,7 @@ export async function uploadPdfsToStorage(
       // Usar o mesmo tipo MIME detectado anteriormente
       const mimeType = contentType;
 
-      // Inserir registro na tabela edital_pdfs (usando upsert para garantir que não duplica)
+      // Inserir/atualizar sem sobrescrever file_id existente.
       const { error: dbError } = await supabase
         .from('edital_pdfs')
         .upsert({
@@ -222,7 +222,7 @@ export async function uploadPdfsToStorage(
           url_original: edital.pdfUrls?.[edital.pdfPaths.indexOf(pdfPath)] || null,
           tamanho_bytes: fileBuffer.length,
           tipo_mime: mimeType,
-          file_id: fileId,
+          is_processed: false,
         }, {
           onConflict: 'caminho_storage',
           ignoreDuplicates: false,
@@ -231,6 +231,14 @@ export async function uploadPdfsToStorage(
       if (dbError) {
         console.warn(`  ⚠️ Erro ao salvar registro do PDF ${fileName}:`, dbError.message);
       } else {
+        // Preenche file_id apenas para linhas sem valor (não altera IDs já gravados).
+        if (fileId) {
+          await supabase
+            .from('edital_pdfs')
+            .update({ file_id: fileId })
+            .eq('caminho_storage', storagePath)
+            .is('file_id', null);
+        }
         uploadedFiles.push({ nome: fileName, caminho: storagePath });
         console.log(`  ✅ PDF registrado no banco: ${fileName}`);
       }

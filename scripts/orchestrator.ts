@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { Scraper, Edital } from './types';
+import { filterEditaisForJsonWithStats } from './lib/edital-json-filter';
 
 /**
  * Orquestrador que executa múltiplos scrapers e consolida os resultados
@@ -274,8 +275,15 @@ export class ScraperOrchestrator {
     if (filteredCount > 0) {
       console.log(`⚠️ ${filteredCount} edital(is) sem título válido foram filtrados durante consolidação`);
     }
-    
-    return finalEditais;
+
+    const { list: jsonReady, kept, removed } = filterEditaisForJsonWithStats(finalEditais);
+    if (removed > 0) {
+      console.log(
+        `📋 Filtro JSON (PDF + ano): ${removed} edital(is) removido(s) antes de salvar; ${kept} mantido(s)`,
+      );
+    }
+
+    return jsonReady;
   }
 
 

@@ -279,7 +279,8 @@ function normalizeResponse(value: string, field: string): string {
  */
 async function extractInfoFromWebhook(
   field: 'valor_projeto' | 'prazo_inscricao' | 'localizacao' | 'vagas' | 'is_researcher' | 'is_company' | 'sobre_programa' | 'criterios_elegibilidade' | 'timeline_estimada',
-  fileIds: string[]
+  fileIds: string[],
+  editalId?: string,
 ): Promise<string | string[] | boolean | any | null> {
   try {
     // Mapear campos para perguntas em português (melhoradas e mais específicas)
@@ -412,7 +413,9 @@ Retorne APENAS o JSON válido: {"is_company": true/false/null}`,
       const { extractInfoViaOllama } = await import('../lib/ollama-edital');
       const model = process.env.OLLAMA_MODEL || 'qwen2.5:7b';
       console.log(`  📤 Extraindo via Ollama (${model}) para: ${field}`);
-      const ollamaText = await extractInfoViaOllama(fieldQuestions[field], fileIds);
+      const ollamaText = await extractInfoViaOllama(fieldQuestions[field], fileIds, {
+        editalId: editalId || undefined,
+      });
       responseText = ollamaText ?? '';
       if (!responseText.trim()) {
         console.warn(`  ⚠️ Resposta vazia do Ollama para ${field}`);
@@ -1241,9 +1244,21 @@ Retorne APENAS o JSON válido: {"is_company": true/false/null}`,
  */
 export async function processEditalInfo(
   supabase: SupabaseClient,
-  edital: EditalInfo
+  edital: EditalInfo,
+  options?: {
+    /** Reextrair todos os campos mesmo que já estejam preenchidos. */
+    forceReextract?: boolean;
+    /**
+     * Se a reextração vier vazia (null/""/[]), manter o valor antigo vindo do banco.
+     * Normalmente faz sentido junto com `forceReextract`.
+     */
+    keepExistingOnEmpty?: boolean;
+  }
 ): Promise<ProcessedInfo> {
   console.log(`\n📄 Processando edital: ${edital.numero || 'N/A'} - ${edital.titulo.substring(0, 50)}...`);
+
+  const forceReextract = options?.forceReextract ?? false;
+  const keepExistingOnEmpty = options?.keepExistingOnEmpty ?? false;
 
   // Buscar PDF IDs
   const pdfIds = await fetchEditalPdfIds(supabase, edital.id);
@@ -1259,17 +1274,27 @@ export async function processEditalInfo(
   const isCNPqEdital = edital.fonte?.toLowerCase().includes('cnpq') || false;
   
   // Verificar quais campos precisam ser extraídos (só extrair se for null, undefined ou "Não informado")
-  const needsValorProjeto = !edital.valor_projeto || edital.valor_projeto === 'Não informado';
-  const needsPrazoInscricao = !edital.prazo_inscricao || edital.prazo_inscricao === 'Não informado';
-  const needsLocalizacao = !edital.localizacao || edital.localizacao === 'Não informado';
-  const needsVagas = !edital.vagas || edital.vagas === 'Não informado';
+  const needsValorProjeto = forceReextract
+    ? true
+    : !edital.valor_projeto || edital.valor_projeto === 'Não informado';
+  const needsPrazoInscricao = forceReextract
+    ? true
+    : !edital.prazo_inscricao || edital.prazo_inscricao === 'Não informado';
+  const needsLocalizacao = forceReextract
+    ? true
+    : !edital.localizacao || edital.localizacao === 'Não informado';
+  const needsVagas = forceReextract
+    ? true
+    : !edital.vagas || edital.vagas === 'Não informado';
   
   // Para CNPq: sempre considerar como pesquisador, não perguntar sobre empresa
   const needsIsResearcher = isCNPqEdital ? false : (edital.is_researcher === null || edital.is_researcher === undefined);
   const needsIsCompany = isCNPqEdital ? false : (edital.is_company === null || edital.is_company === undefined);
-  const needsSobrePrograma = !edital.sobre_programa || edital.sobre_programa === 'Não informado';
-  const needsCriteriosElegibilidade = !edital.criterios_elegibilidade || edital.criterios_elegibilidade === 'Não informado';
-  const needsTimelineEstimada = !edital.timeline_estimada || edital.timeline_estimada === null;
+  const needsSobrePrograma = forceReextract ? true : (!edital.sobre_programa || edital.sobre_programa === 'Não informado');
+  const needsCriteriosElegibilidade = forceReextract
+    ? true
+    : !edital.criterios_elegibilidade || edital.criterios_elegibilidade === 'Não informado';
+  const needsTimelineEstimada = forceReextract ? true : (!edital.timeline_estimada || edital.timeline_estimada === null);
   
   let valor_projeto: string | string[] | null = null;
   let prazo_inscricao: string | string[] | null = null;
@@ -1283,8 +1308,11 @@ export async function processEditalInfo(
   
   // Extrair apenas os campos que precisam ser atualizados
   if (needsValorProjeto) {
-    const result = await extractInfoFromWebhook('valor_projeto', pdfIds);
+    const result = await extractInfoFromWebhook('valor_projeto', pdfIds, edital.id);
     valor_projeto = (typeof result === 'string' || Array.isArray(result)) ? result : null;
+    if (forceReextract && keepExistingOnEmpty && (!valor_projeto || (Array.isArray(valor_projeto) ? valor_projeto.length === 0 : valor_projeto.trim().length === 0))) {
+      valor_projeto = edital.valor_projeto || null;
+    }
     await new Promise(resolve => setTimeout(resolve, 2000));
   } else {
     valor_projeto = edital.valor_projeto || null;
@@ -1292,8 +1320,11 @@ export async function processEditalInfo(
   }
   
   if (needsPrazoInscricao) {
-    const result = await extractInfoFromWebhook('prazo_inscricao', pdfIds);
+    const result = await extractInfoFromWebhook('prazo_inscricao', pdfIds, edital.id);
     prazo_inscricao = (typeof result === 'string' || Array.isArray(result)) ? result : null;
+    if (forceReextract && keepExistingOnEmpty && (!prazo_inscricao || (Array.isArray(prazo_inscricao) ? prazo_inscricao.length === 0 : prazo_inscricao.trim().length === 0))) {
+      prazo_inscricao = edital.prazo_inscricao || null;
+    }
     await new Promise(resolve => setTimeout(resolve, 2000));
   } else {
     prazo_inscricao = edital.prazo_inscricao || null;
@@ -1301,8 +1332,11 @@ export async function processEditalInfo(
   }
   
   if (needsLocalizacao) {
-    const result = await extractInfoFromWebhook('localizacao', pdfIds);
+    const result = await extractInfoFromWebhook('localizacao', pdfIds, edital.id);
     localizacao = (typeof result === 'string' || Array.isArray(result)) ? result : null;
+    if (forceReextract && keepExistingOnEmpty && (!localizacao || (Array.isArray(localizacao) ? localizacao.length === 0 : localizacao.trim().length === 0))) {
+      localizacao = edital.localizacao || null;
+    }
     await new Promise(resolve => setTimeout(resolve, 2000));
   } else {
     localizacao = edital.localizacao || null;
@@ -1310,8 +1344,11 @@ export async function processEditalInfo(
   }
   
   if (needsVagas) {
-    const result = await extractInfoFromWebhook('vagas', pdfIds);
+    const result = await extractInfoFromWebhook('vagas', pdfIds, edital.id);
     vagas = (typeof result === 'string' || Array.isArray(result)) ? result : null;
+    if (forceReextract && keepExistingOnEmpty && (!vagas || (Array.isArray(vagas) ? vagas.length === 0 : vagas.trim().length === 0))) {
+      vagas = edital.vagas || null;
+    }
     await new Promise(resolve => setTimeout(resolve, 2000));
   } else {
     vagas = edital.vagas || null;
@@ -1326,7 +1363,7 @@ export async function processEditalInfo(
   } else {
     // Para outros editais, fazer a pergunta normalmente
     if (needsIsResearcher) {
-      const result = await extractInfoFromWebhook('is_researcher', pdfIds);
+      const result = await extractInfoFromWebhook('is_researcher', pdfIds, edital.id);
       if (typeof result === 'boolean') {
         is_researcher = result;
       } else {
@@ -1339,7 +1376,7 @@ export async function processEditalInfo(
     }
     
     if (needsIsCompany) {
-      const result = await extractInfoFromWebhook('is_company', pdfIds);
+      const result = await extractInfoFromWebhook('is_company', pdfIds, edital.id);
       if (typeof result === 'boolean') {
         is_company = result;
       } else {
@@ -1356,11 +1393,14 @@ export async function processEditalInfo(
   // Os prompts foram melhorados para que a IA faça a classificação correta desde o início
   
   if (needsSobrePrograma) {
-    const result = await extractInfoFromWebhook('sobre_programa', pdfIds);
+    const result = await extractInfoFromWebhook('sobre_programa', pdfIds, edital.id);
     if (typeof result === 'string') {
       sobre_programa = result;
     } else {
       sobre_programa = null;
+    }
+    if (forceReextract && keepExistingOnEmpty && (!sobre_programa || !sobre_programa.trim())) {
+      sobre_programa = edital.sobre_programa || null;
     }
     await new Promise(resolve => setTimeout(resolve, 2000));
   } else {
@@ -1369,11 +1409,14 @@ export async function processEditalInfo(
   }
   
   if (needsCriteriosElegibilidade) {
-    const result = await extractInfoFromWebhook('criterios_elegibilidade', pdfIds);
+    const result = await extractInfoFromWebhook('criterios_elegibilidade', pdfIds, edital.id);
     if (typeof result === 'string') {
       criterios_elegibilidade = result;
     } else {
       criterios_elegibilidade = null;
+    }
+    if (forceReextract && keepExistingOnEmpty && (!criterios_elegibilidade || !criterios_elegibilidade.trim())) {
+      criterios_elegibilidade = edital.criterios_elegibilidade || null;
     }
   } else {
     criterios_elegibilidade = edital.criterios_elegibilidade || null;
@@ -1382,7 +1425,7 @@ export async function processEditalInfo(
   
   // Extrair timeline_estimada
   if (needsTimelineEstimada) {
-    const result = await extractInfoFromWebhook('timeline_estimada', pdfIds);
+    const result = await extractInfoFromWebhook('timeline_estimada', pdfIds, edital.id);
     if (typeof result === 'string' && result.trim().length > 0) {
       try {
         // Parsear a string JSON retornada
@@ -1404,6 +1447,11 @@ export async function processEditalInfo(
       timeline_estimada = null;
       console.log(`  ℹ️ Timeline Estimada: null (não encontrado)`);
     }
+
+    if (forceReextract && keepExistingOnEmpty && !timeline_estimada) {
+      timeline_estimada = edital.timeline_estimada || null;
+    }
+
     await new Promise(resolve => setTimeout(resolve, 2000));
   } else {
     timeline_estimada = edital.timeline_estimada || null;

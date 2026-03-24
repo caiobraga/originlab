@@ -1,11 +1,14 @@
 /**
- * Sincroniza edital_pdfs.is_processed com a tabela documents:
- * - is_processed = true: existe pelo menos um document com embedding não null para o file_id
- * - is_processed = false: (1) file_id não aparece em documents, OU (2) aparece só com embedding null
+ * Sincroniza edital_pdfs.is_processed com a tabela documents usando conteúdo textual.
  *
- * Uso:
- *   npm run db:sync-is-processed-from-documents
- *   npm run db:sync-is-processed-from-documents -- --dry-run
+ * Regras:
+ * - true: existe pelo menos um document com content não vazio para a chave do PDF
+ * - false: não existe document para a chave, ou existe apenas com content vazio
+ *
+ * Chave de match (mesma lógica dos outros scripts):
+ * - key1 = edital_pdfs.file_id (se existir) senão edital_pdfs.id
+ * - key2 = edital_pdfs.id (fallback adicional quando file_id existe)
+ * - documents: usa documents.file_id; fallback em metadata.file_id
  */
 import "../load-env";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
@@ -31,101 +34,91 @@ function hasFlag(name: string): boolean {
   return process.argv.includes(name);
 }
 
-async function getFileIdsWithDocuments(): Promise<Set<string>> {
-  const fileIds = new Set<string>();
-  let offset = 0;
-  const pageSize = 1000;
-  while (true) {
-    const { data, error } = await supabase
-      .from("documents")
-      .select("file_id")
-      .not("embedding", "is", null)
-      .range(offset, offset + pageSize - 1);
-    if (error) {
-      if (error.message?.includes("embedding") || error.message?.includes("column")) {
-        console.warn("Coluna documents.embedding nao encontrada. Tentando por content...");
-        break;
-      }
-      throw error;
-    }
-    if (!data?.length) break;
-    for (const row of data as { file_id?: string | null }[]) {
-      const fid = row.file_id;
-      if (typeof fid === "string" && fid.trim()) fileIds.add(fid.trim());
-    }
-    if (data.length < pageSize) break;
-    offset += pageSize;
-  }
-  if (fileIds.size === 0) {
-    const { data: fallback } = await supabase.from("documents").select("file_id").limit(5000);
-    for (const row of (fallback || []) as { file_id?: string | null }[]) {
-      const fid = row.file_id;
-      if (typeof fid === "string" && fid.trim()) fileIds.add(fid.trim());
-    }
-  }
-  return fileIds;
-}
+type DocRow = { file_id?: string | null; metadata?: Record<string, unknown> | null; content?: string | null };
 
-/** file_ids que aparecem em documents em qualquer registro (embedding null ou não). */
-async function getFileIdsThatAppearInDocuments(): Promise<Set<string>> {
-  const fileIds = new Set<string>();
-  let offset = 0;
+async function getDocumentsPresenceAndContent(): Promise<{
+  seen: Set<string>;
+  withContent: Set<string>;
+}> {
+  const seen = new Set<string>();
+  const withContent = new Set<string>();
   const pageSize = 1000;
+  let offset = 0;
+
   while (true) {
     const { data, error } = await supabase
       .from("documents")
-      .select("file_id")
+      .select("file_id, metadata, content")
       .range(offset, offset + pageSize - 1);
-    if (error) return fileIds;
-    if (!data?.length) break;
-    for (const row of data as { file_id?: string | null }[]) {
-      const fid = row.file_id;
-      if (typeof fid === "string" && fid.trim()) fileIds.add(fid.trim());
+    if (error) throw error;
+    const rows = (data || []) as DocRow[];
+    if (!rows.length) break;
+
+    for (const r of rows) {
+      const fid =
+        (typeof r.file_id === "string" && r.file_id.trim().length > 0 ? r.file_id.trim() : "") ||
+        (typeof r.metadata?.file_id === "string" && r.metadata.file_id.trim().length > 0 ? String(r.metadata.file_id).trim() : "");
+      if (!fid) continue;
+      seen.add(fid);
+      if (typeof r.content === "string" && r.content.trim().length > 0) withContent.add(fid);
     }
-    if (data.length < pageSize) break;
+
+    if (rows.length < pageSize) break;
     offset += pageSize;
   }
-  return fileIds;
+
+  return { seen, withContent };
 }
 
 async function main() {
   const dryRun = hasFlag("--dry-run");
 
-  console.log("Sincronizando edital_pdfs.is_processed com documents...");
-  console.log("   is_processed = false: file_id nao aparece em documents OU so tem embedding null.\n");
+  console.log("Sincronizando edital_pdfs.is_processed com documents.content...");
+  console.log("   false: sem documents para a chave OU somente content vazio\n");
 
-  console.log("Passo 1: file_ids em documents com embedding nao null...");
-  const fileIdsWithDocs = await getFileIdsWithDocuments();
-  console.log("   " + fileIdsWithDocs.size + " file_id(s) com pelo menos um document (embedding preenchido).");
-
-  console.log("Passo 2: file_ids que aparecem em documents (qualquer embedding)...");
-  const fileIdsAny = await getFileIdsThatAppearInDocuments();
-  console.log("   " + fileIdsAny.size + " file_id(s) aparecem na tabela documents.\n");
+  console.log("Passo 1: chaves em documents (com/sem content)...");
+  const { seen: fileIdsAny, withContent: fileIdsWithDocs } = await getDocumentsPresenceAndContent();
+  console.log("   " + fileIdsAny.size + " chave(s) aparecem na tabela documents.");
+  console.log("   " + fileIdsWithDocs.size + " chave(s) com content preenchido.\n");
 
   console.log("Passo 3: Listando edital_pdfs e classificando...");
-  const { data: pdfs, error: pdfsErr } = await supabase
-    .from("edital_pdfs")
-    .select("id, file_id");
-  if (pdfsErr) {
-    if (pdfsErr.message?.includes("is_processed") || pdfsErr.message?.includes("column")) {
-      console.error("Coluna is_processed pode nao existir. Rode migration-add-edital-pdfs-is-processed.sql");
-    } else {
-      console.error("Erro ao buscar edital_pdfs:", pdfsErr.message);
+  const pdfs: { id: string; file_id?: string | null }[] = [];
+  const pageSize = 1000;
+  let offset = 0;
+  while (true) {
+    const { data, error } = await supabase
+      .from("edital_pdfs")
+      .select("id, file_id")
+      .range(offset, offset + pageSize - 1);
+    if (error) {
+      if (error.message?.includes("is_processed") || error.message?.includes("column")) {
+        console.error("Coluna is_processed pode nao existir. Rode migration-add-edital-pdfs-is-processed.sql");
+      } else {
+        console.error("Erro ao buscar edital_pdfs:", error.message);
+      }
+      process.exit(1);
     }
-    process.exit(1);
+    const rows = (data || []) as { id: string; file_id?: string | null }[];
+    pdfs.push(...rows);
+    if (rows.length < pageSize) break;
+    offset += pageSize;
   }
 
   const toTrue: string[] = [];
   const toFalse: string[] = [];
   let countNeverInDocuments = 0;
   let countOnlyNullEmbedding = 0;
-  for (const p of pdfs || []) {
-    const r = p as { id: string; file_id?: string | null };
+  for (const r of pdfs) {
     const fid = r.file_id != null ? String(r.file_id).trim() : "";
-    const key = fid || r.id;
-    const hasDocsWithEmbedding = key && fileIdsWithDocs.has(key);
-    const appearsInDocuments = key && fileIdsAny.has(key);
-    if (hasDocsWithEmbedding) {
+    const key1 = fid || r.id;
+    const key2 = fid ? r.id : "";
+    const hasDocsWithContent =
+      (key1 && fileIdsWithDocs.has(key1)) ||
+      (key2 && fileIdsWithDocs.has(key2));
+    const appearsInDocuments =
+      (key1 && fileIdsAny.has(key1)) ||
+      (key2 && fileIdsAny.has(key2));
+    if (hasDocsWithContent) {
       toTrue.push(r.id);
     } else {
       toFalse.push(r.id);
@@ -134,10 +127,10 @@ async function main() {
     }
   }
 
-  console.log("   PDFs com documents+embedding (is_processed = true):  " + toTrue.length);
+  console.log("   PDFs com documents+content (is_processed = true):    " + toTrue.length);
   console.log("   PDFs sem documents ou so null (is_processed = false): " + toFalse.length);
   console.log("      - file_id nao aparece em documents: " + countNeverInDocuments);
-  console.log("      - file_id aparece mas so com embedding null: " + countOnlyNullEmbedding + "\n");
+  console.log("      - file_id aparece mas so com content vazio: " + countOnlyNullEmbedding + "\n");
 
   if (dryRun) {
     console.log("--dry-run: nenhuma alteracao. Rode sem --dry-run para aplicar.");
