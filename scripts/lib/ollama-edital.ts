@@ -11,7 +11,8 @@
  *   O script usa 2 fases (só `id` → depois `content` em lotes). Ainda assim, crie índice: `scripts/db/migration-documents-index-file-id.sql`.
  *   `OLLAMA_RAG_CONTENT_BATCH_SIZE` (default 30) = linhas por pedido ao buscar `content`.
  * - RAG vazio: por defeito tenta PDF do storage (`OLLAMA_RAG_FALLBACK_PDF=0` para desligar).
- * - `UPDATE_EDITAL_DEBUG_CONTENT=1`: imprime preview do bloco "CONTEÚDO DOS DOCUMENTOS" antes do Ollama (usado em `npm run api:update-edital-info`). `UPDATE_EDITAL_DEBUG_CONTENT_CHARS` (default 1500) limita o preview. Mostra também a **fonte** (ex.: coluna `content` em `documents` vs PDF no storage).
+ * - Paralelismo (sem threads): `OLLAMA_FIELD_CONCURRENCY` (default 3) extrai vários campos por edital ao mesmo tempo; `PROCESS_EDITAL_CONCURRENCY` (default 2 com USE_OLLAMA) processa vários editais em paralelo no batch (`api:process-edital-info`). Ver `scripts/lib/process-edital-delays.ts`.
+ * - `UPDATE_EDITAL_DEBUG_CONTENT=1`: imprime preview do bloco "CONTEÚDO DOS DOCUMENTOS" antes do Ollama (`api:update-edital-info` e `api:process-edital-info` no package.json). `UPDATE_EDITAL_DEBUG_CONTENT_CHARS` (default 1500) limita o preview. Mostra também a **fonte** (ex.: coluna `content` em `documents` vs PDF no storage). Para rodar sem preview no batch: `UPDATE_EDITAL_DEBUG_CONTENT=0 npx tsx scripts/api/processEditalInfo.ts`.
  * - `OLLAMA_RAG_CONTENT_ONLY=1`: só lê a coluna `content` em `documents` (não tenta name/data/text…).
  * - `OLLAMA_NO_SANITIZE_PAGE_MARKERS=1`: não remove marcadores tipo `-- 1 of 48 --` do texto antes do prompt.
  */
@@ -50,6 +51,14 @@ export type RagDocumentContextResult = {
   text: string;
   /** Ex.: `documents.content (match file_id)` — para debug / logs. */
   sourceLabel: string;
+};
+
+type MatchDocumentsRow = {
+  id: string;
+  file_id: string | null;
+  metadata: Record<string, unknown> | null;
+  content: string | null;
+  similarity: number | null;
 };
 
 /** Remove marcadores de página comuns da extração PDF (`-- 1 of 48 --`) antes de enviar ao modelo. */
@@ -91,6 +100,137 @@ function joinDocumentRowsToContext(rows: Record<string, unknown>[], col: string)
   return limited.join("\n\n");
 }
 
+function joinMatchedRowsToContext(rows: MatchDocumentsRow[]): string {
+  const parts: string[] = [];
+  for (const r of rows) {
+    const txt = typeof r.content === "string" ? r.content.trim() : "";
+    if (!txt) continue;
+    const fileLabel =
+      (typeof r.file_id === "string" && r.file_id.trim() ? r.file_id.trim() : "") ||
+      (r.metadata && typeof r.metadata["file_id"] === "string" ? String(r.metadata["file_id"]) : "") ||
+      String(r.id);
+    const sim = typeof r.similarity === "number" ? r.similarity : null;
+    const simLabel = sim != null ? ` sim=${sim.toFixed(3)}` : "";
+    parts.push(`--- Chunk ${String(fileLabel).slice(0, 8)}${simLabel} ---\n${txt}`);
+  }
+  return parts.join("\n\n");
+}
+
+function getRagTopK(): number {
+  return Math.max(1, parseInt(process.env.OLLAMA_RAG_TOP_K || "6", 10) || 6);
+}
+
+function getOllamaBase(): string {
+  return (process.env.OLLAMA_BASE_URL || "http://localhost:11434").replace(/\/$/, "");
+}
+
+function getEmbedModel(): string {
+  // Manter alinhado com scripts/db/embed-documents.ts (default 1024d)
+  return process.env.OLLAMA_EMBED_MODEL || "mxbai-embed-large:latest";
+}
+
+function getEmbedDimensions(): number | null {
+  const v = process.env.EMBED_DIMENSIONS;
+  if (!v) return null;
+  const n = parseInt(v, 10);
+  return Number.isNaN(n) ? null : n;
+}
+
+function getRagQueryMaxChars(): number {
+  return Math.max(100, parseInt(process.env.OLLAMA_RAG_QUERY_MAX_CHARS || "1200", 10) || 1200);
+}
+
+function shortenQueryForEmbedding(text: string): string {
+  const t = String(text || "").replace(/\s+/g, " ").trim();
+  if (!t) return "";
+  const max = getRagQueryMaxChars();
+  return t.length > max ? t.slice(0, max) : t;
+}
+
+async function embedQueryWithOllama(text: string): Promise<number[] | null> {
+  const raw = String(text || "");
+  const t = shortenQueryForEmbedding(raw);
+  if (!t) return null;
+  if (process.env.OLLAMA_DEBUG_RAG === "1" && raw.trim().length > t.length) {
+    console.log(`  [RAG debug] query embedding truncada: ${raw.trim().length} -> ${t.length} chars`);
+  }
+  const base = getOllamaBase();
+  const model = getEmbedModel();
+  const dimensions = getEmbedDimensions();
+
+  // Preferir /api/embed (Ollama atual), fallback para /api/embeddings (algumas versões antigas)
+  const tryEmbed = async (url: string, body: unknown) => {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const err = await res.text().catch(() => "");
+      throw new Error(`${res.status} ${err}`);
+    }
+    return res.json() as Promise<any>;
+  };
+
+  try {
+    const body: { model: string; input: string; dimensions?: number } = { model, input: t };
+    if (dimensions != null && dimensions > 0) body.dimensions = dimensions;
+    const data = await tryEmbed(`${base}/api/embed`, body);
+    const emb = (data?.embeddings?.[0] || data?.embedding) as number[] | undefined;
+    return Array.isArray(emb) ? emb : null;
+  } catch (e) {
+    if (process.env.OLLAMA_DEBUG_RAG === "1") {
+      console.warn(`  [RAG debug] /api/embed falhou; tentando /api/embeddings: ${(e as Error).message}`);
+    }
+    try {
+      const data = await tryEmbed(`${base}/api/embeddings`, { model, prompt: t });
+      const emb = (data?.embedding || data?.data?.[0]?.embedding) as number[] | undefined;
+      return Array.isArray(emb) ? emb : null;
+    } catch (e2) {
+      console.warn(`  ⚠️ RAG: falha ao gerar embedding da pergunta no Ollama: ${(e2 as Error).message}`);
+      return null;
+    }
+  }
+}
+
+async function fetchDocumentContextBySimilarityTopK(
+  question: string,
+  fileIds: string[],
+  opts?: { editalId?: string },
+): Promise<RagDocumentContextResult | null> {
+  const empty = (label: string): RagDocumentContextResult => ({ text: "", sourceLabel: label });
+  if (!supabase) return empty("(sem supabase)");
+
+  const queryEmbedding = await embedQueryWithOllama(question);
+  if (!queryEmbedding) return null;
+
+  const resolvedIds = await resolveFileIdsForDocuments(fileIds);
+  if (resolvedIds.length === 0) return null;
+
+  const topK = getRagTopK();
+  const { data, error } = await supabase.rpc("match_documents", {
+    query_embedding: queryEmbedding,
+    match_count: topK,
+    filter_file_ids: resolvedIds,
+    filter_edital_id: opts?.editalId || null,
+  });
+
+  if (error) {
+    if (process.env.OLLAMA_DEBUG_RAG === "1") {
+      console.warn(`  [RAG debug] rpc match_documents falhou: ${error.message}`);
+    }
+    return null;
+  }
+
+  const rows = (data || []) as MatchDocumentsRow[];
+  const ctx = joinMatchedRowsToContext(rows);
+  if (!ctx.trim()) return null;
+  return {
+    text: ctx,
+    sourceLabel: `documents.content (pgvector top-k=${topK})`,
+  };
+}
+
 /**
  * Resolve IDs para consultar `documents.file_id`.
  * Inclui SEMPRE, por linha de edital_pdfs, tanto `id` (UUID da linha) quanto `file_id` (storage),
@@ -128,7 +268,8 @@ async function listDocumentIdsByFileIdIn(
     .order("id", { ascending: true })
     .limit(maxIds);
   if (error) return { ids: [], error };
-  return { ids: (data ?? []).map((r: { id: string }) => String(r.id)), error: null };
+  const rows = (data ?? []) as unknown as Array<{ id: string }>;
+  return { ids: rows.map((r) => String(r.id)), error: null };
 }
 
 async function listDocumentIdsByMetadataFileIdOr(
@@ -145,7 +286,8 @@ async function listDocumentIdsByMetadataFileIdOr(
     .order("id", { ascending: true })
     .limit(maxIds);
   if (error) return { ids: [], error };
-  return { ids: (data ?? []).map((r: { id: string }) => String(r.id)), error: null };
+  const rows = (data ?? []) as unknown as Array<{ id: string }>;
+  return { ids: rows.map((r) => String(r.id)), error: null };
 }
 
 async function listDocumentIdsByEditalId(
@@ -160,7 +302,8 @@ async function listDocumentIdsByEditalId(
     .order("id", { ascending: true })
     .limit(maxIds);
   if (error) return { ids: [], error };
-  return { ids: (data ?? []).map((r: { id: string }) => String(r.id)), error: null };
+  const rows = (data ?? []) as unknown as Array<{ id: string }>;
+  return { ids: rows.map((r) => String(r.id)), error: null };
 }
 
 /** 2ª fase: traz coluna de texto em lotes (evita timeout num único SELECT com milhares de `content`). */
@@ -176,7 +319,7 @@ async function fetchDocumentRowsByIdsBatched(
     const slice = ids.slice(i, i + batchSize);
     const { data, error } = await client.from("documents").select(selectCols).in("id", slice);
     if (error) return { rows, error };
-    rows.push(...((data ?? []) as Record<string, unknown>[]));
+    rows.push(...((data ?? []) as unknown as Record<string, unknown>[]));
   }
   return { rows, error: null };
 }
@@ -194,12 +337,21 @@ function logRagTimeoutHint(msg: string): void {
  * Busca conteúdo na tabela `documents` (RAG). Usa 2 fases: listar só `id`, depois buscar `content` (etc.) em lotes.
  */
 async function fetchDocumentContextByFileIds(
+  question: string,
   fileIds: string[],
   opts?: { editalId?: string },
 ): Promise<RagDocumentContextResult> {
   const empty = (label: string): RagDocumentContextResult => ({ text: "", sourceLabel: label });
 
   if (!supabase || fileIds.length === 0) return empty("(sem supabase ou file ids)");
+
+  // RAG “de verdade” (top-k por similaridade) — parecido com LlamaIndex similarity_top_k.
+  // Se a RPC não existir/der erro, cai no modo antigo (concat por file_id).
+  const mode = (process.env.OLLAMA_RAG_MODE || "topk").toLowerCase().trim();
+  if (mode !== "concat") {
+    const hit = await fetchDocumentContextBySimilarityTopK(question, fileIds, opts).catch(() => null);
+    if (hit && hit.text.trim().length > 0) return hit;
+  }
 
   const resolvedIds = await resolveFileIdsForDocuments(fileIds);
   if (resolvedIds.length === 0) return empty("(nenhum id resolvido em edital_pdfs)");
@@ -394,7 +546,7 @@ export async function extractInfoViaOllama(
     process.env.OLLAMA_RAG_FALLBACK_PDF !== "0" && process.env.OLLAMA_RAG_FALLBACK_PDF !== "false";
 
   if (USE_RAG_DOCUMENTS) {
-    const rag = await fetchDocumentContextByFileIds(fileIds, { editalId: options?.editalId });
+    const rag = await fetchDocumentContextByFileIds(message, fileIds, { editalId: options?.editalId });
     fullContext = rag.text;
     if (fullContext.length > 0) {
       contextSourceLabel = rag.sourceLabel;
@@ -459,7 +611,7 @@ export async function extractInfoViaOllama(
       ? fullContext.slice(0, maxContextChars) + "\n\n[... texto truncado ...]"
       : fullContext;
 
-  // Debug para api:update-edital-info (UPDATE_EDITAL_DEBUG_CONTENT=1 no package.json ou .env)
+  // Debug: UPDATE_EDITAL_DEBUG_CONTENT=1 (package.json em update/process-edital-info ou .env)
   const updateEditalContentDebug =
     process.env.UPDATE_EDITAL_DEBUG_CONTENT === "1" ||
     process.env.UPDATE_EDITAL_DEBUG_CONTENT === "true";

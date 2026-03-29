@@ -54,8 +54,10 @@ DELAY_BETWEEN_EDITAIS_MS=10000 # Delay entre processamento de editais (padrão: 
 # Ou usar API Local (opcional - ATENÇÃO: limites muito restritivos!)
 # USE_LOCAL_API=true
 # LOCAL_API_URL=http://localhost:3000/api/extract-edital-info
-# GEMINI_API_KEY=AIzaSyARNPj2fdFb4RSnuI39gO0TGwWzgNXxisk
-# GEMINI_MODEL=gemini-2.5-flash  # 7 RPM, 19 RPD (requests per day)
+# GEMINI_API_KEY=sua_chave_aqui
+# GEMINI_MODEL=gemini-2.5-flash
+# Tier gratuito típico (ajuste no servidor): GEMINI_FREE_RPM=15 GEMINI_FREE_RPD=250 GEMINI_FREE_TPM=1000000
+# Cliente: GEMINI_LOCAL_API_MIN_DELAY_MS=4500 (~15 RPM)
 
 # Opcional: Pular editais já processados nas últimas 24h
 SKIP_PROCESSED=true

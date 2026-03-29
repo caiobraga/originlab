@@ -14,10 +14,11 @@
  *   PROCESS_EDITAL_MAX_RETRIES=3                        — tentativas por edital (padrão 3)
  *   PROCESS_EDITAL_RETRY_DELAY_MS=5000                 — delay base entre retries (padrão 5000)
  *   PROCESS_EDITAL_POLL_INTERVAL_MS=60000              — quando não há editais, esperar antes de buscar de novo (padrão 60s)
- *   DELAY_BETWEEN_EDITAIS_MS=30000                      — delay entre editais processados com sucesso
+ *   DELAY_BETWEEN_EDITAIS_MS=30000                      — delay entre editais (sem setar: 30s n8n, 2s com USE_OLLAMA)
  */
 import "../load-env";
 import { createClient } from "@supabase/supabase-js";
+import { getDelayBetweenEditaisMs } from "../lib/process-edital-delays";
 import {
   processEditalInfo,
   updateEditalInfo,
@@ -40,7 +41,6 @@ const supabaseKey =
 const MAX_RETRIES = Math.max(1, parseInt(process.env.PROCESS_EDITAL_MAX_RETRIES || "3", 10));
 const RETRY_DELAY_MS = Math.max(1000, parseInt(process.env.PROCESS_EDITAL_RETRY_DELAY_MS || "5000", 10));
 const POLL_INTERVAL_MS = Math.max(5000, parseInt(process.env.PROCESS_EDITAL_POLL_INTERVAL_MS || "60000", 10));
-const DELAY_BETWEEN_EDITAIS_MS = parseInt(process.env.DELAY_BETWEEN_EDITAIS_MS || "30000", 10);
 
 let cancelled = false;
 
@@ -132,8 +132,11 @@ async function main() {
         totalProcessed++;
         console.log(`  ✅ Edital processado com sucesso.`);
         if (i < editais.length - 1) {
-          console.log(`  ⏳ Aguardando ${DELAY_BETWEEN_EDITAIS_MS / 1000}s antes do próximo...`);
-          await sleep(DELAY_BETWEEN_EDITAIS_MS);
+          const betweenMs = getDelayBetweenEditaisMs();
+          if (betweenMs > 0) {
+            console.log(`  ⏳ Aguardando ${betweenMs / 1000}s antes do próximo...`);
+            await sleep(betweenMs);
+          }
         }
       } else {
         totalErrors++;

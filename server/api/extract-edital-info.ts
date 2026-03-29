@@ -1,36 +1,70 @@
 import express from 'express';
+import path from 'node:path';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createClient } from '@supabase/supabase-js';
 
 const router = express.Router();
 router.use(express.json({ limit: '50mb' }));
 
-// Inicializar Gemini
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyARNPj2fdFb4RSnuI39gO0TGwWzgNXxisk';
-const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+function parsePositiveIntEnv(key: string, fallback: number): number {
+  const v = process.env[key];
+  if (v === undefined || String(v).trim() === '') return fallback;
+  const n = parseInt(String(v).trim(), 10);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
 
-// Limites de quota (baseado nos limites informados)
-// gemini-2.5-flash: 7 RPM, 9.25K TPM, 19 RPD
-// gemini-3-pro: 1 RPM, 378 TPM, 1 RPD
-const QUOTA_LIMITS = {
-  'gemini-2.5-flash': {
-    rpm: 7,        // Requests per minute
-    tpm: 9250,     // Tokens per minute
-    rpd: 19,       // Requests per day
-  },
-  'gemini-3-pro': {
-    rpm: 1,
-    tpm: 378,
-    rpd: 1,
-  },
+/**
+ * Tier gratuito Gemini 2.5 Flash (override: GEMINI_FREE_RPM / GEMINI_FREE_RPD / GEMINI_FREE_TPM).
+ */
+const FREE_TIER_LIMITS = {
+  rpm: parsePositiveIntEnv('GEMINI_FREE_RPM', 15),
+  rpd: parsePositiveIntEnv('GEMINI_FREE_RPD', 250),
+  tpm: parsePositiveIntEnv('GEMINI_FREE_TPM', 1_000_000),
 };
 
-// Rate limiting state
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY?.trim() || '';
+if (!GEMINI_API_KEY) {
+  console.warn(
+    '⚠️ GEMINI_API_KEY não definida: POST /api/extract-edital-info falhará até configurar a chave no .env',
+  );
+}
+const genAI = GEMINI_API_KEY ? new GoogleGenerativeAI(GEMINI_API_KEY) : null;
+
+const QUOTA_LIMITS = {
+  'gemini-2.5-flash': { ...FREE_TIER_LIMITS },
+  'gemini-3-pro': {
+    rpm: parsePositiveIntEnv('GEMINI_PRO_RPM', 1),
+    tpm: parsePositiveIntEnv('GEMINI_PRO_TPM', 378),
+    rpd: parsePositiveIntEnv('GEMINI_PRO_RPD', 1),
+  },
+} as const;
+
+function getQuotaLimits(modelName: string): { rpm: number; rpd: number; tpm: number } {
+  const m = modelName.toLowerCase();
+  if (m.includes('gemini-3') && m.includes('pro')) {
+    return QUOTA_LIMITS['gemini-3-pro'];
+  }
+  return QUOTA_LIMITS['gemini-2.5-flash'];
+}
+
 const rateLimitState = {
-  requests: [] as number[], // Timestamps das requisições
+  requests: [] as number[],
   dailyRequests: 0,
   lastResetDate: new Date().toDateString(),
+  tokenWindowStartMs: Date.now(),
+  tokensInCurrentMinute: 0,
 };
+
+/** Serializa processamento Gemini nesta instância (evita estourar RPM com HTTP paralelo). */
+let geminiTail: Promise<void> = Promise.resolve();
+function runGeminiSerialized<T>(fn: () => Promise<T>): Promise<T> {
+  const run = geminiTail.then(() => fn());
+  geminiTail = run.then(
+    () => undefined,
+    () => undefined,
+  );
+  return run;
+}
 
 // Inicializar Supabase
 const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
@@ -191,52 +225,68 @@ async function uploadFileToGemini(buffer: Buffer, mimeType: string, fileName: st
   }
 }
 
+function slideTokenMinuteWindow(now: number) {
+  if (now - rateLimitState.tokenWindowStartMs >= 60_000) {
+    rateLimitState.tokenWindowStartMs = now;
+    rateLimitState.tokensInCurrentMinute = 0;
+  }
+}
+
 /**
- * Verifica e aguarda se necessário para respeitar rate limits
+ * Respeita RPD, RPM e TPM (este último com base em usageMetadata após cada generate).
  */
 async function waitForRateLimit(modelName: string): Promise<void> {
-  const limits = QUOTA_LIMITS[modelName as keyof typeof QUOTA_LIMITS];
-  if (!limits) {
-    console.warn(`⚠️ Limites não definidos para modelo ${modelName}, usando delays padrão`);
-    await new Promise(resolve => setTimeout(resolve, 10000)); // 10s delay padrão
-    return;
+  const limits = getQuotaLimits(modelName);
+  let now = Date.now();
+  slideTokenMinuteWindow(now);
+
+  if (limits.tpm > 0 && rateLimitState.tokensInCurrentMinute >= limits.tpm) {
+    const waitMs = 60_000 - (now - rateLimitState.tokenWindowStartMs) + 500;
+    if (waitMs > 0) {
+      console.warn(
+        `⚠️ Limite de TPM no minuto atual (~${rateLimitState.tokensInCurrentMinute}/${limits.tpm}). Aguardando ${Math.ceil(waitMs / 1000)}s...`,
+      );
+      await new Promise((r) => setTimeout(r, waitMs));
+    }
+    now = Date.now();
+    rateLimitState.tokenWindowStartMs = now;
+    rateLimitState.tokensInCurrentMinute = 0;
   }
 
-  const now = Date.now();
-  const oneMinuteAgo = now - 60000;
-  const oneDayAgo = now - 86400000;
-
-  // Resetar contador diário se necessário
   if (rateLimitState.lastResetDate !== new Date().toDateString()) {
     rateLimitState.dailyRequests = 0;
     rateLimitState.lastResetDate = new Date().toDateString();
   }
 
-  // Filtrar requisições antigas
-  rateLimitState.requests = rateLimitState.requests.filter(timestamp => timestamp > oneMinuteAgo);
+  const oneMinuteAgo = now - 60_000;
+  rateLimitState.requests = rateLimitState.requests.filter((timestamp) => timestamp > oneMinuteAgo);
 
-  // Verificar limite diário
   if (rateLimitState.dailyRequests >= limits.rpd) {
     const waitUntil = new Date();
-    waitUntil.setHours(24, 0, 0, 0); // Próxima meia-noite
-    const waitMs = waitUntil.getTime() - now;
-    console.warn(`⚠️ Limite diário atingido (${limits.rpd} requests/dia). Aguardando até ${waitUntil.toLocaleString()}...`);
-    await new Promise(resolve => setTimeout(resolve, waitMs));
+    waitUntil.setHours(24, 0, 0, 0);
+    const waitMs = Math.max(0, waitUntil.getTime() - now);
+    console.warn(
+      `⚠️ Limite diário atingido (${limits.rpd} requests/dia). Aguardando até ${waitUntil.toLocaleString()}...`,
+    );
+    await new Promise((r) => setTimeout(r, waitMs));
     rateLimitState.dailyRequests = 0;
     rateLimitState.lastResetDate = new Date().toDateString();
+    now = Date.now();
   }
 
-  // Verificar limite por minuto
   if (rateLimitState.requests.length >= limits.rpm) {
-    const oldestRequest = rateLimitState.requests[0];
-    const waitMs = 60000 - (now - oldestRequest) + 1000; // +1s de margem
+    const oldestRequest = Math.min(...rateLimitState.requests);
+    const waitMs = 60_000 - (now - oldestRequest) + 1000;
     if (waitMs > 0) {
-      console.warn(`⚠️ Limite de RPM atingido (${limits.rpm} req/min). Aguardando ${Math.ceil(waitMs / 1000)}s...`);
-      await new Promise(resolve => setTimeout(resolve, waitMs));
+      console.warn(
+        `⚠️ Limite de RPM atingido (${limits.rpm} req/min). Aguardando ${Math.ceil(waitMs / 1000)}s...`,
+      );
+      await new Promise((r) => setTimeout(r, waitMs));
     }
+    now = Date.now();
+    rateLimitState.requests = rateLimitState.requests.filter((t) => t > now - 60_000);
   }
 
-  // Registrar nova requisição
   rateLimitState.requests.push(Date.now());
   rateLimitState.dailyRequests++;
 }
@@ -248,11 +298,13 @@ async function processWithGemini(
   message: string,
   fileIds: string[]
 ): Promise<string> {
-  // Usar modelo com melhor disponibilidade de quota (gemini-2.5-flash tem 19 RPD)
+  if (!genAI) {
+    throw new Error('Configure GEMINI_API_KEY no ambiente do servidor');
+  }
+
   const modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
   const model = genAI.getGenerativeModel({ model: modelName });
-  
-  // Aguardar se necessário para respeitar rate limits
+
   await waitForRateLimit(modelName);
   
   // Buscar e fazer upload dos PDFs para o Gemini (fazer apenas uma vez)
@@ -324,6 +376,15 @@ async function processWithGemini(
       const response = result.response;
       const text = response.text();
 
+      const usage = (response as { usageMetadata?: { totalTokenCount?: number } }).usageMetadata;
+      const totalTok = usage?.totalTokenCount;
+      if (typeof totalTok === 'number' && totalTok > 0) {
+        const t = Date.now();
+        slideTokenMinuteWindow(t);
+        rateLimitState.tokensInCurrentMinute += totalTok;
+        console.log(`📊 Tokens (usageMetadata): +${totalTok} no minuto (~${rateLimitState.tokensInCurrentMinute} acumulado)`);
+      }
+
       return text;
     } catch (error: any) {
       lastError = error;
@@ -370,7 +431,7 @@ router.post('/extract-edital-info', async (req, res) => {
     console.log(`📥 Recebida requisição: ${message.substring(0, 80)}...`);
     console.log(`📁 File IDs: ${file_ids.length} arquivo(s)`);
 
-    const result = await processWithGemini(message, file_ids);
+    const result = await runGeminiSerialized(() => processWithGemini(message, file_ids));
 
     console.log(`✅ Resposta gerada (${result.length} caracteres)`);
 

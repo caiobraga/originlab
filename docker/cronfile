@@ -1,0 +1,10 @@
+# Use UTC by default; override with TZ env in compose if desired
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+# Every 30 minutes: process edital info (no overlap)
+*/30 * * * * /app/docker/jobs/process-edital-info.sh
+
+# Once per day at 03:15: scrape all -> db:sync -> populate documents (no overlap)
+15 3 * * * /app/docker/jobs/daily-pipeline.sh
+

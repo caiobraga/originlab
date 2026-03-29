@@ -13,9 +13,8 @@ import { createClient } from '@supabase/supabase-js';
 const router = express.Router();
 router.use(express.json({ limit: '50mb' }));
 
-// Inicializar Gemini
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyARNPj2fdFb4RSnuI39gO0TGwWzgNXxisk';
-const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY?.trim() || '';
+const genAI = GEMINI_API_KEY ? new GoogleGenerativeAI(GEMINI_API_KEY) : null;
 
 // Inicializar Supabase
 const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
@@ -240,6 +239,9 @@ async function getEditalFileIds(editalId: string): Promise<string[]> {
  * Calcula scores usando Gemini
  */
 async function calculateScoresWithGemini(editalInfo: string, userData: string): Promise<{ match: number; probabilidade: number; justificativa: string }> {
+  if (!genAI) {
+    throw new Error('Configure GEMINI_API_KEY para usar o cálculo via Gemini');
+  }
   const modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
   const model = genAI.getGenerativeModel({ model: modelName });
   const prompt = buildScoresPrompt(editalInfo, userData);

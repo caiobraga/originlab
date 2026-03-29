@@ -194,7 +194,7 @@ export default function Dashboard() {
 
       // Tentar datas com hora (ISO completo), mas só quando parece um formato de data/hora.
       if (/^\d{4}-\d{2}-\d{2}t\d{2}:\d{2}/i.test(s)) {
-        const d = new Date(s);
+      const d = new Date(s);
         return isNaN(d.getTime()) ? null : d;
       }
 
@@ -423,7 +423,7 @@ export default function Dashboard() {
     if (edital.data_encerramento) {
       const enc = new Date(edital.data_encerramento);
       if (!isNaN(enc.getTime())) {
-        enc.setHours(23, 59, 59, 999);
+      enc.setHours(23, 59, 59, 999);
         return hoje.getTime() <= enc.getTime();
       }
     }

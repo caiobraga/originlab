@@ -2,6 +2,14 @@
 import '../load-env';
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import {
+  getDelayBetweenEditaisMs,
+  getOllamaFieldConcurrency,
+  getProcessEditalBatchConcurrency,
+  getWebhookOrLocalApiDefaultDelayMs,
+  sleepFieldExtractDelay,
+} from '../lib/process-edital-delays';
+import { runWithConcurrency } from '../lib/run-with-concurrency';
 
 // Modo de extração: Ollama local > API local > n8n webhook
 const USE_OLLAMA = process.env.USE_OLLAMA === 'true';
@@ -136,6 +144,10 @@ function isValidJsonFormat(jsonData: any, field: string): boolean {
   // Para valor_projeto, aceitar objeto JSON (pode ser complexo como {"valor": {...}})
   // OU array dentro de chave "valor" (ex: {"valor": [...]})
   if (field === 'valor_projeto') {
+    // Aceitar string (ex.: {"valor":"3.000,00"} extraído como string)
+    if (typeof jsonData === 'string' && jsonData.trim().length > 0) {
+      return true;
+    }
     // Deve ser um objeto JSON válido (não string, não array simples)
     if (typeof jsonData === 'object' && jsonData !== null && !Array.isArray(jsonData)) {
       return true; // Objeto válido (pode ser complexo)
@@ -151,13 +163,18 @@ function isValidJsonFormat(jsonData: any, field: string): boolean {
   if (field === 'prazo_inscricao') {
     if (Array.isArray(jsonData)) {
       // Array deve conter objetos com estrutura de prazo
-      return jsonData.length > 0 && jsonData.some((p: any) => 
-        typeof p === 'object' && p !== null && (p.inicio || p.fim || p.chamada || p.prazo)
+      return (
+        jsonData.length > 0 &&
+        jsonData.some(
+          (p: any) =>
+            (typeof p === 'string' && p.trim().length > 0) ||
+            (typeof p === 'object' && p !== null && (p.inicio || p.fim || p.chamada || p.prazo)),
+        )
       );
     }
     if (typeof jsonData === 'object' && jsonData !== null) {
       // Objeto deve ter "prazos" como array
-      return Array.isArray(jsonData.prazos) && jsonData.prazos.length > 0;
+      return Array.isArray(jsonData.prazos);
     }
     return false; // Não aceitar string simples
   }
@@ -283,10 +300,213 @@ async function extractInfoFromWebhook(
   editalId?: string,
 ): Promise<string | string[] | boolean | any | null> {
   try {
+    const extractPrazoRangesFromText = (input: string): string[] => {
+      const s = String(input || '');
+
+      const isValidBrDate = (dmy: string): boolean => {
+        const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(dmy);
+        if (!m) return false;
+        const dd = parseInt(m[1], 10);
+        const mm = parseInt(m[2], 10);
+        const yyyy = parseInt(m[3], 10);
+        if (yyyy < 1900 || yyyy > 2100) return false;
+        if (mm < 1 || mm > 12) return false;
+        if (dd < 1 || dd > 31) return false;
+        const daysInMonth = new Date(yyyy, mm, 0).getDate();
+        return dd <= daysInMonth;
+      };
+
+      const normalizeDateToken = (tok: string): string | null => {
+        const t = String(tok || '').trim();
+        if (!t) return null;
+
+        // DD/MM/AAAA
+        if (/^\d{2}\/\d{2}\/\d{4}$/.test(t)) return isValidBrDate(t) ? t : null;
+
+        // MM/AAAA -> assumir dia 01
+        if (/^\d{2}\/\d{4}$/.test(t)) {
+          const d = `01/${t}`;
+          return isValidBrDate(d) ? d : null;
+        }
+
+        return null;
+      };
+
+      // Captura intervalos: "DD/MM/AAAA a DD/MM/AAAA" e também "MM/AAAA a DD/MM/AAAA" etc.
+      const token = String.raw`(?:\d{2}\/\d{2}\/\d{4}|\d{2}\/\d{4})`;
+      const re = new RegExp(`(${token})\\s*(?:a|-|até|ate)\\s*(${token})`, 'gi');
+
+      const out: string[] = [];
+      let m: RegExpExecArray | null;
+      while ((m = re.exec(s)) != null) {
+        const start = normalizeDateToken(m[1]);
+        const end = normalizeDateToken(m[2]);
+        if (start && end) out.push(`${start} a ${end}`);
+      }
+
+      return [...new Set(out)];
+    };
+
+    const repairJsonCandidate = (input: string): string | null => {
+      const s = String(input || '').trim();
+      if (!s.startsWith('{') && !s.startsWith('[')) return null;
+
+      // Limpar code fences se existirem
+      let cand = s.replace(/```(?:json)?/gi, '').trim();
+
+      // Balancear colchetes/chaves (saída truncada por num_predict)
+      const count = (str: string, re: RegExp) => (str.match(re) || []).length;
+      const openBraces = count(cand, /\{/g);
+      const closeBraces = count(cand, /\}/g);
+      const openBrackets = count(cand, /\[/g);
+      const closeBrackets = count(cand, /\]/g);
+
+      const missingBrackets = Math.max(0, openBrackets - closeBrackets);
+      const missingBraces = Math.max(0, openBraces - closeBraces);
+
+      if (missingBrackets === 0 && missingBraces === 0) return cand;
+      return cand + ']'.repeat(missingBrackets) + '}'.repeat(missingBraces);
+    };
+
+    const extractFirstIntegerLike = (input: string): string | null => {
+      const s = String(input || '');
+      // pegar primeiro número inteiro "razoável" (1..100000), ignorando anos 19xx/20xx quando possível
+      const matches = s.match(/\b\d{1,6}\b/g) || [];
+      for (const m of matches) {
+        const n = parseInt(m, 10);
+        if (!Number.isFinite(n)) continue;
+        if (n >= 1900 && n <= 2099) continue; // provavelmente ano
+        if (n <= 0) continue;
+        return String(n);
+      }
+      return null;
+    };
+
+    const extractCurrencyLike = (input: string): string | null => {
+      const s = String(input || '');
+      // Suporta: $12.6M, US$ 1.2B, R$ 3.000,00, R$ 1.500.000,00, € 120k, etc.
+      // Regra: preferir o match mais "longo" (ex.: 1.500.000,00 ao invés de 1.500).
+      const patterns: RegExp[] = [
+        // Com símbolo + formato BR/Europeu (milhares com "." ou espaço e decimais com ",")
+        /(R\$|US\$|\$|€|£|¥)\s*\d{1,3}(?:[.\s]\d{3})*(?:,\d{2})?\b/gi,
+        // Com símbolo + formato simples (ponto/vírgula como decimal) + sufixos (K/M/B/mil/mi/...)
+        /(R\$|US\$|\$|€|£|¥)\s*\d+(?:[.,]\d+)?\s*(?:[KMB]|mil|mi|milhões|milhoes|bilhões|bilhoes)?\b/gi,
+        // Sem símbolo + sufixos (K/M/B/mil/mi/...)
+        /\b\d+(?:[.,]\d+)?\s*(?:[KMB]|mil|mi|milhões|milhoes|bilhões|bilhoes)\b/gi,
+        // Fallback sem símbolo (formato BR/Europeu)
+        /\b\d{1,3}(?:[.\s]\d{3})*(?:,\d{2})\b/gi,
+      ];
+
+      const candidates: string[] = [];
+      for (const re of patterns) {
+        let m: RegExpExecArray | null;
+        while ((m = re.exec(s)) != null) candidates.push(m[0].trim());
+      }
+      if (candidates.length === 0) return null;
+      candidates.sort((a, b) => b.length - a.length);
+      return candidates[0];
+    };
+
+    const extractTruncatedJsonStringField = (input: string, key: string): string | null => {
+      const s = String(input || '');
+      const keyPos = s.indexOf(`"${key}"`);
+      if (keyPos < 0) return null;
+      const colonPos = s.indexOf(':', keyPos);
+      if (colonPos < 0) return null;
+
+      let i = colonPos + 1;
+      while (i < s.length && /\s/.test(s[i])) i++;
+      if (i >= s.length || s[i] !== '"') return null;
+      i++; // pula aspas iniciais
+
+      let out = '';
+      let escaped = false;
+      for (; i < s.length; i++) {
+        const ch = s[i];
+        if (escaped) {
+          // preservar escapes comuns
+          if (ch === 'n') out += '\n';
+          else if (ch === 'r') out += '\r';
+          else if (ch === 't') out += '\t';
+          else out += ch;
+          escaped = false;
+          continue;
+        }
+        if (ch === '\\') {
+          escaped = true;
+          continue;
+        }
+        // se a string fechou corretamente, parar
+        if (ch === '"') break;
+        out += ch;
+      }
+
+      const cleaned = out.replace(/\s+/g, ' ').trim();
+      return cleaned.length > 0 ? cleaned : null;
+    };
+
+    const tryParseTopLevelJsonEvenIfTruncated = (txt: string): any | null => {
+      const s = String(txt || '').trim();
+      if (!s.startsWith('{') && !s.startsWith('[')) return null;
+      try {
+        return JSON.parse(s);
+      } catch {
+        const repaired = repairJsonCandidate(s);
+        if (!repaired) return null;
+        try {
+          return JSON.parse(repaired);
+        } catch {
+          return null;
+        }
+      }
+    };
+
+    const extractTimelineFromTruncatedText = (input: string): { fases: any[] } | null => {
+      const s = String(input || '');
+      if (!s.includes('"timeline_estimada"') && !s.includes('"fases"')) return null;
+
+      const fases: any[] = [];
+      const objRegex = /\{[^{}]*"nome"\s*:\s*"[^"]+"[^{}]*\}/g;
+      const matches = s.match(objRegex) || [];
+
+      for (const rawObj of matches) {
+        try {
+          const obj = JSON.parse(rawObj);
+          if (!obj || typeof obj !== 'object') continue;
+          if (typeof obj.nome !== 'string' || obj.nome.trim().length === 0) continue;
+
+          const fase: any = {
+            nome: obj.nome.trim(),
+          };
+          if (typeof obj.prazo === 'string' && obj.prazo.trim().length > 0) fase.prazo = obj.prazo.trim();
+          if (typeof obj.status === 'string' && obj.status.trim().length > 0) fase.status = obj.status.trim();
+          if (typeof obj.data_inicio === 'string' && obj.data_inicio.trim().length > 0) fase.data_inicio = obj.data_inicio.trim();
+          if (typeof obj.data_fim === 'string' && obj.data_fim.trim().length > 0) fase.data_fim = obj.data_fim.trim();
+          fases.push(fase);
+        } catch {
+          // ignora objeto inválido/parcial
+        }
+      }
+
+      if (fases.length === 0) return null;
+
+      // Dedup básico por (nome + prazo + status + datas)
+      const seen = new Set<string>();
+      const dedup = fases.filter((f) => {
+        const key = `${f.nome}|${f.prazo || ''}|${f.status || ''}|${f.data_inicio || ''}|${f.data_fim || ''}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
+      return { fases: dedup };
+    };
+
     // Mapear campos para perguntas em português (melhoradas e mais específicas)
     const fieldQuestions: Record<string, string> = {
       valor_projeto: "Qual é o valor financeiro disponível neste edital? Procure ESPECIFICAMENTE por valores numéricos que contenham símbolos monetários: R$ (reais), $ (dólar), US$ (dólar americano), € (euro), £ (libra esterlina), ¥ (iene), CHF (franco suíço), CAD (dólar canadense), AUD (dólar australiano), NZD (dólar neozelandês), BRL (reais), EUR (euro), GBP (libra), JPY (iene), ou outras moedas internacionais. Procure por valores de bolsa, auxílio, subvenção, investimento ou recurso financeiro que estejam expressos com qualquer símbolo monetário. Se houver múltiplos valores ou modalidades, liste todos. IMPORTANTE: Foque em valores que tenham símbolo monetário (R$, $, US$, €, £, ¥, CHF, CAD, AUD, NZD, BRL, EUR, GBP, JPY, etc.) e sejam numéricos. Mantenha o símbolo da moeda original no valor retornado. Retorne em formato JSON: {\"valor\": \"valor encontrado ou lista de valores\"}. Se não encontrar valor específico com símbolo monetário, retorne null.",
-      prazo_inscricao: "Quais são os prazos de inscrição ou submissão deste edital? Se houver múltiplos prazos (ex: diferentes chamadas, modalidades ou fases), liste TODOS os prazos encontrados. Para cada prazo, inclua: data inicial, data final, horário (se houver) e descrição da modalidade/chamada. Retorne em formato JSON: {\"prazos\": [{\"chamada\": \"nome da chamada\", \"inicio\": \"data inicial\", \"fim\": \"data final\", \"horario\": \"horário\"}, ...]} ou se for único: {\"prazo\": \"prazo encontrado\"} para o json se alguns dos valores for nulo como data inicial e data final não retorne o json. procure por nomes como Cronograma da Chamada tambem mas nao se limite somente a esses nomes se dentro dos cronogramas",
+      prazo_inscricao:
+        'Extraia os prazos de inscrição/submissão deste edital. Retorne SOMENTE JSON válido no formato {"prazos":["DD/MM/AAAA a DD/MM/AAAA (descrição opcional)", "..."]}. Se não encontrar, {"prazos":[]}. Não retorne objetos, só strings dentro do array.',
       localizacao: "Do edital, qual localização preciso estar para participar desse edital? Ou posso participar de qualquer lugar do Brasil? Procure por informações sobre requisitos de localização, residência, ou área geográfica necessária para participar. IMPORTANTE: Você DEVE retornar SEMPRE em formato JSON válido, nunca em texto livre. Se o edital aceita participantes de qualquer lugar do Brasil (sem restrição geográfica), retorne: {\"localizacao\": \"Brasil\"} ou {\"localizacao\": \"Nacional\"}. Se houver restrição geográfica específica (ex: apenas Espírito Santo, apenas São Paulo, apenas região Sudeste), retorne: {\"localizacao\": \"Espírito Santo\"} ou {\"localizacao\": \"São Paulo\"} ou {\"localizacao\": \"Região Sudeste\"} com o estado, cidade ou região específica encontrada. Procure também por termos como 'localização', 'residência', 'área de atuação', 'abrangência', 'região', 'estado', 'município', 'nacional', 'brasileiro'. Se não encontrar nenhuma informação sobre restrição geográfica, retorne: {\"localizacao\": \"Brasil\"} (assumindo que não há restrição). Se não encontrar nenhuma informação no documento, retorne: {\"localizacao\": null}. LEMBRE-SE: Retorne APENAS o JSON, sem texto adicional antes ou depois.",
       vagas: "Qual é o número máximo de participantes, projetos ou propostas que este edital aceita para inscrição? Procure ESPECIFICAMENTE por valores numéricos inteiros (números como 10, 20, 50, 100, 200, etc) que estejam próximos ou ao lado das palavras: 'vagas', 'propostas', 'projetos', 'inscrições', 'beneficiados', 'beneficiários', 'selecionados', 'aprovados', 'contratados', 'quantidade', 'total de', 'número de', 'máximo de', 'limite de', 'até', 'serão selecionados', 'serão aprovados', 'serão contratados', 'projetos aprovados', 'propostas aprovadas', 'número de projetos', 'quantidade de projetos', 'total de projetos', 'número de beneficiários', 'quantidade de beneficiários'. REGRAS CRÍTICAS: 1) Busque apenas números inteiros (10, 20, 50, 100) que NÃO sejam parte do nome/número do edital (ignore 'Edital 21/2024', 'Nº 10', datas '2024', '2025'). 2) Os números devem representar quantidade de vagas/propostas/projetos/beneficiados/selecionados, NÃO valores monetários ou datas. 3) Procure por padrões como: 'X vagas', 'X propostas', 'até X projetos', 'máximo de X', 'limite de X', 'X beneficiados', 'serão selecionados X', 'serão aprovados X', 'total de X projetos', 'quantidade de X', 'número de X', onde X é um número inteiro. 4) CÁLCULO BASEADO EM VALORES: Se encontrar valores financeiros totais e valores por projeto/beneficiário, calcule o número de vagas. Exemplo: se há R$ 1.000.000 total e cada projeto recebe R$ 50.000, então há 20 vagas. Procure por tabelas de 'recursos disponíveis', 'distribuição de recursos', 'valores por projeto', 'valores por beneficiário'. 5) PROCURE EM SEÇÕES ESPECÍFICAS: 'Objetivo', 'Recursos', 'Seleção', 'Aprovação', 'Quantidade de Projetos', 'Número de Vagas', 'Distribuição de Recursos', 'Critérios de Seleção', 'Resultado Esperado'. 6) Se encontrar 'cada proponente pode apresentar apenas uma proposta', isso é limite por proponente, NÃO o total de vagas - continue procurando pelo número total de vagas/projetos aprovados. 7) Ignore números de identificação do edital, datas, valores monetários ou contextos não relacionados. FORMATO DE RESPOSTA OBRIGATÓRIO: Você DEVE retornar APENAS JSON válido, SEM texto adicional. Se encontrar um número, retorne: {\"vagas\": \"X\"} onde X é o número encontrado. Se não encontrar nenhum número específico, retorne: {\"vagas\": null}. NUNCA retorne texto livre como 'Não foi possível encontrar' - sempre retorne JSON válido.",
       is_researcher: `Analise o edital COMPLETO e determine se ele é direcionado EXCLUSIVA ou PRINCIPALMENTE para PESQUISADORES ACADÊMICOS.
@@ -395,6 +615,14 @@ Retorne APENAS o JSON válido: {"is_company": true/false/null}`,
       criterios_elegibilidade: "Quais são os CRITÉRIOS DE ELEGIBILIDADE deste edital? Procure ESPECIFICAMENTE pela seção 'Critérios de Elegibilidade', 'Critérios de Habilitação', 'Requisitos para Participação', 'Condições de Elegibilidade', 'Condições de Habilitação', 'Requisitos de Elegibilidade', 'Critérios de Participação', 'Condições para Participação'. Extraia TODOS os critérios, requisitos e condições necessários para participar do edital. IMPORTANTE: Retorne em formato JSON: {\"criterios_elegibilidade\": \"texto completo com todos os critérios de elegibilidade encontrados\"}. Se não encontrar a seção de critérios de elegibilidade, retorne: {\"criterios_elegibilidade\": null}. LEMBRE-SE: Retorne APENAS o JSON, sem texto adicional antes ou depois.",
       timeline_estimada: "IMPORTANTE: Você recebeu os arquivos do edital através dos file_ids fornecidos. Analise o conteúdo desses arquivos para responder esta pergunta. Quais são as fases e cronograma deste edital? Procure por seções como 'Cronograma', 'Timeline', 'Calendário', 'Fases do Edital', 'Etapas', 'Fases de Execução', 'Cronograma de Atividades', 'Calendário de Execução', 'Linha do Tempo'. Para cada fase encontrada, extraia: nome da fase, prazo (em dias ou datas), status (aberto/fechado/pendente), data de início (se disponível), data de fim (se disponível). IMPORTANTE: Retorne em formato JSON: {\"timeline_estimada\": {\"fases\": [{\"nome\": \"Inscrição\", \"prazo\": \"30 dias\", \"status\": \"aberto\", \"data_inicio\": \"2024-01-01\", \"data_fim\": \"2024-01-31\"}, {\"nome\": \"Fase 1\", \"prazo\": \"60 dias\", \"status\": \"pendente\"}, ...]}}. Se não encontrar informações sobre cronograma/fases, retorne: {\"timeline_estimada\": null}. LEMBRE-SE: Retorne APENAS o JSON, sem texto adicional antes ou depois.",
     };
+    const fieldFallbackQuestions: Partial<Record<keyof typeof fieldQuestions, string>> = {
+      localizacao:
+        'Extraia APENAS a localização geográfica do edital (estado/cidade/região/país). Retorne somente JSON válido: {"localizacao":"..."}; se não encontrar, {"localizacao":null}.',
+      vagas:
+        'Extraia APENAS número de vagas/quantidade de bolsas/beneficiários do edital. Retorne somente JSON válido: {"vagas":"..."}; se não encontrar, {"vagas":null}.',
+      prazo_inscricao:
+        'Extraia APENAS o prazo de inscrição. Retorne somente JSON válido no formato {"prazos":["..."]}; se não encontrar, {"prazos":[]}.',
+    };
 
     // Verificar se file_ids está vazio
     if (!fileIds || fileIds.length === 0) {
@@ -413,12 +641,23 @@ Retorne APENAS o JSON válido: {"is_company": true/false/null}`,
       const { extractInfoViaOllama } = await import('../lib/ollama-edital');
       const model = process.env.OLLAMA_MODEL || 'qwen2.5:7b';
       console.log(`  📤 Extraindo via Ollama (${model}) para: ${field}`);
-      const ollamaText = await extractInfoViaOllama(fieldQuestions[field], fileIds, {
-        editalId: editalId || undefined,
-      });
-      responseText = ollamaText ?? '';
+      const maxEmptyRetries = Math.max(0, parseInt(process.env.OLLAMA_EMPTY_RESPONSE_RETRIES || '1', 10) || 1);
+      for (let attempt = 0; attempt <= maxEmptyRetries; attempt++) {
+        const useFallback = attempt > 0;
+        const prompt = useFallback && fieldFallbackQuestions[field]
+          ? fieldFallbackQuestions[field]!
+          : fieldQuestions[field];
+        const ollamaText = await extractInfoViaOllama(prompt, fileIds, {
+          editalId: editalId || undefined,
+        });
+        responseText = ollamaText ?? '';
+        if (responseText.trim()) break;
+        if (attempt < maxEmptyRetries) {
+          console.warn(`  ⚠️ Resposta vazia do Ollama para ${field}. Tentando novamente com prompt simplificado (${attempt + 1}/${maxEmptyRetries})...`);
+        }
+      }
       if (!responseText.trim()) {
-        console.warn(`  ⚠️ Resposta vazia do Ollama para ${field}`);
+        console.warn(`  ⚠️ Resposta vazia do Ollama para ${field} (após retries)`);
         return null;
       }
       console.log(`  📥 Resposta Ollama: ${responseText.length} caracteres`);
@@ -436,7 +675,10 @@ Retorne APENAS o JSON válido: {"is_company": true/false/null}`,
 
     // Adicionar delay entre requisições para evitar rate limiting e sobrecarga do n8n
     // Cloudflare tem timeout de 100s; n8n pode demorar se houver muitas requisições
-    const delayMs = parseInt(process.env.API_REQUEST_DELAY_MS || '12000', 10);
+    const delayMs = parseInt(
+      process.env.API_REQUEST_DELAY_MS || String(getWebhookOrLocalApiDefaultDelayMs()),
+      10,
+    );
     if (delayMs > 0) {
       await new Promise(resolve => setTimeout(resolve, delayMs));
     }
@@ -696,6 +938,11 @@ Retorne APENAS o JSON válido: {"is_company": true/false/null}`,
     if (!jsonMatch) {
       jsonMatch = responseText.match(/\{[\s\S]*\}/);
     }
+
+    // Se começa com "{" mas está truncado (sem "}" no fim), ainda assim tentar parse/repair
+    if (!jsonMatch && responseText.trim().startsWith('{')) {
+      jsonMatch = [responseText.trim()];
+    }
     
     // 3. Tentar encontrar JSON dentro de strings escapadas (ex: "output": "{\"key\": \"value\"}")
     if (!jsonMatch) {
@@ -806,10 +1053,27 @@ Retorne APENAS o JSON válido: {"is_company": true/false/null}`,
             console.log(`  ℹ️ ${field}: null (não encontrado)`);
             return null;
           }
-          const sobreValue = String(jsonData.sobre_programa).trim();
-          if (sobreValue.length > 0 && !isNotFoundMessage(sobreValue)) {
-            console.log(`  ✅ Extraído ${field} do JSON: ${sobreValue.substring(0, 100)}...`);
-            return sobreValue;
+          const sobreRaw = String(jsonData.sobre_programa).trim();
+          if (sobreRaw.length > 0 && !isNotFoundMessage(sobreRaw)) {
+            // Alguns modelos devolvem {"sobre_programa":"{\"sobre_programa\":\"...\"}"} (JSON dentro de string)
+            if (sobreRaw.startsWith('{') && sobreRaw.includes('sobre_programa')) {
+              try {
+                const repaired = repairJsonCandidate(sobreRaw) || sobreRaw;
+                const inner = JSON.parse(repaired);
+                if (inner && typeof inner === 'object' && inner.sobre_programa !== undefined) {
+                  const innerText = inner.sobre_programa === null ? null : String(inner.sobre_programa).trim();
+                  if (innerText && !isNotFoundMessage(innerText)) {
+                    console.log(`  ✅ Extraído ${field} (inner JSON string)`);
+                    return innerText;
+                  }
+                  if (inner.sobre_programa === null) return null;
+                }
+              } catch {
+                // se falhar, cair no raw
+              }
+            }
+            console.log(`  ✅ Extraído ${field} do JSON: ${sobreRaw.substring(0, 100)}...`);
+            return sobreRaw;
           }
         }
         
@@ -1149,6 +1413,57 @@ Retorne APENAS o JSON válido: {"is_company": true/false/null}`,
           }
         }
       } catch (parseError) {
+        // Campo textual longo pode vir truncado como {"sobre_programa":"... sem fechar aspas/chaves
+        if (field === 'sobre_programa' || field === 'criterios_elegibilidade') {
+          const key = field === 'sobre_programa' ? 'sobre_programa' : 'criterios_elegibilidade';
+          const partial = extractTruncatedJsonStringField(responseText, key);
+          if (partial && !isNotFoundMessage(partial)) {
+            console.warn(`  ⚠️ ${field}: JSON truncado; usando conteúdo parcial extraído (${partial.length} chars).`);
+            return partial;
+          }
+        }
+
+        // Ajuda quando faltou só o "}" final (ou estava truncado no fim)
+        const repairedData = tryParseTopLevelJsonEvenIfTruncated(jsonMatch[0]);
+        if (repairedData != null && isValidJsonFormat(repairedData, field)) {
+          console.warn(`  ⚠️ JSON reparado automaticamente (truncado no fim)`);
+          responseText = JSON.stringify(repairedData);
+          // e segue para os próximos estágios de extração abaixo
+        }
+
+        // Caso especial: prazo_inscricao frequentemente vem truncado dentro de string.
+        // Em vez de depender do JSON, reconstruímos a lista a partir do texto bruto.
+        if (field === 'prazo_inscricao') {
+          const ranges = extractPrazoRangesFromText(responseText);
+          if (ranges.length > 0) {
+            console.warn(`  ⚠️ prazo_inscricao: JSON inválido/truncado; reconstruindo a partir de ${ranges.length} intervalo(s) detectado(s).`);
+            return JSON.stringify({ prazos: ranges });
+          }
+        }
+
+        // Caso especial: timeline_estimada truncada no meio do array fases.
+        if (field === 'timeline_estimada') {
+          const timeline = extractTimelineFromTruncatedText(responseText);
+          if (timeline && Array.isArray(timeline.fases) && timeline.fases.length > 0) {
+            console.warn(`  ⚠️ timeline_estimada: JSON inválido/truncado; reconstruindo ${timeline.fases.length} fase(s) válidas.`);
+            return JSON.stringify(timeline);
+          }
+        }
+
+        // Tentar reparar JSON truncado (muito comum com num_predict baixo)
+        try {
+          const repaired = repairJsonCandidate(jsonMatch[0]);
+          if (repaired) {
+            const jsonData2 = JSON.parse(repaired);
+            if (isValidJsonFormat(jsonData2, field)) {
+              console.warn(`  ⚠️ JSON reparado automaticamente (saída truncada)`);
+              // Reusar fluxo padrão: converter para texto e deixar o pipeline extrair
+              responseText = JSON.stringify(jsonData2);
+            }
+          }
+        } catch {
+          // ignore
+        }
         console.warn(`  ⚠️ Erro ao parsear JSON encontrado: ${parseError}`);
         // Continuar para tentar outros métodos
       }
@@ -1230,6 +1545,22 @@ Retorne APENAS o JSON válido: {"is_company": true/false/null}`,
       }
     }
 
+    // Fallbacks quando o modelo ignora o formato JSON (principalmente em modelos menores)
+    if (field === 'vagas') {
+      const n = extractFirstIntegerLike(responseText);
+      if (n) {
+        console.warn(`  ⚠️ vagas: resposta em texto; extraindo número ${n}`);
+        return n;
+      }
+    }
+    if (field === 'valor_projeto') {
+      const v = extractCurrencyLike(responseText);
+      if (v) {
+        console.warn(`  ⚠️ valor_projeto: resposta fora do JSON; extraindo valor ${v}`);
+        return JSON.stringify({ valor: v });
+      }
+    }
+
     // Se não conseguiu extrair JSON no formato esperado, retornar null
     console.warn(`  ⚠️ Resposta não está no formato JSON esperado para ${field}`);
     return null;
@@ -1305,157 +1636,164 @@ export async function processEditalInfo(
   let sobre_programa: string | null = null;
   let criterios_elegibilidade: string | null = null;
   let timeline_estimada: any | null = null;
-  
-  // Extrair apenas os campos que precisam ser atualizados
-  if (needsValorProjeto) {
-    const result = await extractInfoFromWebhook('valor_projeto', pdfIds, edital.id);
-    valor_projeto = (typeof result === 'string' || Array.isArray(result)) ? result : null;
-    if (forceReextract && keepExistingOnEmpty && (!valor_projeto || (Array.isArray(valor_projeto) ? valor_projeto.length === 0 : valor_projeto.trim().length === 0))) {
-      valor_projeto = edital.valor_projeto || null;
-    }
-    await new Promise(resolve => setTimeout(resolve, 2000));
-  } else {
+
+  // Campos que não precisam de nova extração: manter valor + log
+  if (!needsValorProjeto) {
     valor_projeto = edital.valor_projeto || null;
     console.log(`  ⏭️  Valor por Projeto já possui valor válido, mantendo valor existente`);
   }
-  
-  if (needsPrazoInscricao) {
-    const result = await extractInfoFromWebhook('prazo_inscricao', pdfIds, edital.id);
-    prazo_inscricao = (typeof result === 'string' || Array.isArray(result)) ? result : null;
-    if (forceReextract && keepExistingOnEmpty && (!prazo_inscricao || (Array.isArray(prazo_inscricao) ? prazo_inscricao.length === 0 : prazo_inscricao.trim().length === 0))) {
-      prazo_inscricao = edital.prazo_inscricao || null;
-    }
-    await new Promise(resolve => setTimeout(resolve, 2000));
-  } else {
+  if (!needsPrazoInscricao) {
     prazo_inscricao = edital.prazo_inscricao || null;
     console.log(`  ⏭️  Prazo de Inscrição já possui valor válido, mantendo valor existente`);
   }
-  
-  if (needsLocalizacao) {
-    const result = await extractInfoFromWebhook('localizacao', pdfIds, edital.id);
-    localizacao = (typeof result === 'string' || Array.isArray(result)) ? result : null;
-    if (forceReextract && keepExistingOnEmpty && (!localizacao || (Array.isArray(localizacao) ? localizacao.length === 0 : localizacao.trim().length === 0))) {
-      localizacao = edital.localizacao || null;
-    }
-    await new Promise(resolve => setTimeout(resolve, 2000));
-  } else {
+  if (!needsLocalizacao) {
     localizacao = edital.localizacao || null;
     console.log(`  ⏭️  Localização já possui valor válido, mantendo valor existente`);
   }
-  
-  if (needsVagas) {
-    const result = await extractInfoFromWebhook('vagas', pdfIds, edital.id);
-    vagas = (typeof result === 'string' || Array.isArray(result)) ? result : null;
-    if (forceReextract && keepExistingOnEmpty && (!vagas || (Array.isArray(vagas) ? vagas.length === 0 : vagas.trim().length === 0))) {
-      vagas = edital.vagas || null;
-    }
-    await new Promise(resolve => setTimeout(resolve, 2000));
-  } else {
+  if (!needsVagas) {
     vagas = edital.vagas || null;
     console.log(`  ⏭️  Vagas já possui valor válido, mantendo valor existente`);
   }
-  
-  // Para CNPq: definir automaticamente como pesquisador
+
   if (isCNPqEdital) {
     is_researcher = true;
-    is_company = false; // CNPq não é para empresas
+    is_company = false;
     console.log(`  ✅ Edital CNPq: definido automaticamente como pesquisador (is_researcher=true, is_company=false)`);
   } else {
-    // Para outros editais, fazer a pergunta normalmente
-    if (needsIsResearcher) {
-      const result = await extractInfoFromWebhook('is_researcher', pdfIds, edital.id);
-      if (typeof result === 'boolean') {
-        is_researcher = result;
-      } else {
-        is_researcher = null;
-      }
-      await new Promise(resolve => setTimeout(resolve, 2000));
-    } else {
+    if (!needsIsResearcher) {
       is_researcher = edital.is_researcher ?? null;
       console.log(`  ⏭️  Is Researcher já possui valor válido, mantendo valor existente`);
     }
-    
-    if (needsIsCompany) {
-      const result = await extractInfoFromWebhook('is_company', pdfIds, edital.id);
-      if (typeof result === 'boolean') {
-        is_company = result;
-      } else {
-        is_company = null;
-      }
-      await new Promise(resolve => setTimeout(resolve, 2000));
-    } else {
+    if (!needsIsCompany) {
       is_company = edital.is_company ?? null;
       console.log(`  ⏭️  Is Company já possui valor válido, mantendo valor existente`);
     }
   }
 
-  // Confiar na classificação da IA - sem pós-processamento
-  // Os prompts foram melhorados para que a IA faça a classificação correta desde o início
-  
-  if (needsSobrePrograma) {
-    const result = await extractInfoFromWebhook('sobre_programa', pdfIds, edital.id);
-    if (typeof result === 'string') {
-      sobre_programa = result;
-    } else {
-      sobre_programa = null;
-    }
-    if (forceReextract && keepExistingOnEmpty && (!sobre_programa || !sobre_programa.trim())) {
-      sobre_programa = edital.sobre_programa || null;
-    }
-    await new Promise(resolve => setTimeout(resolve, 2000));
-  } else {
+  if (!needsSobrePrograma) {
     sobre_programa = edital.sobre_programa || null;
     console.log(`  ⏭️  Sobre Programa já possui valor válido, mantendo valor existente`);
   }
-  
-  if (needsCriteriosElegibilidade) {
-    const result = await extractInfoFromWebhook('criterios_elegibilidade', pdfIds, edital.id);
-    if (typeof result === 'string') {
-      criterios_elegibilidade = result;
-    } else {
-      criterios_elegibilidade = null;
-    }
-    if (forceReextract && keepExistingOnEmpty && (!criterios_elegibilidade || !criterios_elegibilidade.trim())) {
-      criterios_elegibilidade = edital.criterios_elegibilidade || null;
-    }
-  } else {
+  if (!needsCriteriosElegibilidade) {
     criterios_elegibilidade = edital.criterios_elegibilidade || null;
     console.log(`  ⏭️  Critérios de Elegibilidade já possui valor válido, mantendo valor existente`);
   }
-  
-  // Extrair timeline_estimada
-  if (needsTimelineEstimada) {
-    const result = await extractInfoFromWebhook('timeline_estimada', pdfIds, edital.id);
-    if (typeof result === 'string' && result.trim().length > 0) {
-      try {
-        // Parsear a string JSON retornada
-        const parsedTimeline = JSON.parse(result);
-        timeline_estimada = (typeof parsedTimeline === 'object' && parsedTimeline !== null) ? parsedTimeline : null;
-        if (timeline_estimada) {
-          console.log(`  ✅ Timeline Estimada extraída com sucesso`);
-        } else {
-          console.log(`  ℹ️ Timeline Estimada: null (não encontrado)`);
-        }
-      } catch (e) {
-        console.warn(`  ⚠️ Erro ao parsear timeline_estimada: ${e}`);
-        timeline_estimada = null;
-      }
-    } else if (typeof result === 'object' && result !== null) {
-      // Se já veio como objeto (caso raro)
-      timeline_estimada = result;
-    } else {
-      timeline_estimada = null;
-      console.log(`  ℹ️ Timeline Estimada: null (não encontrado)`);
-    }
-
-    if (forceReextract && keepExistingOnEmpty && !timeline_estimada) {
-      timeline_estimada = edital.timeline_estimada || null;
-    }
-
-    await new Promise(resolve => setTimeout(resolve, 2000));
-  } else {
+  if (!needsTimelineEstimada) {
     timeline_estimada = edital.timeline_estimada || null;
     console.log(`  ⏭️  Timeline Estimada já possui valor válido, mantendo valor existente`);
+  }
+
+  const extractionTasks: (() => Promise<void>)[] = [];
+
+  if (needsValorProjeto) {
+    extractionTasks.push(async () => {
+      const result = await extractInfoFromWebhook('valor_projeto', pdfIds, edital.id);
+      valor_projeto = (typeof result === 'string' || Array.isArray(result)) ? result : null;
+      if (forceReextract && keepExistingOnEmpty && (!valor_projeto || (Array.isArray(valor_projeto) ? valor_projeto.length === 0 : valor_projeto.trim().length === 0))) {
+        valor_projeto = edital.valor_projeto || null;
+      }
+    });
+  }
+  if (needsPrazoInscricao) {
+    extractionTasks.push(async () => {
+      const result = await extractInfoFromWebhook('prazo_inscricao', pdfIds, edital.id);
+      prazo_inscricao = (typeof result === 'string' || Array.isArray(result)) ? result : null;
+      if (forceReextract && keepExistingOnEmpty && (!prazo_inscricao || (Array.isArray(prazo_inscricao) ? prazo_inscricao.length === 0 : prazo_inscricao.trim().length === 0))) {
+        prazo_inscricao = edital.prazo_inscricao || null;
+      }
+    });
+  }
+  if (needsLocalizacao) {
+    extractionTasks.push(async () => {
+      const result = await extractInfoFromWebhook('localizacao', pdfIds, edital.id);
+      localizacao = (typeof result === 'string' || Array.isArray(result)) ? result : null;
+      if (forceReextract && keepExistingOnEmpty && (!localizacao || (Array.isArray(localizacao) ? localizacao.length === 0 : localizacao.trim().length === 0))) {
+        localizacao = edital.localizacao || null;
+      }
+    });
+  }
+  if (needsVagas) {
+    extractionTasks.push(async () => {
+      const result = await extractInfoFromWebhook('vagas', pdfIds, edital.id);
+      vagas = (typeof result === 'string' || Array.isArray(result)) ? result : null;
+      if (forceReextract && keepExistingOnEmpty && (!vagas || (Array.isArray(vagas) ? vagas.length === 0 : vagas.trim().length === 0))) {
+        vagas = edital.vagas || null;
+      }
+    });
+  }
+
+  if (!isCNPqEdital) {
+    if (needsIsResearcher) {
+      extractionTasks.push(async () => {
+        const result = await extractInfoFromWebhook('is_researcher', pdfIds, edital.id);
+        is_researcher = typeof result === 'boolean' ? result : null;
+      });
+    }
+    if (needsIsCompany) {
+      extractionTasks.push(async () => {
+        const result = await extractInfoFromWebhook('is_company', pdfIds, edital.id);
+        is_company = typeof result === 'boolean' ? result : null;
+      });
+    }
+  }
+
+  if (needsSobrePrograma) {
+    extractionTasks.push(async () => {
+      const result = await extractInfoFromWebhook('sobre_programa', pdfIds, edital.id);
+      sobre_programa = typeof result === 'string' ? result : null;
+      if (forceReextract && keepExistingOnEmpty && (!sobre_programa || !sobre_programa.trim())) {
+        sobre_programa = edital.sobre_programa || null;
+      }
+    });
+  }
+  if (needsCriteriosElegibilidade) {
+    extractionTasks.push(async () => {
+      const result = await extractInfoFromWebhook('criterios_elegibilidade', pdfIds, edital.id);
+      criterios_elegibilidade = typeof result === 'string' ? result : null;
+      if (forceReextract && keepExistingOnEmpty && (!criterios_elegibilidade || !criterios_elegibilidade.trim())) {
+        criterios_elegibilidade = edital.criterios_elegibilidade || null;
+      }
+    });
+  }
+  if (needsTimelineEstimada) {
+    extractionTasks.push(async () => {
+      const result = await extractInfoFromWebhook('timeline_estimada', pdfIds, edital.id);
+      if (typeof result === 'string' && result.trim().length > 0) {
+        try {
+          const parsedTimeline = JSON.parse(result);
+          timeline_estimada = (typeof parsedTimeline === 'object' && parsedTimeline !== null) ? parsedTimeline : null;
+          if (timeline_estimada) {
+            console.log(`  ✅ Timeline Estimada extraída com sucesso`);
+          } else {
+            console.log(`  ℹ️ Timeline Estimada: null (não encontrado)`);
+          }
+        } catch (e) {
+          console.warn(`  ⚠️ Erro ao parsear timeline_estimada: ${e}`);
+          timeline_estimada = null;
+        }
+      } else if (typeof result === 'object' && result !== null) {
+        timeline_estimada = result;
+      } else {
+        timeline_estimada = null;
+        console.log(`  ℹ️ Timeline Estimada: null (não encontrado)`);
+      }
+      if (forceReextract && keepExistingOnEmpty && !timeline_estimada) {
+        timeline_estimada = edital.timeline_estimada || null;
+      }
+    });
+  }
+
+  const fieldConcurrency = getOllamaFieldConcurrency();
+  if (fieldConcurrency <= 1 || !USE_OLLAMA) {
+    for (const t of extractionTasks) {
+      await t();
+      await sleepFieldExtractDelay();
+    }
+  } else {
+    if (extractionTasks.length > 0) {
+      console.log(`  ⚡ Extração paralela: até ${fieldConcurrency} campo(s) ao mesmo tempo (OLLAMA_FIELD_CONCURRENCY)`);
+    }
+    await runWithConcurrency(extractionTasks, fieldConcurrency);
   }
 
   const processedInfo: ProcessedInfo = {};
@@ -1784,36 +2122,72 @@ export async function processAllEditaisInfo(): Promise<void> {
   }
 
   console.log(`📊 Total de editais a processar: ${editais.length}`);
+  if (USE_OLLAMA) {
+    console.log(
+      `⚡ Paralelismo: até ${getOllamaFieldConcurrency()} campo(s) por edital · ${getProcessEditalBatchConcurrency()} edital(is) por lote (OLLAMA_FIELD_CONCURRENCY / PROCESS_EDITAL_CONCURRENCY)`,
+    );
+  }
   console.log('');
 
   let successCount = 0;
   let errorCount = 0;
   const errors: Array<{ edital: string; error: string }> = [];
 
-  // Processar cada edital sequencialmente com delays
-  for (let i = 0; i < editais.length; i++) {
-    const edital = editais[i];
+  type OneResult = { ok: true } | { ok: false; edital: string; error: string };
+
+  async function runOneEdital(edital: EditalInfo): Promise<OneResult> {
     try {
       const processedInfo = await processEditalInfo(supabase, edital);
       await updateEditalInfo(supabase, edital.id, processedInfo);
-      successCount++;
       console.log(`  ✅ Edital processado com sucesso\n`);
-      
-      // Delay entre editais para evitar rate limiting e sobrecarga do n8n
-      // Cloudflare tem timeout de 100s; múltiplas requisições rápidas podem sobrecarregar
-      if (i < editais.length - 1) {
-        const delayBetweenEditais = parseInt(process.env.DELAY_BETWEEN_EDITAIS_MS || '30000', 10);
-        console.log(`⏳ Aguardando ${delayBetweenEditais / 1000}s antes do próximo edital...\n`);
-        await new Promise(resolve => setTimeout(resolve, delayBetweenEditais));
-      }
+      return { ok: true };
     } catch (error) {
-      errorCount++;
       const errorMsg = error instanceof Error ? error.message : String(error);
-      errors.push({
+      console.error(`  ❌ Erro ao processar edital: ${errorMsg}\n`);
+      return {
+        ok: false,
         edital: `${edital.numero || 'N/A'} - ${edital.titulo}`,
         error: errorMsg,
-      });
-      console.error(`  ❌ Erro ao processar edital: ${errorMsg}\n`);
+      };
+    }
+  }
+
+  function accumulateResults(results: OneResult[]) {
+    for (const r of results) {
+      if (r.ok) successCount++;
+      else {
+        errorCount++;
+        errors.push({ edital: r.edital, error: r.error });
+      }
+    }
+  }
+
+  const batchConc = getProcessEditalBatchConcurrency();
+  if (batchConc <= 1) {
+    for (let i = 0; i < editais.length; i++) {
+      const r = await runOneEdital(editais[i]);
+      accumulateResults([r]);
+      if (i < editais.length - 1) {
+        const delayBetweenEditais = getDelayBetweenEditaisMs();
+        if (delayBetweenEditais > 0) {
+          console.log(`⏳ Aguardando ${delayBetweenEditais / 1000}s antes do próximo edital...\n`);
+          await new Promise((resolve) => setTimeout(resolve, delayBetweenEditais));
+        }
+      }
+    }
+  } else {
+    console.log(`⚡ PROCESS_EDITAL_CONCURRENCY=${batchConc}: processando editais em lotes paralelos (USE_OLLAMA).\n`);
+    for (let i = 0; i < editais.length; i += batchConc) {
+      const chunk = editais.slice(i, i + batchConc);
+      const results = await Promise.all(chunk.map((e) => runOneEdital(e)));
+      accumulateResults(results);
+      if (i + batchConc < editais.length) {
+        const delayBetweenEditais = getDelayBetweenEditaisMs();
+        if (delayBetweenEditais > 0) {
+          console.log(`⏳ Aguardando ${delayBetweenEditais / 1000}s antes do próximo lote...\n`);
+          await new Promise((resolve) => setTimeout(resolve, delayBetweenEditais));
+        }
+      }
     }
   }
 

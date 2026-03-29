@@ -1,0 +1,22 @@
+services:
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: originlab-scheduler
+    restart: unless-stopped
+    # If you use .env.local locally, you can also change to env_file: [.env.local]
+    env_file:
+      - .env.local
+    environment:
+      TZ: UTC
+      # Ensure puppeteer uses system chromium
+      PUPPETEER_SKIP_DOWNLOAD: "true"
+      PUPPETEER_EXECUTABLE_PATH: "/usr/bin/chromium"
+    # Optional: persist logs/locks if you want
+    # volumes:
+    #   - originlab-scheduler-tmp:/tmp
+
+# volumes:
+#   originlab-scheduler-tmp:
+
