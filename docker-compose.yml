@@ -7,9 +7,11 @@ services:
       TZ: UTC
     volumes:
       - ollama:/root/.ollama
-    ports:
-      # Optional: expose to host for debugging (curl http://localhost:11434)
-      - "11434:11434"
+    # No host port: avoids conflict when Ollama já roda na máquina (11434).
+    # O scheduler fala com ollama pela rede interna: http://ollama:11434
+    # Para expor na máquina, descomente (ou use outra porta, ex.: "11435:11434"):
+    # ports:
+    #   - "11435:11434"
 
   # Pull models once on startup (idempotent).
   # Uses OLLAMA_MODEL and OLLAMA_EMBED_MODEL from env_file.
@@ -24,20 +26,23 @@ services:
     environment:
       TZ: UTC
       OLLAMA_BASE_URL: http://ollama:11434
+      # Default embed model (scripts/lib/ollama-edital.ts) — override in .env.local
+      OLLAMA_EMBED_MODEL: mxbai-embed-large:latest
     entrypoint: ["/bin/sh", "-lc"]
+    # Use $$ so Docker Compose does not substitute ${...} from the host (avoids blank WARN).
     command: >
       '
       set -e;
       echo "[ollama-init] waiting for ollama...";
-      for i in $(seq 1 60); do
+      for i in $$(seq 1 60); do
         if wget -qO- http://ollama:11434/api/tags >/dev/null 2>&1; then break; fi;
         sleep 1;
       done;
-      echo "[ollama-init] pulling main model: ${OLLAMA_MODEL:-qwen2.5:7b}";
-      ollama pull "${OLLAMA_MODEL:-qwen2.5:7b}";
-      if [ -n "${OLLAMA_EMBED_MODEL:-}" ]; then
-        echo "[ollama-init] pulling embed model: ${OLLAMA_EMBED_MODEL}";
-        ollama pull "${OLLAMA_EMBED_MODEL}";
+      echo "[ollama-init] pulling main model: $${OLLAMA_MODEL:-qwen2.5:7b}";
+      ollama pull "$${OLLAMA_MODEL:-qwen2.5:7b}";
+      if [ -n "$${OLLAMA_EMBED_MODEL:-}" ]; then
+        echo "[ollama-init] pulling embed model: $${OLLAMA_EMBED_MODEL}";
+        ollama pull "$${OLLAMA_EMBED_MODEL}";
       fi;
       echo "[ollama-init] done";
       '

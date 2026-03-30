@@ -37,7 +37,9 @@ ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 RUN corepack enable
 
 # Install deps first (better layer cache)
+# package.json references patchedDependencies (pnpm patches/*.patch) — must exist before install
 COPY pnpm-lock.yaml package.json ./
+COPY patches ./patches
 RUN pnpm install --frozen-lockfile
 
 # Copy app sources
