@@ -288,16 +288,37 @@ function extractFormacaoFromText(full: string): Array<{ nivel: string; curso: st
 
 /** Extrai dados quando o usuário cola o texto visível da página (Ctrl+A no Lattes) ou do PDF. */
 function parseLattesFromText(text: string, id: string): Record<string, unknown> {
-  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const full = text;
+  const lines = full.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
   let nome = `Pesquisador ${id.slice(0, 4)}`;
-  for (let i = 0; i < Math.min(20, lines.length); i++) {
-    const line = lines[i];
-    if (line.length > 4 && line.length < 80 && /^[A-Za-zÀ-ÿ\s\-\.]+$/.test(line) && !/captcha|segurança|código|currículo|lattes/i.test(line)) {
-      nome = line;
-      break;
+
+  const labeled =
+    full.match(/nome\s+civil[^:\n]{0,20}:\s*([^\n]+)/i) ??
+    full.match(/nome\s+completo[^:\n]{0,20}:\s*([^\n]+)/i) ??
+    full.match(/nome[^:\n]{0,15}:\s*([^\n]+)/i);
+  if (labeled?.[1]) {
+    const c = labeled[1].trim().replace(/\s+/g, " ");
+    if (c.length > 3 && c.length < 120 && !/^https?:/i.test(c)) nome = c;
+  }
+
+  const skipLine = (s: string) =>
+    /captcha|segurança|código|currículo|lattes|sistema\s+de\s+currículos|plataforma\s+lattes|cnpq|ministério|governo/i.test(
+      s,
+    );
+  if (nome.startsWith("Pesquisador")) {
+    for (let i = 0; i < Math.min(30, lines.length); i++) {
+      const line = lines[i];
+      if (
+        line.length > 4 &&
+        line.length < 100 &&
+        /^[\p{L}\d\s\-.',]+$/u.test(line) &&
+        !skipLine(line)
+      ) {
+        nome = line.replace(/\s+/g, " ").trim();
+        break;
+      }
     }
   }
-  const full = text;
   const areasAtuacao: string[] = [];
   const areaRe = /(?:Grande\s+Área|Área|Subárea|Especialidade)[^:]*:\s*([^\n]+)/gi;
   let m: RegExpExecArray | null;
@@ -465,7 +486,8 @@ router.post("/lattes/parse-pdf", async (req, res) => {
       return res.status(400).json({ error: "Arquivo PDF muito pequeno." });
     }
     let text = "";
-    const isServerless = typeof process.env.VERCEL === "string" || typeof process.env.AWS_LAMBDA_FUNCTION_NAME === "string";
+    const isServerless =
+      typeof process.env.VERCEL === "string" || typeof process.env.AWS_LAMBDA_FUNCTION_NAME === "string";
     try {
       const { PDFExtract } = await import("pdf.js-extract");
       const pdfExtract = new PDFExtract();
@@ -475,29 +497,35 @@ router.post("/lattes/parse-pdf", async (req, res) => {
           ?.flatMap((p: { content?: Array<{ str?: string }> }) => p.content?.map((c: { str?: string }) => c.str ?? "") ?? [])
           .join(" ") ?? "";
     } catch (primaryErr) {
-      if (isServerless) {
-        try {
-          const { extractText, getDocumentProxy } = await import("unpdf");
-          const pdf = await getDocumentProxy(new Uint8Array(buffer));
-          const result = await extractText(pdf, { mergePages: true });
-          text = result?.text ?? "";
-        } catch (unpdfErr) {
-          console.warn("PDF extract failed in serverless (pdf.js-extract + unpdf):", (primaryErr as Error).message, (unpdfErr as Error).message);
+      console.warn("pdf.js-extract falhou:", (primaryErr as Error).message);
+    }
+    if (text.length < 50) {
+      try {
+        const { extractText, getDocumentProxy } = await import("unpdf");
+        const pdf = await getDocumentProxy(new Uint8Array(buffer));
+        const result = await extractText(pdf, { mergePages: true });
+        const t = result?.text ?? "";
+        if (t.length > text.length) text = t;
+      } catch (unpdfErr) {
+        console.warn("unpdf falhou:", (unpdfErr as Error).message);
+        if (isServerless) {
           return res.status(503).json({
             error:
-              "Processamento de PDF temporariamente indisponível neste ambiente. Por favor, informe seu ID Lattes na página de perfil ou tente enviar o currículo novamente mais tarde.",
+              "Processamento de PDF temporariamente indisponível. Informe seu ID Lattes no perfil ou tente mais tarde.",
           });
         }
-      } else {
-        try {
-          const { PDFParse } = await import("pdf-parse");
-          const parser = new PDFParse({ data: new Uint8Array(buffer) });
-          const textResult = await parser.getText();
-          await parser.destroy();
-          text = textResult?.text || "";
-        } catch {
-          text = "";
-        }
+      }
+    }
+    if (text.length < 50) {
+      try {
+        const { PDFParse } = await import("pdf-parse");
+        const parser = new PDFParse({ data: new Uint8Array(buffer) });
+        const textResult = await parser.getText();
+        await parser.destroy();
+        const t = textResult?.text || "";
+        if (t.length > text.length) text = t;
+      } catch (pdfParseErr) {
+        console.warn("pdf-parse falhou:", (pdfParseErr as Error).message);
       }
     }
     if (text.length < 50) {

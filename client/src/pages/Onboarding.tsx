@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRight, CheckCircle2, Sparkles, User, FileText, ExternalLink, RefreshCw } from "lucide-react";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
@@ -460,6 +460,14 @@ export default function Onboarding() {
                     <CheckCircle2 className="w-16 h-16 text-green-600" />
                   </div>
                   <p className="text-center text-gray-700">Tudo certo! Você pode completar mais dados depois na página de perfil.</p>
+                  <p className="text-center text-sm text-gray-600">
+                    Para pagar com cartão e ativar o <strong>Pro</strong> ou <strong>Empresas</strong>, abra os planos após entrar no painel (menu <strong>Planos</strong>) ou agora:
+                  </p>
+                  <Link href="/planos">
+                    <Button type="button" variant="outline" className="w-full border-violet-300 text-violet-700 hover:bg-violet-50">
+                      Ver planos e checkout com cartão
+                    </Button>
+                  </Link>
                   <Button className="w-full bg-green-600 hover:bg-green-700" onClick={handleSalvarPerfil} disabled={loading}>
                     {loading ? "Salvando..." : "Ir ao painel"}
                     <ArrowRight className="w-5 h-5 ml-2" />

@@ -20,6 +20,8 @@ import {
   getReferrerByCode,
   recordReferralConversion,
 } from "@/lib/referralApi";
+import { recordSignupAttribution } from "@/lib/attribution";
+import { getEmailConfirmRedirectUrl } from "@/lib/authEmailConfirmation";
 
 export default function SignUp() {
   const [, setLocation] = useLocation();
@@ -104,6 +106,9 @@ export default function SignUp() {
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          emailRedirectTo: getEmailConfirmRedirectUrl(),
+        },
       });
 
       if (signUpError) {
@@ -211,12 +216,17 @@ export default function SignUp() {
           console.warn("Erro ao registrar referência:", refError);
         }
       }
+
+      // Afiliados / campanhas: gravar código aff e UTMs capturados na primeira visita
+      await recordSignupAttribution(signUpData.user.id);
       
-      // Após cadastro, redirecionar para onboarding (ou perfil se já tiver sessão)
+      // Com "Confirm email" ativo no Supabase não há session até confirmar — ir ao login com aviso
       if (signUpData.session) {
         setLocation("/onboarding?new=1");
       } else {
-        setLocation("/login");
+        setLocation(
+          `/login?precisaConfirmar=1&email=${encodeURIComponent(email)}`,
+        );
       }
     } catch (error: any) {
       console.error("Erro completo no signup:", error);

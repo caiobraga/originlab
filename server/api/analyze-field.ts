@@ -2,8 +2,6 @@ import express from "express";
 import { createClient } from "@supabase/supabase-js";
 
 const router = express.Router();
-router.use(express.json({ limit: "2mb" }));
-
 // Usar n8n por padrão, API local apenas se explicitamente habilitada
 const USE_LOCAL_API = process.env.USE_LOCAL_API === "true";
 const LOCAL_API_URL =

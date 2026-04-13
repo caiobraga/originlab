@@ -5,6 +5,7 @@ import { Menu, LogIn, LogOut, FileText, User, LayoutDashboard, ChevronDown, Spar
 import { APP_TITLE } from "@/const";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -12,6 +13,7 @@ import SkipLink from "@/components/SkipLink";
 
 export default function Header() {
   const { user, signOut, loading } = useAuth();
+  const { profile } = useUserProfile();
   const [location, setLocation] = useLocation();
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = React.useRef<HTMLDivElement>(null);
@@ -32,10 +34,22 @@ export default function Header() {
     user &&
     (location === "/dashboard" ||
       location === "/minhas-propostas" ||
+      location === "/planos" ||
       location === "/perfil" ||
       location.startsWith("/perfil/") ||
       location.startsWith("/edital/") ||
       location.startsWith("/propostas/"));
+
+  const paidActive =
+    profile?.subscriptionStatus === "active" || profile?.subscriptionStatus === "trialing";
+  const planBadgeLabel =
+    profile?.subscriptionPlanKey === "empresas"
+      ? "Empresas"
+      : profile?.subscriptionPlanKey === "pro"
+        ? "Plano Pro"
+        : paidActive
+          ? "Assinante"
+          : null;
 
   // Fechar menu quando clicar fora
   React.useEffect(() => {
@@ -164,6 +178,21 @@ export default function Header() {
                   Indique e Ganhe
                 </Button>
               </Link>
+              <Link href="/planos">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={cn(
+                    "h-9 px-3 text-sm font-medium transition-all duration-200 group",
+                    isActive("/planos")
+                      ? "bg-violet-50 text-violet-600 hover:bg-violet-50 hover:text-violet-600"
+                      : "text-gray-700 hover:text-violet-600 hover:bg-gray-50 hover:scale-105"
+                  )}
+                  aria-current={isActive("/planos") ? "page" : undefined}
+                >
+                  Planos
+                </Button>
+              </Link>
             </nav>
           )}
 
@@ -171,14 +200,15 @@ export default function Header() {
           <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
             {user && !loading ? (
               <>
-                {/* Badge Plano Pro */}
-                <Badge 
-                  variant="default"
-                  className="hidden md:inline-flex bg-gradient-to-r from-blue-600 to-violet-600 text-white border-0 px-3 py-1.5 font-medium shadow-sm"
-                >
-                  <Sparkles className="w-3.5 h-3.5 mr-1.5" />
-                  Plano Pro
-                </Badge>
+                {planBadgeLabel ? (
+                  <Badge
+                    variant="default"
+                    className="hidden md:inline-flex bg-gradient-to-r from-blue-600 to-violet-600 text-white border-0 px-3 py-1.5 font-medium shadow-sm"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+                    {planBadgeLabel}
+                  </Badge>
+                ) : null}
 
                 {/* Menu do Usuário */}
                 <div className="relative hidden md:block" ref={profileMenuRef}>
@@ -300,13 +330,15 @@ export default function Header() {
                   <div className={cn("border-t border-gray-200 pt-4", !isInDashboardArea && "mt-4")}>
                     {user && !loading ? (
                       <div className="flex flex-col gap-3">
-                        <Badge 
-                          variant="default"
-                          className="w-full justify-center bg-gradient-to-r from-blue-600 to-violet-600 text-white border-0 py-2 font-medium"
-                        >
-                          <Sparkles className="w-3.5 h-3.5 mr-1.5" />
-                          Plano Pro
-                        </Badge>
+                        {planBadgeLabel ? (
+                          <Badge
+                            variant="default"
+                            className="w-full justify-center bg-gradient-to-r from-blue-600 to-violet-600 text-white border-0 py-2 font-medium"
+                          >
+                            <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+                            {planBadgeLabel}
+                          </Badge>
+                        ) : null}
                         <Link href="/dashboard">
                           <Button 
                             variant={isActive("/dashboard") ? "secondary" : "ghost"}
@@ -341,6 +373,14 @@ export default function Header() {
                           >
                             <Share2 className="w-4 h-4 mr-2" />
                             Indique e Ganhe
+                          </Button>
+                        </Link>
+                        <Link href="/planos">
+                          <Button
+                            variant={isActive("/planos") ? "secondary" : "ghost"}
+                            className="w-full justify-start"
+                          >
+                            Planos
                           </Button>
                         </Link>
                         <Button 

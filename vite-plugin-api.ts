@@ -15,10 +15,19 @@ export function apiPlugin(): Plugin {
 
       // Adicionar middleware do Express para a API
       const app = express();
+
+      const { default: stripeWebhookHandler } = await import('./server/api/stripe-webhook.js');
+      app.post(
+        '/api/stripe/webhook',
+        express.raw({ type: 'application/json' }),
+        stripeWebhookHandler,
+      );
+
       app.use(express.json({ limit: '50mb' }));
       
       // Importar e usar os routers da API
       try {
+        const { default: stripeBillingRouter } = await import('./server/api/stripe-billing.js');
         const { default: extractEditalInfoRouter } = await import('./server/api/extract-edital-info.js');
         const { default: calculateEditalScoresRouter } = await import('./server/api/calculate-edital-scores.js');
         const { default: generatePropostaRouter } = await import('./server/api/generate-proposta.js');
@@ -28,6 +37,7 @@ export function apiPlugin(): Plugin {
         const { default: fetchLattesRouter } = await import('./server/api/fetch-lattes.js');
         const { default: translateRouter } = await import('./server/api/translate.js');
         
+        app.use('/api', stripeBillingRouter);
         app.use('/api', extractEditalInfoRouter);
         app.use('/api', fetchLattesRouter);
         app.use('/api', calculateEditalScoresRouter);
@@ -49,6 +59,7 @@ export function apiPlugin(): Plugin {
         console.log('   - /api/analyze-field');
         console.log('   - /api/translate');
         console.log('   - /api/lattes/:id, /api/fetch-cnpj');
+        console.log('   - /api/stripe/webhook, /api/stripe/create-checkout-session');
       } catch (error) {
         console.error('❌ Erro ao configurar API endpoints:', error);
       }

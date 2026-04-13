@@ -3653,46 +3653,6 @@
     "processadoEm": "2026-03-13T17:05:13.189Z"
   },
   {
-    "numero": "SECTI-UnAC_Fames_Mediador_Edital_001-2026",
-    "titulo": "UnAC (Universidade Aberta Capixaba)",
-    "status": "Aberta",
-    "orgao": "SECTI",
-    "fonte": "secti",
-    "link": "https://secti.es.gov.br/editais-abertos?page=2#collapse-17699",
-    "pais": "Brasil",
-    "estado": "ES",
-    "page": 2,
-    "pdfUrl": "https://secti.es.gov.br/Media/Secti/2026/unac/UnAC_Fames_Mediador_Edital%20001-2026.pdf",
-    "pdfUrls": [
-      "https://secti.es.gov.br/Media/Secti/2026/unac/UnAC_Fames_Mediador_Edital%20001-2026.pdf",
-      "https://secti.es.gov.br/Media/Secti/2026/unac/UnAC_Fames_Alunos_Edital%20002-2026.pdf"
-    ],
-    "pdfPaths": [
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/secti/UnAC_Fames_Mediador_Edital_001-2026.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/secti/UnAC_Fames_Alunos_Edital_002-2026.pdf"
-    ],
-    "documentos": [
-      {
-        "href": "https://secti.es.gov.br/Media/Secti/2026/unac/UnAC_Fames_Mediador_Edital%20001-2026.pdf",
-        "name": "UnAC_Fames_Mediador_Edital 001-2026"
-      },
-      {
-        "href": "https://secti.es.gov.br/Media/Secti/2026/unac/UnAC_Fames_Mediador_Edital%20001-2026.pdf",
-        "name": "Baixar"
-      },
-      {
-        "href": "https://secti.es.gov.br/Media/Secti/2026/unac/UnAC_Fames_Alunos_Edital%20002-2026.pdf",
-        "name": "UnAC_Fames_Alunos_Edital 002-2026"
-      },
-      {
-        "href": "https://secti.es.gov.br/Media/Secti/2026/unac/UnAC_Fames_Alunos_Edital%20002-2026.pdf",
-        "name": "Baixar"
-      }
-    ],
-    "processadoEm": "2026-03-13T17:16:10.038Z",
-    "pdfPath": "/home/caio/development/sites/originlab/scripts/output/pdfs/secti/UnAC_Fames_Mediador_Edital_001-2026.pdf"
-  },
-  {
     "numero": "CAPTA-edital_tecendo_infancias_1_edicao_2026",
     "titulo": "Edital Tecendo Infâncias – 1ª Edição (2026)",
     "descricao": "Projetos para Primeira Infância – Instituto Tecendo Infâncias O Edital Tecendo Infâncias 2026 apoia projetos de organizações da sociedade civil que atuam com crianças de 0 a 6 anos, gestantes e suas famílias, especialmente em contextos de vulnerabilidade. A iniciativa busca fortalecer o desenvolvimento integral na primeira infância. Ao mesmo tempo, pretende melhorar as condições de cuidado, proteção e desenvolvimento infantil.",
@@ -4824,6 +4784,32 @@
     ]
   },
   {
+    "numero": "07/2025",
+    "titulo": "EDITAL Nº 07/2025 - INOVAIMPACTO",
+    "link": "https://montenegro.funcap.ce.gov.br/sugba/editais/",
+    "orgao": "FUNCAP",
+    "fonte": "funcap",
+    "pais": "Brasil",
+    "estado": "CE",
+    "dataPublicacao": "2025-09-09",
+    "pdfUrl": "https://montenegro.funcap.ce.gov.br/sugba/edital/767.pdf",
+    "pdfUrls": [
+      "https://montenegro.funcap.ce.gov.br/sugba/edital/767.pdf",
+      "https://montenegro.funcap.ce.gov.br/sugba/edital/773.pdf",
+      "https://montenegro.funcap.ce.gov.br/sugba/edital/resultados/774.pdf",
+      "https://montenegro.funcap.ce.gov.br/sugba/edital/resultados/771.pdf",
+      "https://montenegro.funcap.ce.gov.br/sugba/edital/resultados/770.pdf"
+    ],
+    "processadoEm": "2026-04-09T22:50:53.326Z",
+    "pdfPaths": [
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/funcap/funcap_07-2025_1_767.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/funcap/funcap_07-2025_2_773.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/funcap/funcap_07-2025_3_774.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/funcap/funcap_07-2025_4_771.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/funcap/funcap_07-2025_5_770.pdf"
+    ]
+  },
+  {
     "numero": "01/2025",
     "titulo": "Edital FUNCAP 01/2025",
     "link": "https://montenegro.funcap.ce.gov.br/sugba/editais/",
@@ -4994,7 +4980,7 @@
     ]
   },
   {
-    "numero": "FUNCAP-26",
+    "numero": "FUNCAP-28",
     "titulo": "Propostas Recomendadas Para a Comissão de Avaliação Presencial - CAP",
     "link": "https://montenegro.funcap.ce.gov.br/sugba/editais/",
     "orgao": "FUNCAP",
@@ -5006,9 +4992,9 @@
     "pdfUrls": [
       "https://montenegro.funcap.ce.gov.br/sugba/edital/763.pdf"
     ],
-    "processadoEm": "2026-03-13T17:38:33.833Z",
+    "processadoEm": "2026-04-09T22:50:53.326Z",
     "pdfPaths": [
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/funcap/funcap_FUNCAP-26_1_763.pdf"
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/funcap/funcap_FUNCAP-28_1_763.pdf"
     ]
   },
   {
@@ -5424,7 +5410,7 @@
     "processadoEm": "2026-03-13T17:39:54.606Z"
   },
   {
-    "numero": "FAPEMA-10",
+    "numero": "FAPEMA-15",
     "titulo": "RESOLUÇÃO Nº 30 DE 21 DE OUTUBRO DE 2025",
     "link": "https://www.fapema.br/resolucao-no-29-de-20-de-outubro-de-2025/",
     "orgao": "FAPEMA",
@@ -5436,9 +5422,9 @@
       "https://www.fapema.br/wp-content/uploads/2025/10/resolucao-30-de-21.10.25.pdf"
     ],
     "pdfPaths": [
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_FAPEMA-10_1_resolucao-30-de-21.10.25.pdf"
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_FAPEMA-15_1_resolucao-30-de-21.10.25.pdf"
     ],
-    "processadoEm": "2026-03-13T17:39:56.025Z"
+    "processadoEm": "2026-04-09T22:54:38.128Z"
   },
   {
     "numero": "18/2025",
@@ -5834,7 +5820,7 @@
     "processadoEm": "2026-03-13T17:40:29.078Z"
   },
   {
-    "numero": "FAPESPA-1",
+    "numero": "FAPESPA-4",
     "titulo": "Fapespa lança edital com R$ 1 milhão para apoiar eventos científicos no Pará",
     "descricao": "Alinhada ao planejamento estratégico do Governo do Pará, a chamada reforça o compromisso estadual com o avanço da ciência e com os Objetivos de Desenvolvimento Sustentável (ODS)",
     "link": "https://www.fapespa.pa.gov.br/2026/01/23/fapespa-lanca-edital-com-r-1-milhao-para-apoiar-eventos-cientificos-no-para/",
@@ -5853,17 +5839,17 @@
       "https://www.fapespa.pa.gov.br/wp-content/uploads/2026/01/Anexo-6-Declaracao_de_autenticidade_de_documentos.pdf"
     ],
     "pdfPaths": [
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-1_1_Edital-de-Eventos-2026.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-1_2_Anexo-1-Projeto-e-Plano-de-Trabalho.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-1_3_Anexo-3-Termo-de-Compromisso.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-1_4_Anexo-4-Termo-de-Anuencia.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-1_5_Anexo-5-Regioes-de-Integracao-e-Municipios-do-Estado-do-Para.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-1_6_Anexo-6-Declaracao_de_autenticidade_de_documentos.pdf"
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-4_1_Edital-de-Eventos-2026.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-4_2_Anexo-1-Projeto-e-Plano-de-Trabalho.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-4_3_Anexo-3-Termo-de-Compromisso.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-4_4_Anexo-4-Termo-de-Anuencia.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-4_5_Anexo-5-Regioes-de-Integracao-e-Municipios-do-Estado-do-Para.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-4_6_Anexo-6-Declaracao_de_autenticidade_de_documentos.pdf"
     ],
-    "processadoEm": "2026-03-13T17:40:46.126Z"
+    "processadoEm": "2026-04-09T22:56:00.486Z"
   },
   {
-    "numero": "FAPESPA-2",
+    "numero": "FAPESPA-5",
     "titulo": "Fapespa divulga resultado final de Programa de Pesquisa para aprimoramento do SUS",
     "descricao": "O Programa Pesquisa para o SUS: Gestão Compartilhada em Saúde prioriza propostas para a melhoria da qualidade da atenção à saúde no Pará",
     "link": "https://www.fapespa.pa.gov.br/2026/01/14/fapespa-divulga-resultado-final-de-programa-de-pesquisa-para-aprimoramento-do-sus/",
@@ -5892,27 +5878,27 @@
       "https://www.fapespa.pa.gov.br/wp-content/uploads/2026/01/Resultado-Final-PPSUS-2026.01.14.DOE.pdf"
     ],
     "pdfPaths": [
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-2_1_RESULTADO-FINAL.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-2_2_Chamada-PPSUS-8aEdicao.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-2_3_Alteracao-de-Cronograma-Chamada-PPSUS.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-2_4_DOE-Alteracao-de-cronograma.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-2_5_2a-Alteracao-de-Cronograma-PPSUS.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-2_6_Resultado-Preliminar-I-PPSUS-assinado.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-2_7_Divulgacao-da-decisao-dos-recursos-administrativos-ao-resultado-preliminar-I.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-2_8_Etapa-IV-Lista-de-projetos-aprovados-para-CAP.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-2_9_3a-Alteracao-de-Cronograma-PPSUS.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-2_10_Resultado-Preliminar-II-PPSUS_assinado.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-2_11_NOTA-DE-ESCLARECIMENTO.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-2_12_Retificacao-dos-Resultados-Preliminares-I-e-II-PPSUS.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-2_13_Nota-tecnica-Retificacao-PPSUS.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-2_14_4a-ALTERACAO-DE-CRONOGRAMA.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-2_15_Recursos-Administrativos.pdf",
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-2_16_Resultado-Final-PPSUS-2026.01.14.DOE.pdf"
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-5_1_RESULTADO-FINAL.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-5_2_Chamada-PPSUS-8aEdicao.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-5_3_Alteracao-de-Cronograma-Chamada-PPSUS.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-5_4_DOE-Alteracao-de-cronograma.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-5_5_2a-Alteracao-de-Cronograma-PPSUS.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-5_6_Resultado-Preliminar-I-PPSUS-assinado.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-5_7_Divulgacao-da-decisao-dos-recursos-administrativos-ao-resultado-preliminar-I.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-5_8_Etapa-IV-Lista-de-projetos-aprovados-para-CAP.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-5_9_3a-Alteracao-de-Cronograma-PPSUS.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-5_10_Resultado-Preliminar-II-PPSUS_assinado.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-5_11_NOTA-DE-ESCLARECIMENTO.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-5_12_Retificacao-dos-Resultados-Preliminares-I-e-II-PPSUS.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-5_13_Nota-tecnica-Retificacao-PPSUS.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-5_14_4a-ALTERACAO-DE-CRONOGRAMA.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-5_15_Recursos-Administrativos.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-5_16_Resultado-Final-PPSUS-2026.01.14.DOE.pdf"
     ],
-    "processadoEm": "2026-03-13T17:40:47.303Z"
+    "processadoEm": "2026-04-09T22:56:38.971Z"
   },
   {
-    "numero": "FAPESPA-5",
+    "numero": "FAPESPA-8",
     "titulo": "Fapespa orienta empreendedores para o Programa Centelha 3",
     "descricao": "Iniciativa online oferece treinamento para transformar ideias em negócios inovadores, dando ao futuro candidato, a oportunidade para se preparar antes da abertura dos editais",
     "link": "https://www.fapespa.pa.gov.br/2025/08/11/fapespa-orienta-empreendedores-para-o-programa-centelha-3/",
@@ -5926,12 +5912,12 @@
       "https://www.fapespa.pa.gov.br/wp-content/uploads/2025/07/Chamada-Complementar-n.o-011.2025-Connect-Amazonia_Edital-e-Anexos.pdf"
     ],
     "pdfPaths": [
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-5_1_Chamada-Complementar-n.o-011.2025-Connect-Amazonia_Edital-e-Anexos.pdf"
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-8_1_Chamada-Complementar-n.o-011.2025-Connect-Amazonia_Edital-e-Anexos.pdf"
     ],
-    "processadoEm": "2026-03-13T17:40:48.542Z"
+    "processadoEm": "2026-04-09T22:56:42.909Z"
   },
   {
-    "numero": "FAPESPA-6",
+    "numero": "FAPESPA-9",
     "titulo": "Parceria entre Fapespa e Universidade de Birmingham ganha chamada complementar",
     "descricao": "A chamada, que integra o Programa Engage Amazônia 2025, abre oportunidade para que mais pesquisadores paraenses submetam seus projetos",
     "link": "https://www.fapespa.pa.gov.br/2025/08/06/parceria-entre-fapespa-e-universidade-de-birmingham-ganha-chamada-complementar/",
@@ -5945,12 +5931,12 @@
       "https://www.fapespa.pa.gov.br/wp-content/uploads/2025/07/Chamada-Complementar-n.o-011.2025-Connect-Amazonia_Edital-e-Anexos.pdf"
     ],
     "pdfPaths": [
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-6_1_Chamada-Complementar-n.o-011.2025-Connect-Amazonia_Edital-e-Anexos.pdf"
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-9_1_Chamada-Complementar-n.o-011.2025-Connect-Amazonia_Edital-e-Anexos.pdf"
     ],
-    "processadoEm": "2026-03-13T17:40:48.320Z"
+    "processadoEm": "2026-04-09T22:56:41.924Z"
   },
   {
-    "numero": "FAPESPA-7",
+    "numero": "FAPESPA-10",
     "titulo": "Fapespa divulga resultado final do Programa Jovem cientista da Pesca Artesanal",
     "descricao": "Programa permite que jovens de comunidades pesqueiras tradicionais realizem pesquisas sobre temáticas relacionadas à atividade da pesca e seus territórios",
     "link": "https://www.fapespa.pa.gov.br/2025/06/11/fapespa-divulga-resultado-final-do-programa-jovem-cientista-da-pesca-artesanal/",
@@ -5964,12 +5950,12 @@
       "https://www.fapespa.pa.gov.br/wp-content/uploads/2025/06/Resultado-Final-Pesca-Artesanal_assinado.pdf"
     ],
     "pdfPaths": [
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-7_1_Resultado-Final-Pesca-Artesanal_assinado.pdf"
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-10_1_Resultado-Final-Pesca-Artesanal_assinado.pdf"
     ],
-    "processadoEm": "2026-03-13T17:40:51.929Z"
+    "processadoEm": "2026-04-09T22:56:49.575Z"
   },
   {
-    "numero": "FAPESPA-9",
+    "numero": "FAPESPA-12",
     "titulo": "Parceria entre Fapespa e Universidade de Birmingham incentiva internacionalização da pesquisa no Pará",
     "descricao": "Chamada pública lançada nesta quinta-feira (15) destina R$ 350 mil para projetos conjuntos entre pesquisadores do Pará e do Reino Unido",
     "link": "https://www.fapespa.pa.gov.br/2025/05/16/parceria-entre-fapespa-e-universidade-de-birmingham-incentiva-internacionalizacao-da-pesquisa-no-para/",
@@ -5983,12 +5969,12 @@
       "https://www.fapespa.pa.gov.br/wp-content/uploads/2025/04/Chamada-Fapespa-n.o-005.2025-Programa-Tecnova-III.pdf"
     ],
     "pdfPaths": [
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-9_1_Chamada-Fapespa-n.o-005.2025-Programa-Tecnova-III.pdf"
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-12_1_Chamada-Fapespa-n.o-005.2025-Programa-Tecnova-III.pdf"
     ],
-    "processadoEm": "2026-03-13T17:40:50.540Z"
+    "processadoEm": "2026-04-09T22:56:47.756Z"
   },
   {
-    "numero": "FAPESPA-10",
+    "numero": "FAPESPA-13",
     "titulo": "Fapespa fomenta mais de R$ 12 milhões em projetos inovadores",
     "descricao": "A iniciativa utiliza recursos do Fundo Nacional de Desenvolvimento Científico e Tecnológico, e recebe projetos até 20 de maio",
     "link": "https://www.fapespa.pa.gov.br/2025/05/14/fapespa-fomenta-mais-de-r-12-milhoes-em-projetos-inovadores/",
@@ -6002,12 +5988,12 @@
       "https://www.fapespa.pa.gov.br/wp-content/uploads/2025/04/Chamada-Fapespa-n.o-005.2025-Programa-Tecnova-III.pdf"
     ],
     "pdfPaths": [
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-10_1_Chamada-Fapespa-n.o-005.2025-Programa-Tecnova-III.pdf"
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-13_1_Chamada-Fapespa-n.o-005.2025-Programa-Tecnova-III.pdf"
     ],
-    "processadoEm": "2026-03-13T17:40:53.000Z"
+    "processadoEm": "2026-04-09T22:56:50.570Z"
   },
   {
-    "numero": "FAPESPA-13",
+    "numero": "FAPESPA-16",
     "titulo": "Programa Tecnova III vai investir mais de R$ 12 milhões em projetos inovadoras",
     "descricao": "Parceria do Governo do Pará, por meio da Fapespa, com a Finep, a iniciativa utiliza recursos do Fundo Nacional de Desenvolvimento Científico e Tecnológico, e recebe projetos até 20 de maio",
     "link": "https://www.fapespa.pa.gov.br/2025/04/07/programa-tecnova-iii-vai-investir-mais-de-r-12-milhoes-em-projetos-inovadoras/",
@@ -6021,9 +6007,9 @@
       "https://www.fapespa.pa.gov.br/wp-content/uploads/2025/04/Chamada-Fapespa-n.o-005.2025-Programa-Tecnova-III.pdf"
     ],
     "pdfPaths": [
-      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-13_1_Chamada-Fapespa-n.o-005.2025-Programa-Tecnova-III.pdf"
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-16_1_Chamada-Fapespa-n.o-005.2025-Programa-Tecnova-III.pdf"
     ],
-    "processadoEm": "2026-03-13T17:40:54.498Z"
+    "processadoEm": "2026-04-09T22:56:52.498Z"
   },
   {
     "numero": "01/2025",
@@ -8916,6 +8902,23 @@
     ]
   },
   {
+    "numero": "07/2025",
+    "titulo": "Programa Centelha RS 3ª Edição - Edital 07/2025 - Lista preliminar das ideias aprovadas na Fase 2",
+    "link": "https://fapergs.rs.gov.br/programa-centelha-rs-3-edicao-edital-07-2025-lista-preliminar-das-ideias-aprovadas-na-fase-2",
+    "orgao": "FAPERGS",
+    "fonte": "fapergs",
+    "pais": "Brasil",
+    "estado": "RS",
+    "pdfUrl": "https://fapergs.rs.gov.br/upload/arquivos/202604/08174910-resultado-preliminar-fase-2-do-centelha-3.pdf",
+    "pdfUrls": [
+      "https://fapergs.rs.gov.br/upload/arquivos/202604/08174910-resultado-preliminar-fase-2-do-centelha-3.pdf"
+    ],
+    "processadoEm": "2026-04-09T23:01:35.167Z",
+    "pdfPaths": [
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapergs/fapergs_07-2025_1_08174910-resultado-preliminar-fase-2-do-centelha-3.pdf"
+    ]
+  },
+  {
     "numero": "03/2026",
     "titulo": "PROGRAMA PERMANENTE DE APOIO À ADMINISTRAÇÃO DO FUNDO ESTADUAL DE DESENVOLVIMENTO CIENTÍFICO E TECNOLÓGICO – PROFUNDET.",
     "link": "http://www.fapern.rn.gov.br/Conteudo.asp?TRAN=ITEM&TARG=15517&ACT=&PAGE=0&PARM=&LBL=Editais+Abertos",
@@ -9534,5 +9537,1116 @@
       "/home/caio/development/sites/originlab/scripts/output/pdfs/fapt/fapt_01-2026_5_download_466316.pdf",
       "/home/caio/development/sites/originlab/scripts/output/pdfs/fapt/fapt_01-2026_6_download_463721.pdf"
     ]
+  },
+  {
+    "titulo": "Editais Abertos - Formação Científica",
+    "dataEncerramento": "22/08/2025",
+    "status": "Ativo",
+    "orgao": "FAPES",
+    "fonte": "fapes",
+    "link": "https://fapes.es.gov.br/Media/fapes/Editais/EDITAL_PICJr_2026_-_22.08.2025_-_P%C3%B3s_PGE.pdf",
+    "pdfUrl": "https://fapes.es.gov.br/Media/fapes/Editais/EDITAL_PICJr_2026_-_22.08.2025_-_P%C3%B3s_PGE.pdf",
+    "pdfUrls": [
+      "https://fapes.es.gov.br/Media/fapes/Editais/EDITAL_PICJr_2026_-_22.08.2025_-_P%C3%B3s_PGE.pdf",
+      "https://fapes.es.gov.br/Media/fapes/Editais/Edital_Fapes_19.2024_-_Participa%C3%A7%C3%A3o_Eventos_T%C3%A9cnico-Cient%C3%ADfico_-_3%C2%AA_Chamada.pdf",
+      "https://fapes.es.gov.br/Media/fapes/Editais/Edital%20Fapes%2019.2024%20-%20Participa%C3%A7%C3%A3o%20em%20Eventos%20T%C3%A9cnico-Cient%C3%ADfico%202025-4.pdf",
+      "https://fapes.es.gov.br/Media/fapes/Editais/Edital_Fapes_20.2024_-_Organiza%C3%A7%C3%A3o_de_Evento_T%C3%A9cnico-Cient%C3%ADfico2025_-_3_Chamada.pdf",
+      "https://fapes.es.gov.br/Media/fapes/Editais/Edital%20Fapes%2020.2024%20-%20Organiza%C3%A7%C3%A3o%20de%20Evento%20T%C3%A9cnico-Cient%C3%ADfico%202025-5.pdf",
+      "https://fapes.es.gov.br/Media/fapes/Editais/Edital_Fapes_21.2024_-_Visita_T%C3%A9cnico-Cient%C3%ADfica_-_3%C2%AA_Chamada.pdf",
+      "https://fapes.es.gov.br/Media/fapes/Editais/Edital%20Fapes%2021.2024%20-%20Visita%20T%C3%A9cnico-Cient%C3%ADfica%202025-5.pdf",
+      "https://fapes.es.gov.br/Media/fapes/Editais/Edital_Fapes_22.2024_-_Estagio_T%C3%A9cnico-Cient%C3%ADfico_-_3%C2%AAChamada.pdf",
+      "https://fapes.es.gov.br/Media/fapes/Editais/Edital%20Fapes%2022.2024%20-%20Estagio%20T%C3%A9cnico-Cient%C3%ADfico%202025-7.pdf"
+    ],
+    "pdfPaths": [
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapes_17_2025_1_1765840830766.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapes_19_2024_2_1765840836985.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapes_19_2024_1_1765840835602.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapes_20_2024_2_1765840844138.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapes_20_2024_1_1765840842660.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapes_21_2024_2_1765840850329.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapes_21_2024_1_1765840849391.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapes_22_2024_2_1765840807437.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapes_22_2024_1_1765840806444.pdf"
+    ],
+    "processadoEm": "2026-04-09T22:07:16.289Z"
+  },
+  {
+    "numero": "FINEP-784",
+    "titulo": "FIP Startup Inteligência Artificial",
+    "descricao": "EDITAL DE CHAMADA PÚBLICA PARA A SELEÇÃO DE FUNDO DE INVESTIMENTO EM PARTICIPAÇÕES DE STARTUPS DE INTELIGÊNCIA ARTIFICIAL",
+    "dataPublicacao": "09/04/2026",
+    "dataEncerramento": "28/05/2026",
+    "status": "Aberta",
+    "orgao": "FINEP",
+    "fonte": "finep",
+    "link": "http://www.finep.gov.br/chamadas-publicas/chamadapublica/784",
+    "area": "Big Data; Inteligência artificial (IA)",
+    "pdfUrl": "http://www.finep.gov.br/images/chamadas-publicas/2026/09_04_2026_Edital_FIP_IA.pdf",
+    "pdfUrls": [
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/09_04_2026_Edital_FIP_IA.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/09_04_2026_Roteiro_Chamada_FIP_IA.docx"
+    ],
+    "pdfPaths": [
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_fip_startup_intelig_ncia_artificial_01_1775772490063.pdf"
+    ],
+    "fonteRecurso": "Finep ; FNDCT ; BNDES",
+    "publicoAlvo": "Gestores de Fundos de Investimento em Participações",
+    "temas": "Big Data; Inteligência artificial (IA)",
+    "documentos": [
+      {
+        "dataPublicacao": "08/04/2026",
+        "nome": "Edital",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/09_04_2026_Edital_FIP_IA.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/09_04_2026_Edital_FIP_IA.docx"
+      },
+      {
+        "dataPublicacao": "09/04/2026",
+        "nome": "Roteiro",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/09_04_2026_Roteiro_Chamada_FIP_IA.docx"
+      }
+    ],
+    "processadoEm": "2026-04-09T22:08:11.354Z"
+  },
+  {
+    "numero": "FINEP-782",
+    "titulo": "Ecossistema Tecnológico de Biorrefino",
+    "descricao": "EIXO TECNOLÓGICO - ROTAS BIOTECNOLÓGICAS PARA PRODUÇÃO DE COMBUSTÍVEIS RENOVÁVEIS E PRODUTOS DE BAIXO CARBONO",
+    "dataPublicacao": "25/03/2026",
+    "dataEncerramento": "29/05/2026",
+    "status": "Aberta",
+    "orgao": "FINEP",
+    "fonte": "finep",
+    "link": "http://www.finep.gov.br/chamadas-publicas/chamadapublica/782",
+    "area": "Biotecnologia; Bioeconomia; Combustíveis",
+    "pdfUrl": "http://www.finep.gov.br/images/chamadas-publicas/2026/25_03_2026._Biorrefino_Edital.pdf",
+    "pdfUrls": [
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/25_03_2026._Biorrefino_Edital.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/25_03_2026._Biorrefino_Anexo1.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/25_03_2026._Biorrefino_Anexo2.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/25_03_2026._Biorrefino_Anexo3.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/25_03_2026._Biorrefino_Anexo4.pdf"
+    ],
+    "pdfPaths": [
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_ecossistema_tecnol_gico_de_biorrefino_01_1775772492313.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_ecossistema_tecnol_gico_de_biorrefino_02_1775772492928.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_ecossistema_tecnol_gico_de_biorrefino_03_1775772493400.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_ecossistema_tecnol_gico_de_biorrefino_04_1775772493906.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_ecossistema_tecnol_gico_de_biorrefino_05_1775772494225.pdf"
+    ],
+    "fonteRecurso": "Petrobras – Cláusula de PD&I, conforme Resolução nº 918/2023 da ANP.",
+    "publicoAlvo": "ICT (Pública ou Privada) credenciada ou com protocolo de credenciamento na ANP",
+    "temas": "Biotecnologia; Bioeconomia; Combustíveis",
+    "documentos": [
+      {
+        "dataPublicacao": "25/03/2026",
+        "nome": "Edital",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/25_03_2026._Biorrefino_Edital.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/25_03_2026._Biorrefino_Edital.odt"
+      },
+      {
+        "dataPublicacao": "25/03/2026",
+        "nome": "Anexo 1: Estrutura de Governança do Ecossistema Tecnológico de Biorrefino",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/25_03_2026._Biorrefino_Anexo1.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/25_03_2026._Biorrefino_Anexo1.odt"
+      },
+      {
+        "dataPublicacao": "25/03/2026",
+        "nome": "Anexo 2: Minuta de Contrato de Execução de Projeto",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/25_03_2026._Biorrefino_Anexo2.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/25_03_2026._Biorrefino_Anexo2.odt"
+      },
+      {
+        "dataPublicacao": "25/03/2026",
+        "nome": "Anexo 3: Ofício de Apresentação para reconhecimento institucional da Proposta",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/25_03_2026._Biorrefino_Anexo3.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/25_03_2026._Biorrefino_Anexo3.odt"
+      },
+      {
+        "dataPublicacao": "25/03/2026",
+        "nome": "Anexo 4: Definição do Nível de Maturidade Tecnológica",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/25_03_2026._Biorrefino_Anexo4.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/25_03_2026._Biorrefino_Anexo4.odt"
+      }
+    ],
+    "processadoEm": "2026-04-09T22:08:14.585Z"
+  },
+  {
+    "numero": "FINEP-783",
+    "titulo": "Agricultura familiar para ICTs 2026",
+    "descricao": "CHAMADA PÚBLICA MCTI/FINEP/FNDCT CADEIAS SOCIOPRODUTIVAS DA AGRICULTURA FAMILIAR E SISTEMAS AGROALIMENTARES SUSTENTÁVEIS PARA ICTS 2026",
+    "dataPublicacao": "25/03/2026",
+    "dataEncerramento": "26/06/2026",
+    "status": "Aberta",
+    "orgao": "FINEP",
+    "fonte": "finep",
+    "link": "http://www.finep.gov.br/chamadas-publicas/chamadapublica/783",
+    "pdfUrl": "http://www.finep.gov.br/images/chamadas-publicas/2026/09_04_2026_Telas_FAP_e_Numero_de_Caracteres.pdf",
+    "pdfUrls": [
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/09_04_2026_Telas_FAP_e_Numero_de_Caracteres.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/25_03_2026_AgriFam-ICT_2026_Edital.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/25_03_2026_AgriFam-ICT_2026_Anexo_1.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/25_03_2026_AgriFam-ICT_2026_Anexo_2.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/25_03_2026_AgriFam-ICT_2026_Anexo_3.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/25_03_2026_AgriFam-ICT_2026_Anexo_4.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/25_03_2026_AgriFam-ICT_2026_Anexo_5.pdf",
+      "http://www.finep.gov.br/images/chamadas-publicas/2026/25_03_2026_AgriFam-ICT_2026_Anexo_6.pdf"
+    ],
+    "pdfPaths": [
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_agricultura_familiar_para_icts_2026_01_1775772495896.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_agricultura_familiar_para_icts_2026_02_1775772496965.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_agricultura_familiar_para_icts_2026_03_1775772497424.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_agricultura_familiar_para_icts_2026_04_1775772497942.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_agricultura_familiar_para_icts_2026_05_1775772498557.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_agricultura_familiar_para_icts_2026_06_1775772499314.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_agricultura_familiar_para_icts_2026_07_1775772500202.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/finep/finep_agricultura_familiar_para_icts_2026_08_1775772500849.pdf"
+    ],
+    "fonteRecurso": "FINEP ; FNDCT",
+    "documentos": [
+      {
+        "dataPublicacao": "07/04/2026",
+        "nome": "Telas FAP e número de caracteres",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/09_04_2026_Telas_FAP_e_Numero_de_Caracteres.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/09_04_2026_Telas_FAP_e_Numero_de_Caracteres.odp"
+      },
+      {
+        "dataPublicacao": "25/03/2026",
+        "nome": "Edital",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/25_03_2026_AgriFam-ICT_2026_Edital.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/25_03_2026_AgriFam-ICT_2026_Edital.odt"
+      },
+      {
+        "dataPublicacao": "25/03/2026",
+        "nome": "Anexo 1 – Minuta Padrão de Convênio",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/25_03_2026_AgriFam-ICT_2026_Anexo_1.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/25_03_2026_AgriFam-ICT_2026_Anexo_1.odt"
+      },
+      {
+        "dataPublicacao": "25/03/2026",
+        "nome": "Anexo 2 – Detalhamento das Linhas Temáticas",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/25_03_2026_AgriFam-ICT_2026_Anexo_2.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/25_03_2026_AgriFam-ICT_2026_Anexo_2.odt"
+      },
+      {
+        "dataPublicacao": "25/03/2026",
+        "nome": "Anexo 3 - Exigências para avaliação dos itens de Orçamento",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/25_03_2026_AgriFam-ICT_2026_Anexo_3.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/25_03_2026_AgriFam-ICT_2026_Anexo_3.odt"
+      },
+      {
+        "dataPublicacao": "25/03/2026",
+        "nome": "Anexo 4 – Orientações para Apresentação de Projeto Resumido de Obras",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/25_03_2026_AgriFam-ICT_2026_Anexo_4.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/25_03_2026_AgriFam-ICT_2026_Anexo_4.odt"
+      },
+      {
+        "dataPublicacao": "25/03/2026",
+        "nome": "Anexo 5 - Tabela com Requisitos e Valores para Pagamento de Pessoal",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/25_03_2026_AgriFam-ICT_2026_Anexo_5.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/25_03_2026_AgriFam-ICT_2026_Anexo_5.odt"
+      },
+      {
+        "dataPublicacao": "25/03/2026",
+        "nome": "Anexo 6 – Orientações para Despesas Relativas a Bolsas",
+        "urlPdf": "http://www.finep.gov.br/images/chamadas-publicas/2026/25_03_2026_AgriFam-ICT_2026_Anexo_6.pdf",
+        "urlAberto": "http://www.finep.gov.br/images/chamadas-publicas/2026/25_03_2026_AgriFam-ICT_2026_Anexo_6.odt"
+      }
+    ],
+    "processadoEm": "2026-04-09T22:08:21.860Z"
+  },
+  {
+    "numero": "CAPTA-educacao_para_o_bem_viver_2026_fortalecendo_organizacoes_indigenas_e_quilombolas_pela_equi",
+    "titulo": "Educação para o Bem Viver 2026: Fortalecendo organizações indígenas e quilombolas pela equidade na educação",
+    "descricao": "Fundo Casa Socioambiental O edital Educação para o Bem Viver 2026: Fortalecendo organizações indígenas e quilombolas pela equidade na educação, lançado pelo Fundo Casa Socioambiental, tem como objetivo apoiar organizações indígenas e quilombolas no desenvolvimento de projetos educativos comunitários, promovendo o fortalecimento institucional, a valorização de saberes e territórios tradicionais e o enfrentamento das desigualdades e do racismo na educação.",
+    "status": "Aberta",
+    "orgao": "CAPTA",
+    "fonte": "capta",
+    "link": "https://capta.org.br/oportunidades/educacao-para-o-bem-viver-2026-fortalecendo-organizacoes-indigenas-e-quilombolas-pela-equidade-na-educacao/",
+    "pdfUrl": "https://casa.org.br/wp-content/uploads/2022/02/politica-conduta-protecao-fundo-casa.pdf",
+    "pdfUrls": [
+      "https://casa.org.br/wp-content/uploads/2022/02/politica-conduta-protecao-fundo-casa.pdf"
+    ],
+    "pdfPaths": [
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/capta/politica-conduta-protecao-fundo-casa.pdf"
+    ],
+    "documentos": [
+      {
+        "href": "https://casa.org.br/wp-content/uploads/2022/02/politica-conduta-protecao-fundo-casa.pdf"
+      }
+    ],
+    "processadoEm": "2026-04-09T22:31:03.301Z"
+  },
+  {
+    "numero": "004/2026",
+    "titulo": "Chamada 004/2026 - Participação Coletiva em Eventos Técnicos no País - 1ª entrada",
+    "link": "https://fapemig.br/oportunidades/chamadas-e-editais/chamada-004-2026-participacao-coletiva-em-eventos-tecnicos-no-pais-1a-entrada",
+    "orgao": "FAPEMIG",
+    "fonte": "fapemig",
+    "pais": "Brasil",
+    "estado": "MG",
+    "pdfUrl": "https://api.site.fapemig.br/wp-content/uploads/Anexo-IV-Termo-de-Anuencia-1.pdf",
+    "pdfUrls": [
+      "https://api.site.fapemig.br/wp-content/uploads/Anexo-IV-Termo-de-Anuencia-1.pdf",
+      "https://api.site.fapemig.br/wp-content/uploads/Anexo-I-Termo-de-Outorga-com-Fundacao-de-Apoio-1.pdf"
+    ],
+    "pdfPaths": [
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapemig/fapemig_004-2026_1_Anexo-IV-Termo-de-Anuencia-1.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapemig/fapemig_004-2026_2_Anexo-I-Termo-de-Outorga-com-Fundacao-de-Apoio-1.pdf"
+    ],
+    "processadoEm": "2026-04-09T22:48:46.575Z"
+  },
+  {
+    "numero": "09/2026",
+    "titulo": "Edital FAPERJ Nº 09/2026 – Prêmio Transforma.RJ: Reconhecimento à Inovação",
+    "link": "https://www.faperj.br/?id=28.5.7",
+    "orgao": "FAPERJ",
+    "fonte": "faperj",
+    "pais": "Brasil",
+    "estado": "RJ",
+    "pdfUrl": "https://www.faperj.br/rp/downloads/Edital_FAPERJ_N%C2%BA_09_2026_%E2%80%93_Pr%C3%AAmio_Transforma.RJ_Reconhecimento_%C3%A0_Inova%C3%A7%C3%A3o_%E2%80%93_2026.pdf",
+    "pdfUrls": [
+      "https://www.faperj.br/rp/downloads/Edital_FAPERJ_N%C2%BA_09_2026_%E2%80%93_Pr%C3%AAmio_Transforma.RJ_Reconhecimento_%C3%A0_Inova%C3%A7%C3%A3o_%E2%80%93_2026.pdf"
+    ],
+    "processadoEm": "2026-04-09T22:49:13.674Z",
+    "pdfPaths": [
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/faperj/faperj_09-2026_1_Edital_FAPERJ_Nº_09_2026_–_Prêmio_Transforma.RJ_Reconhecimento_à_Inovação_–_2026.pdf"
+    ],
+    "pdfPath": "/home/caio/development/sites/originlab/scripts/output/pdfs/faperj/faperj_09-2026_1_Edital_FAPERJ_Nº_09_2026_–_Prêmio_Transforma.RJ_Reconhecimento_à_Inovação_–_2026.pdf"
+  },
+  {
+    "numero": "04/2026",
+    "titulo": "Edital Fapeal Nº 04/2026 – Auxílio à Participação em Eventos Científicos – ARC 2026",
+    "link": "https://www.fapeal.br/2026/04/arc-2026/",
+    "orgao": "FAPEAL",
+    "fonte": "fapeal",
+    "pais": "Brasil",
+    "estado": "AL",
+    "pdfUrl": "https://www.fapeal.br/wp-content/uploads/2026/04/SEI_38827337_Comunicacao_7.pdf",
+    "pdfUrls": [
+      "https://www.fapeal.br/wp-content/uploads/2026/04/SEI_38827337_Comunicacao_7.pdf",
+      "https://www.fapeal.br/wp-content/uploads/2026/04/SEI_38826393_Comunicacao_6.pdf",
+      "https://www.fapeal.br/wp-content/uploads/2026/04/SEI_38655556_Comunicacao_5.pdf",
+      "https://www.fapeal.br/wp-content/uploads/2026/03/SEI_38345815_Edital_04.pdf"
+    ],
+    "pdfPaths": [
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapeal/fapeal_04-2026_1_SEI_38827337_Comunicacao_7.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapeal/fapeal_04-2026_2_SEI_38826393_Comunicacao_6.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapeal/fapeal_04-2026_3_SEI_38655556_Comunicacao_5.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapeal/fapeal_04-2026_4_SEI_38345815_Edital_04.pdf"
+    ],
+    "processadoEm": "2026-04-09T22:49:35.173Z"
+  },
+  {
+    "numero": "05/2026",
+    "titulo": "Edital Fapeal – nº 05/2026 Programa de Bolsas de Iniciação Científica Júnior – Pibic Jr Alagoas",
+    "link": "https://www.fapeal.br/2026/04/pibic-jr-2026/",
+    "orgao": "FAPEAL",
+    "fonte": "fapeal",
+    "pais": "Brasil",
+    "estado": "AL",
+    "pdfUrl": "https://www.fapeal.br/wp-content/uploads/2026/04/SEI_38798739_Edital_05.pdf",
+    "pdfUrls": [
+      "https://www.fapeal.br/wp-content/uploads/2026/04/SEI_38798739_Edital_05.pdf"
+    ],
+    "pdfPaths": [
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapeal/fapeal_05-2026_1_SEI_38798739_Edital_05.pdf"
+    ],
+    "processadoEm": "2026-04-09T22:49:37.556Z"
+  },
+  {
+    "numero": "10/2026",
+    "titulo": "EDITAL 10/2026 - FAPDF",
+    "link": "https://www.fap.df.gov.br/editais-fapdf-20261",
+    "orgao": "FAPDF",
+    "fonte": "fapdf",
+    "pais": "Brasil",
+    "estado": "DF",
+    "pdfUrl": "https://www.fap.df.gov.br/documents/d/fap/sei_gdf-199487240-edital-pdf",
+    "pdfUrls": [
+      "https://www.fap.df.gov.br/documents/d/fap/sei_gdf-199487240-edital-pdf",
+      "https://www.fap.df.gov.br/documents/d/fap/extrato-de-publicacao-do-edital-chamamento-publico-n-10-2026-pdf"
+    ],
+    "processadoEm": "2026-04-09T22:52:51.903Z",
+    "pdfPaths": [
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapdf/fapdf_10-2026_1_sei_gdf-199487240-edital-pdf.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapdf/fapdf_10-2026_2_extrato-de-publicacao-do-edital-chamamento-publico-n-10-2026-pdf.pdf"
+    ]
+  },
+  {
+    "numero": "11/2026",
+    "titulo": "EDITAL FAPEMA nº 11/2026",
+    "link": "https://www.fapema.br/edital-fapema-no-11-2026/",
+    "orgao": "FAPEMA",
+    "fonte": "fapema",
+    "pais": "Brasil",
+    "estado": "MA",
+    "pdfUrl": "https://www.fapema.br/wp-content/uploads/2026/03/EDITAL-FAPEMA-N.o-11-2026-JOAO-MOHANA-DE-APOIO-A-MUSICA-MARANHENSE-Assinado.pdf",
+    "pdfUrls": [
+      "https://www.fapema.br/wp-content/uploads/2026/03/EDITAL-FAPEMA-N.o-11-2026-JOAO-MOHANA-DE-APOIO-A-MUSICA-MARANHENSE-Assinado.pdf"
+    ],
+    "pdfPaths": [
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_11-2026_1_EDITAL-FAPEMA-N.o-11-2026-JOAO-MOHANA-DE-APOIO-A-MUSICA-MARANHENSE-Assinado.pdf"
+    ],
+    "processadoEm": "2026-04-09T22:53:45.114Z"
+  },
+  {
+    "numero": "10/2026",
+    "titulo": "EDITAL FAPEMA nº 10/2026",
+    "link": "https://www.fapema.br/edital-fapema-no-10-2026/",
+    "orgao": "FAPEMA",
+    "fonte": "fapema",
+    "pais": "Brasil",
+    "estado": "MA",
+    "pdfUrl": "https://www.fapema.br/wp-content/uploads/2026/03/EDITAL-FAPEMA-N.o-10-2026-ASTOLFO-MARQUES.pdf",
+    "pdfUrls": [
+      "https://www.fapema.br/wp-content/uploads/2026/03/EDITAL-FAPEMA-N.o-10-2026-ASTOLFO-MARQUES.pdf"
+    ],
+    "pdfPaths": [
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_10-2026_1_EDITAL-FAPEMA-N.o-10-2026-ASTOLFO-MARQUES.pdf"
+    ],
+    "processadoEm": "2026-04-09T22:53:48.461Z"
+  },
+  {
+    "numero": "09/2026",
+    "titulo": "Edital FAPEMA/FINEP n° 09/2026",
+    "link": "https://www.fapema.br/edital-fapema-finep-n-09-2026/",
+    "orgao": "FAPEMA",
+    "fonte": "fapema",
+    "pais": "Brasil",
+    "estado": "MA",
+    "pdfUrl": "https://www.fapema.br/wp-content/uploads/2026/03/RETIFICACAO-ASSINADA.pdf",
+    "pdfUrls": [
+      "https://www.fapema.br/wp-content/uploads/2026/03/RETIFICACAO-ASSINADA.pdf",
+      "https://www.fapema.br/wp-content/uploads/2026/03/SEGUNDO-CHAMAMENTO-PUBLICO-PARA-CREDENCIAMENTO-DE-FINEP.pdf"
+    ],
+    "pdfPaths": [
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_09-2026_1_RETIFICACAO-ASSINADA.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_09-2026_2_SEGUNDO-CHAMAMENTO-PUBLICO-PARA-CREDENCIAMENTO-DE-FINEP.pdf"
+    ],
+    "processadoEm": "2026-04-09T22:53:52.145Z"
+  },
+  {
+    "numero": "08/2026",
+    "titulo": "Edital Fapema n° 08/2026",
+    "link": "https://www.fapema.br/edital-fapema-n-08-2026/",
+    "orgao": "FAPEMA",
+    "fonte": "fapema",
+    "pais": "Brasil",
+    "estado": "MA",
+    "pdfUrl": "https://www.fapema.br/wp-content/uploads/2026/04/RESULTADO-FINAL-credenciamento.pdf",
+    "pdfUrls": [
+      "https://www.fapema.br/wp-content/uploads/2026/04/RESULTADO-FINAL-credenciamento.pdf",
+      "https://www.fapema.br/wp-content/uploads/2026/04/PUBLICACAO-Resultado-parcial-ED.08-2026-Aceleradoras.pdf",
+      "https://www.fapema.br/wp-content/uploads/2026/03/ACELERADORAS.pdf"
+    ],
+    "pdfPaths": [
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_08-2026_1_RESULTADO-FINAL-credenciamento.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_08-2026_2_PUBLICACAO-Resultado-parcial-ED.08-2026-Aceleradoras.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_08-2026_3_ACELERADORAS.pdf"
+    ],
+    "processadoEm": "2026-04-09T22:53:55.758Z"
+  },
+  {
+    "numero": "07/2026",
+    "titulo": "Edital Fapema nº 07/2026",
+    "link": "https://www.fapema.br/edital-fapema-no-07-2026/",
+    "orgao": "FAPEMA",
+    "fonte": "fapema",
+    "pais": "Brasil",
+    "estado": "MA",
+    "pdfUrl": "https://www.fapema.br/wp-content/uploads/2026/04/Edital-FAPEMA-no-07-2026-1°Retificacao-Ed.07-2026-GOVIA-MA.pdf",
+    "pdfUrls": [
+      "https://www.fapema.br/wp-content/uploads/2026/04/Edital-FAPEMA-no-07-2026-1°Retificacao-Ed.07-2026-GOVIA-MA.pdf",
+      "https://www.fapema.br/wp-content/uploads/2026/03/GovIA-MARANHAO.pdf",
+      "https://www.fapema.br/wp-content/uploads/2026/03/ANEXO_V_EDITAL_GovIA.docx.pdf",
+      "https://www.fapema.br/wp-content/uploads/2026/03/ANEXO_IV_EDITAL_GovIA.docx.pdf",
+      "https://www.fapema.br/wp-content/uploads/2026/03/ANEXO_II_EDITAL_GovIA.docx.pdf",
+      "https://www.fapema.br/wp-content/uploads/2026/03/ANEXO_I_EDITAL_GovIA.docx.pdf"
+    ],
+    "pdfPaths": [
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_07-2026_1_Edital-FAPEMA-no-07-2026-1°Retificacao-Ed.07-2026-GOVIA-MA.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_07-2026_2_GovIA-MARANHAO.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_07-2026_3_ANEXO_V_EDITAL_GovIA.docx.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_07-2026_4_ANEXO_IV_EDITAL_GovIA.docx.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_07-2026_5_ANEXO_II_EDITAL_GovIA.docx.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapema/fapema_07-2026_6_ANEXO_I_EDITAL_GovIA.docx.pdf"
+    ],
+    "documentUrls": [
+      "https://www.fapema.br/wp-content/uploads/2026/03/ANEXO-III-GOV-IA.docx"
+    ],
+    "processadoEm": "2026-04-09T22:54:00.991Z"
+  },
+  {
+    "numero": "FAPESPA-3",
+    "titulo": "Pará lança Programa Centelha 3 para apoiar desenvolvimento de startups",
+    "descricao": "A edição atual prevê investimento de R$ 5,9 milhões, entre recursos para subvenção econômica e bolsas de fomento tecnológico e extensão inovadora.",
+    "link": "https://www.fapespa.pa.gov.br/2026/03/27/para-lanca-programa-centelha-3-para-apoiar-desenvolvimento-de-startups/",
+    "orgao": "FAPESPA",
+    "fonte": "fapespa",
+    "pais": "Brasil",
+    "estado": "PA",
+    "dataPublicacao": "2026-03-27",
+    "pdfUrl": "https://www.fapespa.pa.gov.br/wp-content/uploads/2026/03/Chamada-FAPESPA-003-2026.pdf",
+    "pdfUrls": [
+      "https://www.fapespa.pa.gov.br/wp-content/uploads/2026/03/Chamada-FAPESPA-003-2026.pdf",
+      "https://www.fapespa.pa.gov.br/wp-content/uploads/2026/03/Anexo-7-TERMO-DE-OUTORGA-DE-AUXILIO.pdf"
+    ],
+    "pdfPaths": [
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-3_1_Chamada-FAPESPA-003-2026.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapespa/fapespa_FAPESPA-3_2_Anexo-7-TERMO-DE-OUTORGA-DE-AUXILIO.pdf"
+    ],
+    "processadoEm": "2026-04-09T22:55:56.855Z"
+  },
+  {
+    "numero": "08/2025",
+    "titulo": "Edital Fapergs 08/2025 - AOE- Resultado preliminar para eventos que iniciem a partir de 01/05/2026 a 31/08/2026",
+    "link": "https://fapergs.rs.gov.br/edital-fapergs-08-2025-aoe-resultado-final-do-cronograma-1",
+    "orgao": "FAPERGS",
+    "fonte": "fapergs",
+    "pais": "Brasil",
+    "estado": "RS",
+    "pdfUrl": "https://fapergs.rs.gov.br/upload/arquivos/202603/17105413-divulgacao-do-resultado-preliminar-das-propostas-aprovadas-aoe-2025-etapa-i.pdf",
+    "pdfUrls": [
+      "https://fapergs.rs.gov.br/upload/arquivos/202603/17105413-divulgacao-do-resultado-preliminar-das-propostas-aprovadas-aoe-2025-etapa-i.pdf"
+    ],
+    "processadoEm": "2026-04-09T23:01:29.350Z",
+    "pdfPaths": [
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapergs/fapergs_08-2025_1_17105413-divulgacao-do-resultado-preliminar-das-propostas-aprovadas-aoe-2025-etapa-i.pdf"
+    ]
+  },
+  {
+    "numero": "02/2026",
+    "titulo": "Edital 02/2026 - Programa Talentos Globais RS - Primeiro Aditivo",
+    "link": "https://fapergs.rs.gov.br/edital-02-2026-programa-talentos-globais-rs-primeiro-aditivo",
+    "orgao": "FAPERGS",
+    "fonte": "fapergs",
+    "pais": "Brasil",
+    "estado": "RS",
+    "pdfUrl": "https://fapergs.rs.gov.br/upload/arquivos/202603/24092157-primeiro-aditivo-edital-fapergs-02-2026-programa-talentos-globais.pdf",
+    "pdfUrls": [
+      "https://fapergs.rs.gov.br/upload/arquivos/202603/24092157-primeiro-aditivo-edital-fapergs-02-2026-programa-talentos-globais.pdf"
+    ],
+    "processadoEm": "2026-04-09T23:01:30.402Z",
+    "pdfPaths": [
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapergs/fapergs_02-2026_1_24092157-primeiro-aditivo-edital-fapergs-02-2026-programa-talentos-globais.pdf"
+    ]
+  },
+  {
+    "numero": "17/2026",
+    "titulo": "EDITAL SUPLEMENTAR FAPESC N.º 17/2026 À 5ª CHAMADA CONJUNTA MULTITEMÁTICA EU-LAC (2025) APOIO A PROJETOS COLABORATIVOS DE PESQUISA",
+    "link": "https://fapesc.sc.gov.br/edital-suplementar-fapesc-n-o-017-2026-a-5a-chamada-conjunta-multitematica-eu-lac-2025-apoio-a-projetos-colaborativos-de-pesquisa/",
+    "orgao": "FAPESC",
+    "fonte": "fapesc",
+    "pais": "Brasil",
+    "estado": "SC",
+    "pdfUrl": "https://fapesc.sc.gov.br/wp-content/uploads/2023/06/Plano-de-Integridade-e-Compliance-da-Fapesc.pdf",
+    "pdfUrls": [
+      "https://fapesc.sc.gov.br/wp-content/uploads/2023/06/Plano-de-Integridade-e-Compliance-da-Fapesc.pdf",
+      "https://fapesc.sc.gov.br/wp-content/uploads/2024/11/codigo_conduta_2024.pdf",
+      "https://fapesc.sc.gov.br/wp-content/uploads/2026/04/Edital-EU-LAC-2026.pdf"
+    ],
+    "processadoEm": "2026-04-09T23:01:42.870Z",
+    "pdfPaths": [
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapesc/fapesc_17-2026_1_Plano-de-Integridade-e-Compliance-da-Fapesc.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapesc/fapesc_17-2026_2_codigo_conduta_2024.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapesc/fapesc_17-2026_3_Edital-EU-LAC-2026.pdf"
+    ]
+  },
+  {
+    "numero": "16/2026",
+    "titulo": "EDITAL DE CHAMADA PÚBLICA FAPESC N.º 16/2026 PROGRAMA DE CIÊNCIA, TECNOLOGIA E INOVAÇÃO DE APOIO AOS GRUPOS DE PESQUISA DA ASSOCIAÇÃO CATARINENSE DAS FUNDAÇÕES EDUCACIONAIS (ACAFE)",
+    "link": "https://fapesc.sc.gov.br/edital-de-chamada-publica-fapesc-n-o-016-2026-programa-de-ciencia-tecnologia-e-inovacao-de-apoio-aos-grupos-de-pesquisa-da-associacao-catarinense-das-fundacoes-educacionais-acafe/",
+    "orgao": "FAPESC",
+    "fonte": "fapesc",
+    "pais": "Brasil",
+    "estado": "SC",
+    "pdfUrl": "https://fapesc.sc.gov.br/wp-content/uploads/2023/06/Plano-de-Integridade-e-Compliance-da-Fapesc.pdf",
+    "pdfUrls": [
+      "https://fapesc.sc.gov.br/wp-content/uploads/2023/06/Plano-de-Integridade-e-Compliance-da-Fapesc.pdf",
+      "https://fapesc.sc.gov.br/wp-content/uploads/2024/11/codigo_conduta_2024.pdf",
+      "https://fapesc.sc.gov.br/wp-content/uploads/2026/04/Edital-FAPESC-016_2026.pdf"
+    ],
+    "processadoEm": "2026-04-09T23:01:42.893Z",
+    "pdfPaths": [
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapesc/fapesc_16-2026_1_Plano-de-Integridade-e-Compliance-da-Fapesc.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapesc/fapesc_16-2026_2_codigo_conduta_2024.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapesc/fapesc_16-2026_3_Edital-FAPESC-016_2026.pdf"
+    ]
+  },
+  {
+    "numero": "15/2026",
+    "titulo": "EDITAL DE CHAMADA PÚBLICA FAPESC N.º 15/2026 PRÊMIO INOVAÇÃO CATARINENSE PROFESSOR CASPAR ERICH STEMMER EDIÇÃO 2026",
+    "link": "https://fapesc.sc.gov.br/edital-de-chamada-publica-fapesc-n-o-15-2026-premio-inovacao-catarinense-professor-caspar-erich-stemmer-edicao-2026/",
+    "orgao": "FAPESC",
+    "fonte": "fapesc",
+    "pais": "Brasil",
+    "estado": "SC",
+    "pdfUrl": "https://fapesc.sc.gov.br/wp-content/uploads/2023/06/Plano-de-Integridade-e-Compliance-da-Fapesc.pdf",
+    "pdfUrls": [
+      "https://fapesc.sc.gov.br/wp-content/uploads/2023/06/Plano-de-Integridade-e-Compliance-da-Fapesc.pdf",
+      "https://fapesc.sc.gov.br/wp-content/uploads/2024/11/codigo_conduta_2024.pdf",
+      "https://fapesc.sc.gov.br/wp-content/uploads/2026/03/Processo-FAPESC-00000751_2026_Assinado.pdf",
+      "https://fapesc.sc.gov.br/wp-content/uploads/2025/05/MANUAL_Cadastramento-de-Instituicoes-no-SIGFAPESC.pdf",
+      "https://fapesc.sc.gov.br/wp-content/uploads/2025/05/MANUAL-Manual-de-Cadastramento-do-Pesquisadora-no-SIGFAPESC.pdf"
+    ],
+    "processadoEm": "2026-04-09T23:01:42.883Z",
+    "pdfPaths": [
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapesc/fapesc_15-2026_1_Plano-de-Integridade-e-Compliance-da-Fapesc.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapesc/fapesc_15-2026_2_codigo_conduta_2024.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapesc/fapesc_15-2026_3_Processo-FAPESC-00000751_2026_Assinado.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapesc/fapesc_15-2026_4_MANUAL_Cadastramento-de-Instituicoes-no-SIGFAPESC.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapesc/fapesc_15-2026_5_MANUAL-Manual-de-Cadastramento-do-Pesquisadora-no-SIGFAPESC.pdf"
+    ]
+  },
+  {
+    "numero": "14/2026",
+    "titulo": "EDITAL DE CHAMADA PÚBLICA FAPESC N.º 14/2026 PROGRAMA MULHERES+TEC 5ª EDIÇÃO",
+    "link": "https://fapesc.sc.gov.br/edital-de-chamada-publica-fapesc-n-o-14-2026-programa-mulherestec-5a-edicao/",
+    "orgao": "FAPESC",
+    "fonte": "fapesc",
+    "pais": "Brasil",
+    "estado": "SC",
+    "pdfUrl": "https://fapesc.sc.gov.br/wp-content/uploads/2023/06/Plano-de-Integridade-e-Compliance-da-Fapesc.pdf",
+    "pdfUrls": [
+      "https://fapesc.sc.gov.br/wp-content/uploads/2023/06/Plano-de-Integridade-e-Compliance-da-Fapesc.pdf",
+      "https://fapesc.sc.gov.br/wp-content/uploads/2024/11/codigo_conduta_2024.pdf",
+      "https://fapesc.sc.gov.br/wp-content/uploads/2026/03/Edital-no-14-2026.pdf",
+      "https://fapesc.sc.gov.br/wp-content/uploads/2025/05/MANUAL_Cadastramento-de-Instituicoes-no-SIGFAPESC.pdf",
+      "https://fapesc.sc.gov.br/wp-content/uploads/2025/05/MANUAL-Manual-de-Cadastramento-do-Pesquisadora-no-SIGFAPESC.pdf"
+    ],
+    "processadoEm": "2026-04-09T23:03:18.953Z",
+    "pdfPaths": [
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapesc/fapesc_14-2026_1_Plano-de-Integridade-e-Compliance-da-Fapesc.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapesc/fapesc_14-2026_2_codigo_conduta_2024.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapesc/fapesc_14-2026_3_Edital-no-14-2026.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapesc/fapesc_14-2026_4_MANUAL_Cadastramento-de-Instituicoes-no-SIGFAPESC.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapesc/fapesc_14-2026_5_MANUAL-Manual-de-Cadastramento-do-Pesquisadora-no-SIGFAPESC.pdf"
+    ]
+  },
+  {
+    "numero": "13/2026",
+    "titulo": "EDITAL DE CHAMADA PÚBLICA FAPESC N.º 13/2026 MULHERES+PESQUISA 3ª EDIÇÃO",
+    "link": "https://fapesc.sc.gov.br/edital-de-chamada-publica-fapesc-n-o-13-2026-mulherespesquisa-3a-edicao/",
+    "orgao": "FAPESC",
+    "fonte": "fapesc",
+    "pais": "Brasil",
+    "estado": "SC",
+    "pdfUrl": "https://fapesc.sc.gov.br/wp-content/uploads/2023/06/Plano-de-Integridade-e-Compliance-da-Fapesc.pdf",
+    "pdfUrls": [
+      "https://fapesc.sc.gov.br/wp-content/uploads/2023/06/Plano-de-Integridade-e-Compliance-da-Fapesc.pdf",
+      "https://fapesc.sc.gov.br/wp-content/uploads/2024/11/codigo_conduta_2024.pdf",
+      "https://fapesc.sc.gov.br/wp-content/uploads/2026/03/Edital-MulheresPesquisa-3ed_assinado.pdf"
+    ],
+    "processadoEm": "2026-04-09T23:03:18.937Z",
+    "pdfPaths": [
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapesc/fapesc_13-2026_1_Plano-de-Integridade-e-Compliance-da-Fapesc.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapesc/fapesc_13-2026_2_codigo_conduta_2024.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapesc/fapesc_13-2026_3_Edital-MulheresPesquisa-3ed_assinado.pdf"
+    ]
+  },
+  {
+    "numero": "04/2026",
+    "titulo": "EDITAL DE CHAMADA PÚBLICA FAPESC N.º 04/2026 PROGRAMA DE INCENTIVO À PROPRIEDADE INTELECTUAL – 4ª EDIÇÃO",
+    "link": "https://fapesc.sc.gov.br/edital-de-chamada-publica-fapesc-n-o-004-2026-programa-de-incentivo-a-propriedade-intelectual-4a-edicao/",
+    "orgao": "FAPESC",
+    "fonte": "fapesc",
+    "pais": "Brasil",
+    "estado": "SC",
+    "pdfUrl": "https://fapesc.sc.gov.br/wp-content/uploads/2023/06/Plano-de-Integridade-e-Compliance-da-Fapesc.pdf",
+    "pdfUrls": [
+      "https://fapesc.sc.gov.br/wp-content/uploads/2023/06/Plano-de-Integridade-e-Compliance-da-Fapesc.pdf",
+      "https://fapesc.sc.gov.br/wp-content/uploads/2024/11/codigo_conduta_2024.pdf",
+      "https://fapesc.sc.gov.br/wp-content/uploads/2026/01/CP-04_2026.pdf",
+      "https://fapesc.sc.gov.br/wp-content/uploads/2025/05/MANUAL_Cadastramento-de-Instituicoes-no-SIGFAPESC.pdf",
+      "https://fapesc.sc.gov.br/wp-content/uploads/2026/01/Passo-a-passo-submissao-de-Propostas_Fomento-Propriedade-Intelectual.pdf",
+      "https://fapesc.sc.gov.br/wp-content/uploads/2026/04/Resultado-Adm.-Preliminar-04-2026.pdf"
+    ],
+    "processadoEm": "2026-04-09T23:03:56.643Z",
+    "pdfPaths": [
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapesc/fapesc_04-2026_1_Plano-de-Integridade-e-Compliance-da-Fapesc.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapesc/fapesc_04-2026_2_codigo_conduta_2024.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapesc/fapesc_04-2026_3_CP-04_2026.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapesc/fapesc_04-2026_4_MANUAL_Cadastramento-de-Instituicoes-no-SIGFAPESC.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapesc/fapesc_04-2026_5_Passo-a-passo-submissao-de-Propostas_Fomento-Propriedade-Intelectual.pdf",
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapesc/fapesc_04-2026_6_Resultado-Adm.-Preliminar-04-2026.pdf"
+    ]
+  },
+  {
+    "numero": "05/2026",
+    "titulo": "EDITAL FAPITEC/SE/FUNTEC N° 05/2026 – PROGRAMA DE AUXÍLIO AO DESENVOLVIMENTO DE PESQUISA CIENTÍFICA E TECNOLÓGICA – UNIVERSAL",
+    "link": "https://fapitec.se.gov.br/editais-abertos/edital-fapitec-se-funtec-n-05-2026-programa-de-auxilio-aodesenvolvimento-de-pesquisa-cientifica-e-tecnologica-universal/",
+    "orgao": "FAPITEC/SE",
+    "fonte": "fapitec",
+    "pais": "Brasil",
+    "estado": "SE",
+    "pdfUrl": "https://fapitec.se.gov.br/wp-content/uploads/2026/03/EDITAL-N%C2%B0-05.2026-PROGRAMA-UNIVERSAL.pdf.",
+    "pdfUrls": [
+      "https://fapitec.se.gov.br/wp-content/uploads/2026/03/EDITAL-N%C2%B0-05.2026-PROGRAMA-UNIVERSAL.pdf."
+    ],
+    "processadoEm": "2026-04-09T23:05:50.096Z",
+    "pdfPaths": [
+      "/home/caio/development/sites/originlab/scripts/output/pdfs/fapitec/fapitec_05-2026_1_EDITAL-N°-05.2026-PROGRAMA-UNIVERSAL.pdf..pdf"
+    ]
+  },
+  {
+    "titulo": "MOVER - Aliança Industrial (SENAI) 2026 Resultado CATEGORIA - Aliança Industrial - Mover - Resultado Final (2025)",
+    "link": "https://www.portaldaindustria.com.br/canais/plataforma-inovacao-para-industria/categoria/rota-2030-alianca-industrial/#resultados",
+    "orgao": "MOVER - Aliança Industrial (SENAI) 2026 Resultado CATEGORIA - Aliança Industrial - Mover - Resultado Final (2025)",
+    "fonte": "plataforma-inovacao-industria",
+    "pdfUrls": [
+      "https://static.portaldaindustria.com.br/media/filer_public/c2/51/c25109ee-2665-475c-ae02-494f63fcd5ad/plataforma_inovacao_2025_24042025_-_atualizacao_23032026.pdf"
+    ],
+    "processadoEm": "2026-04-09T23:06:31.895Z"
+  },
+  {
+    "titulo": "Digital View - Empreendedorismo Industrial - Institutição Âncora_2025 (SENAI/CE)",
+    "dataPublicacao": "01/07/2025",
+    "dataEncerramento": "31/07/2025",
+    "orgao": "Empreendedorismo Industrial - Desafio Instituição Âncora (SENAI) 2026 Instituição Âncora | SANUP - CAGECE/SENAI - Edição 2025",
+    "fonte": "plataforma-inovacao-industria",
+    "link": "http://plataforma.editaldeinovacao.com.br/",
+    "pdfUrls": [
+      "https://static.portaldaindustria.com.br/media/filer_public/c2/51/c25109ee-2665-475c-ae02-494f63fcd5ad/plataforma_inovacao_2025_24042025_-_atualizacao_23032026.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/b6/ea/b6ea5cbe-ee2d-4e63-86b7-a5a6bef8bde3/chamada_m_dias_branco_2025.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/b6/da/b6daff77-f182-4c4c-ac0b-ee30f5202d1e/edital_de_prorrogacao_chamada_cagece_12022026.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/81/e6/81e63ef7-bc29-4180-a42f-6155b1402ab3/regulamento_chamada_cidade_zero_carbono_2023_07julho23.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/4e/5b/4e5b224e-f30d-4001-a40d-465b73d10465/edital_de_concurso_findeslab.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/1a/89/1a891b8a-6fef-4136-92ca-1713eb7fc57c/chamada_brval_bobinadeira_v3final_dn_28042022.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/51/75/51752e2c-7c66-43a3-bd3d-81f4fa5dc704/chamadabosch-empreeind-2022pdf.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/83/8d/838d2ea5-f52c-403d-bccd-078ebd15f914/chamada_empreendedorismo_eletronorte_e_senai_vfinal.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/95/be/95bee9ce-e6f5-4618-aade-a20da907eabd/chamadaindustria_agrotech_senaipr_211019_1.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/77/1f/771f62f9-b5ba-4d7f-ac50-a243af007a11/edital_de_concurso_012021_-_empreendedorismo_industrial.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/7c/a0/7ca08e90-a624-4202-a1f6-d0dc92b43bb3/chamada_metro_empreendedorismo_versao_dn_13082021.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/b8/15/b81547c4-e536-4259-82b1-09c16ab125de/regulamento_chamada_mrv_senai_v05_chancela_v05.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/42/4f/424fd480-fb39-4dab-af09-cb8d0380c839/chamada_tematica_m_dias_branco_cronograma_atualizado_1.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/a4/06/a406ce8a-338b-4d62-b312-960817aef607/1-chamada-open-innovation-aco-cearense-e-senai-ce_3008.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/31/c5/31c5c43f-b08b-4c71-98b9-e0cef9b2250e/chamada_tematica_cortez_eng_2708.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/bb/b9/bbb993d1-f84d-4f08-b580-c4a98e3927ea/chamada-tematica-2-aco-cearense-rev-chtp-14-10-24pdf.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/01/67/016721e7-3e00-4a94-b9da-db074884ea00/resultado_da_conexao_cagece_sanup_09032026_1.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/6b/93/6b93934c-e715-416e-801d-cb38049da6a1/resultado_final_empreendedorismo_industrial_2025_digital_view-_senai_ce.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/24/c6/24c6d369-1f33-4dc1-887a-533fe9768d03/resultado_empreendedorismo_industrial_2025_-_ancora_e_startuptech.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/20/4b/204b6620-aaf0-4d59-86f7-2873e8fb1d5f/resultado_da_conexao_11.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/4a/ad/4aad2d57-6b92-4b7a-b4f8-f9c38e11dd1c/resultado_da_conexao_-_aco_cearense_-_ancora.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/cb/65/cb65520e-226e-48d6-b11d-e4a772e86412/resultado_da_conexao_3101.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/af/58/af58c4db-f051-4626-a993-7df952ee04c0/resultado_empreendedorismo_industrial_2024_-_ancora_e_startuptech.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/39/a5/39a5cd96-90b0-4b36-811e-b79ba70da444/resultado_da_conexao_empreendedorismoindustrial_3.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/e0/32/e032a4d4-5c00-42af-9e88-22934c11a564/comunicado_de_resultado_final_pei_2023_-_dn.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/0e/5c/0e5c7174-1bf0-42b6-b813-eb0e5da7889b/resultado_empreendedorismo_industrial_2023_-_ancora_e_startuptech.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/79/23/792316e0-5e47-4ee0-94d2-fb3e5073c411/comunicado_de_resultado_final_pei_2022_-_dn.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/8e/9c/8e9c24d5-8548-4b2f-9951-39197caf0835/resultado_empreendedorismo_industrial_2022_-_ancora_e_startuptech.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/33/59/335912b0-3a08-49d7-a716-d2b5f144ed4d/resultados_chamadabosch_22-08-22_-_codigo_da_ideia.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/78/aa/78aa2ee9-df9a-4217-a9dd-bb617a593ddc/agrotech_senaipr_resultadoparcial_25abr22_-codideia.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/1e/12/1e129f55-0444-41b0-80cd-7a0d1456b7a2/comunicado_de_resultado_final_pei_2021-_dn.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/dd/58/dd58de50-5631-468f-abf0-864c65761b8c/resultado_desafio_mrv_de_inovacao_-_fase_final.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/90/a4/90a4811a-73a2-429f-89b2-e22e108b0907/resultado_final_mdiasbranco.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/c6/66/c666fa01-6134-4963-bc7e-aa2712f02361/resultado_-_chamada_whirlpool_1.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/c8/f6/c8f64333-46af-4462-bbc1-60c7816738da/resultado_chamada_transformacao_digital_e_eficiencia_operacional.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/e7/45/e745e55d-987d-468a-b1ee-309cb2e6377f/furnas_resultado_final_08052020_2.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/a4/ec/a4ec40a1-dd16-424f-bf74-e2938390953a/chamada_klabin_selecionadas_final.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/f4/d8/f4d8e76e-f9fa-47da-9aaf-4be7331917f0/resultado_chamada_malwee_1.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/eb/b5/ebb58b0f-e059-4ea0-ab14-990462dec401/selecionadas_conexao_transformadora_final.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/2e/ef/2eefa7fc-cde6-4b42-ad79-3ae31a798985/chamada_klabin_selecionadas__1_1.pdf"
+    ],
+    "processadoEm": "2026-04-09T23:06:35.345Z"
+  },
+  {
+    "titulo": "SANUP - CAGECE/SENAI - Empreendedorismo Industrial - Institutição Âncora_2025 (SENAI/CE)",
+    "dataPublicacao": "22/08/2025",
+    "dataEncerramento": "07/10/2025",
+    "orgao": "Empreendedorismo Industrial - Desafio Instituição Âncora (SENAI) 2026 Instituição Âncora | SANUP - CAGECE/SENAI - Edição 2025",
+    "fonte": "plataforma-inovacao-industria",
+    "link": "http://plataforma.editaldeinovacao.com.br/",
+    "pdfUrls": [
+      "https://static.portaldaindustria.com.br/media/filer_public/c2/51/c25109ee-2665-475c-ae02-494f63fcd5ad/plataforma_inovacao_2025_24042025_-_atualizacao_23032026.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/b6/ea/b6ea5cbe-ee2d-4e63-86b7-a5a6bef8bde3/chamada_m_dias_branco_2025.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/b6/da/b6daff77-f182-4c4c-ac0b-ee30f5202d1e/edital_de_prorrogacao_chamada_cagece_12022026.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/81/e6/81e63ef7-bc29-4180-a42f-6155b1402ab3/regulamento_chamada_cidade_zero_carbono_2023_07julho23.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/4e/5b/4e5b224e-f30d-4001-a40d-465b73d10465/edital_de_concurso_findeslab.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/1a/89/1a891b8a-6fef-4136-92ca-1713eb7fc57c/chamada_brval_bobinadeira_v3final_dn_28042022.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/51/75/51752e2c-7c66-43a3-bd3d-81f4fa5dc704/chamadabosch-empreeind-2022pdf.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/83/8d/838d2ea5-f52c-403d-bccd-078ebd15f914/chamada_empreendedorismo_eletronorte_e_senai_vfinal.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/95/be/95bee9ce-e6f5-4618-aade-a20da907eabd/chamadaindustria_agrotech_senaipr_211019_1.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/77/1f/771f62f9-b5ba-4d7f-ac50-a243af007a11/edital_de_concurso_012021_-_empreendedorismo_industrial.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/7c/a0/7ca08e90-a624-4202-a1f6-d0dc92b43bb3/chamada_metro_empreendedorismo_versao_dn_13082021.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/b8/15/b81547c4-e536-4259-82b1-09c16ab125de/regulamento_chamada_mrv_senai_v05_chancela_v05.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/42/4f/424fd480-fb39-4dab-af09-cb8d0380c839/chamada_tematica_m_dias_branco_cronograma_atualizado_1.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/a4/06/a406ce8a-338b-4d62-b312-960817aef607/1-chamada-open-innovation-aco-cearense-e-senai-ce_3008.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/31/c5/31c5c43f-b08b-4c71-98b9-e0cef9b2250e/chamada_tematica_cortez_eng_2708.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/bb/b9/bbb993d1-f84d-4f08-b580-c4a98e3927ea/chamada-tematica-2-aco-cearense-rev-chtp-14-10-24pdf.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/01/67/016721e7-3e00-4a94-b9da-db074884ea00/resultado_da_conexao_cagece_sanup_09032026_1.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/6b/93/6b93934c-e715-416e-801d-cb38049da6a1/resultado_final_empreendedorismo_industrial_2025_digital_view-_senai_ce.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/24/c6/24c6d369-1f33-4dc1-887a-533fe9768d03/resultado_empreendedorismo_industrial_2025_-_ancora_e_startuptech.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/20/4b/204b6620-aaf0-4d59-86f7-2873e8fb1d5f/resultado_da_conexao_11.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/4a/ad/4aad2d57-6b92-4b7a-b4f8-f9c38e11dd1c/resultado_da_conexao_-_aco_cearense_-_ancora.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/cb/65/cb65520e-226e-48d6-b11d-e4a772e86412/resultado_da_conexao_3101.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/af/58/af58c4db-f051-4626-a993-7df952ee04c0/resultado_empreendedorismo_industrial_2024_-_ancora_e_startuptech.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/39/a5/39a5cd96-90b0-4b36-811e-b79ba70da444/resultado_da_conexao_empreendedorismoindustrial_3.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/e0/32/e032a4d4-5c00-42af-9e88-22934c11a564/comunicado_de_resultado_final_pei_2023_-_dn.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/0e/5c/0e5c7174-1bf0-42b6-b813-eb0e5da7889b/resultado_empreendedorismo_industrial_2023_-_ancora_e_startuptech.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/79/23/792316e0-5e47-4ee0-94d2-fb3e5073c411/comunicado_de_resultado_final_pei_2022_-_dn.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/8e/9c/8e9c24d5-8548-4b2f-9951-39197caf0835/resultado_empreendedorismo_industrial_2022_-_ancora_e_startuptech.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/33/59/335912b0-3a08-49d7-a716-d2b5f144ed4d/resultados_chamadabosch_22-08-22_-_codigo_da_ideia.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/78/aa/78aa2ee9-df9a-4217-a9dd-bb617a593ddc/agrotech_senaipr_resultadoparcial_25abr22_-codideia.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/1e/12/1e129f55-0444-41b0-80cd-7a0d1456b7a2/comunicado_de_resultado_final_pei_2021-_dn.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/dd/58/dd58de50-5631-468f-abf0-864c65761b8c/resultado_desafio_mrv_de_inovacao_-_fase_final.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/90/a4/90a4811a-73a2-429f-89b2-e22e108b0907/resultado_final_mdiasbranco.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/c6/66/c666fa01-6134-4963-bc7e-aa2712f02361/resultado_-_chamada_whirlpool_1.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/c8/f6/c8f64333-46af-4462-bbc1-60c7816738da/resultado_chamada_transformacao_digital_e_eficiencia_operacional.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/e7/45/e745e55d-987d-468a-b1ee-309cb2e6377f/furnas_resultado_final_08052020_2.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/a4/ec/a4ec40a1-dd16-424f-bf74-e2938390953a/chamada_klabin_selecionadas_final.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/f4/d8/f4d8e76e-f9fa-47da-9aaf-4be7331917f0/resultado_chamada_malwee_1.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/eb/b5/ebb58b0f-e059-4ea0-ab14-990462dec401/selecionadas_conexao_transformadora_final.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/2e/ef/2eefa7fc-cde6-4b42-ad79-3ae31a798985/chamada_klabin_selecionadas__1_1.pdf"
+    ],
+    "processadoEm": "2026-04-09T23:06:35.345Z"
+  },
+  {
+    "titulo": "O Programa Agro.ind é uma iniciativa do SENAI/MT que tem como objetivo promover a inovação aberta, conectando os desafios de empresas demandantes a soluções inovadoras desenvolvidas por startups, acessibilizando a inovação e a transformação digital às indústrias e empresas",
+    "dataPublicacao": "05/11/2025",
+    "dataEncerramento": "12/12/2025",
+    "orgao": "Empreendedorismo Industrial - Desafio Instituição Âncora (SENAI) 2026 Instituição Âncora | SANUP - CAGECE/SENAI - Edição 2025",
+    "fonte": "plataforma-inovacao-industria",
+    "link": "http://plataforma.editaldeinovacao.com.br/",
+    "pdfUrls": [
+      "https://static.portaldaindustria.com.br/media/filer_public/c2/51/c25109ee-2665-475c-ae02-494f63fcd5ad/plataforma_inovacao_2025_24042025_-_atualizacao_23032026.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/b6/ea/b6ea5cbe-ee2d-4e63-86b7-a5a6bef8bde3/chamada_m_dias_branco_2025.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/b6/da/b6daff77-f182-4c4c-ac0b-ee30f5202d1e/edital_de_prorrogacao_chamada_cagece_12022026.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/81/e6/81e63ef7-bc29-4180-a42f-6155b1402ab3/regulamento_chamada_cidade_zero_carbono_2023_07julho23.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/4e/5b/4e5b224e-f30d-4001-a40d-465b73d10465/edital_de_concurso_findeslab.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/1a/89/1a891b8a-6fef-4136-92ca-1713eb7fc57c/chamada_brval_bobinadeira_v3final_dn_28042022.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/51/75/51752e2c-7c66-43a3-bd3d-81f4fa5dc704/chamadabosch-empreeind-2022pdf.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/83/8d/838d2ea5-f52c-403d-bccd-078ebd15f914/chamada_empreendedorismo_eletronorte_e_senai_vfinal.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/95/be/95bee9ce-e6f5-4618-aade-a20da907eabd/chamadaindustria_agrotech_senaipr_211019_1.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/77/1f/771f62f9-b5ba-4d7f-ac50-a243af007a11/edital_de_concurso_012021_-_empreendedorismo_industrial.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/7c/a0/7ca08e90-a624-4202-a1f6-d0dc92b43bb3/chamada_metro_empreendedorismo_versao_dn_13082021.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/b8/15/b81547c4-e536-4259-82b1-09c16ab125de/regulamento_chamada_mrv_senai_v05_chancela_v05.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/42/4f/424fd480-fb39-4dab-af09-cb8d0380c839/chamada_tematica_m_dias_branco_cronograma_atualizado_1.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/a4/06/a406ce8a-338b-4d62-b312-960817aef607/1-chamada-open-innovation-aco-cearense-e-senai-ce_3008.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/31/c5/31c5c43f-b08b-4c71-98b9-e0cef9b2250e/chamada_tematica_cortez_eng_2708.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/bb/b9/bbb993d1-f84d-4f08-b580-c4a98e3927ea/chamada-tematica-2-aco-cearense-rev-chtp-14-10-24pdf.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/01/67/016721e7-3e00-4a94-b9da-db074884ea00/resultado_da_conexao_cagece_sanup_09032026_1.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/6b/93/6b93934c-e715-416e-801d-cb38049da6a1/resultado_final_empreendedorismo_industrial_2025_digital_view-_senai_ce.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/24/c6/24c6d369-1f33-4dc1-887a-533fe9768d03/resultado_empreendedorismo_industrial_2025_-_ancora_e_startuptech.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/20/4b/204b6620-aaf0-4d59-86f7-2873e8fb1d5f/resultado_da_conexao_11.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/4a/ad/4aad2d57-6b92-4b7a-b4f8-f9c38e11dd1c/resultado_da_conexao_-_aco_cearense_-_ancora.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/cb/65/cb65520e-226e-48d6-b11d-e4a772e86412/resultado_da_conexao_3101.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/af/58/af58c4db-f051-4626-a993-7df952ee04c0/resultado_empreendedorismo_industrial_2024_-_ancora_e_startuptech.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/39/a5/39a5cd96-90b0-4b36-811e-b79ba70da444/resultado_da_conexao_empreendedorismoindustrial_3.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/e0/32/e032a4d4-5c00-42af-9e88-22934c11a564/comunicado_de_resultado_final_pei_2023_-_dn.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/0e/5c/0e5c7174-1bf0-42b6-b813-eb0e5da7889b/resultado_empreendedorismo_industrial_2023_-_ancora_e_startuptech.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/79/23/792316e0-5e47-4ee0-94d2-fb3e5073c411/comunicado_de_resultado_final_pei_2022_-_dn.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/8e/9c/8e9c24d5-8548-4b2f-9951-39197caf0835/resultado_empreendedorismo_industrial_2022_-_ancora_e_startuptech.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/33/59/335912b0-3a08-49d7-a716-d2b5f144ed4d/resultados_chamadabosch_22-08-22_-_codigo_da_ideia.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/78/aa/78aa2ee9-df9a-4217-a9dd-bb617a593ddc/agrotech_senaipr_resultadoparcial_25abr22_-codideia.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/1e/12/1e129f55-0444-41b0-80cd-7a0d1456b7a2/comunicado_de_resultado_final_pei_2021-_dn.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/dd/58/dd58de50-5631-468f-abf0-864c65761b8c/resultado_desafio_mrv_de_inovacao_-_fase_final.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/90/a4/90a4811a-73a2-429f-89b2-e22e108b0907/resultado_final_mdiasbranco.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/c6/66/c666fa01-6134-4963-bc7e-aa2712f02361/resultado_-_chamada_whirlpool_1.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/c8/f6/c8f64333-46af-4462-bbc1-60c7816738da/resultado_chamada_transformacao_digital_e_eficiencia_operacional.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/e7/45/e745e55d-987d-468a-b1ee-309cb2e6377f/furnas_resultado_final_08052020_2.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/a4/ec/a4ec40a1-dd16-424f-bf74-e2938390953a/chamada_klabin_selecionadas_final.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/f4/d8/f4d8e76e-f9fa-47da-9aaf-4be7331917f0/resultado_chamada_malwee_1.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/eb/b5/ebb58b0f-e059-4ea0-ab14-990462dec401/selecionadas_conexao_transformadora_final.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/2e/ef/2eefa7fc-cde6-4b42-ad79-3ae31a798985/chamada_klabin_selecionadas__1_1.pdf"
+    ],
+    "processadoEm": "2026-04-09T23:06:35.345Z"
+  },
+  {
+    "titulo": "[SENAI RN] CHAMADA REGIONAL - Soluções para Estruturas Autoinstaláveis de Parques Eólicos Offshore",
+    "dataPublicacao": "28/11/2025",
+    "dataEncerramento": "16/01/2026",
+    "orgao": "Chamada Regional (SENAI) [SENAI/RJ] CONCURSO DE INOVAÇÃO PARA SOLUÇÕES EM EFICIÊNCIA ENERGÉTICA - (SENAI RJ/ENBPAR) - CHAMADA 1",
+    "fonte": "plataforma-inovacao-industria",
+    "link": "http://plataforma.editaldeinovacao.com.br/",
+    "pdfUrls": [
+      "https://static.portaldaindustria.com.br/media/filer_public/c2/51/c25109ee-2665-475c-ae02-494f63fcd5ad/plataforma_inovacao_2025_24042025_-_atualizacao_23032026.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/72/dd/72ddd734-e5b5-4a5d-980a-f16eb2b1e76c/edital-de-inovacao-para-a-industria_sebrae_senai_2o_ciclo.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/47/ae/47ae551e-b6de-4c32-8116-ebcb603ac477/edital-sesi-inova__04_errata.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/4d/7e/4d7e4dee-6ec4-4c55-8ba0-0f9704a63e2f/regulamento_regional_-_industrias_parceiras_rev3.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/36/78/3678f121-88b0-4b97-a85e-475a63e41f08/edital_chamada_inteligencia_artificial_vfinal.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/8f/39/8f39b457-e07c-4d35-9c7e-7c2506de797b/chamadaparanaense2021_210916cronosite.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/94/14/94141f65-7e61-42b8-bd8c-ba68822307b1/edital-furnas-conecta-startups-plataforma-vfpdf.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/dc/3f/dc3f7a7b-82f0-4b40-a335-f40b17083178/edital_sebrae_senai_-_v_revisado_final_00.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/49/1c/491c2a3f-4e00-4e0c-9efa-1d5c42b9c7d4/chamamento_0012024_-_programa_inovalab_colatina__2a.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/6a/d4/6ad4a293-1886-4f97-bbf0-f26f891fdf5d/chamada_bioeconomia_senai_fundect_-_vfinal3.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/6c/f0/6cf0cbdd-3db9-4872-ba5d-c9feef42f143/edital_sebrae-senai_goias_-_2024_3_e_4_ciclo.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/dd/e2/dde22b28-eb98-4c6e-b85d-f7f2771183e3/resultado_chamada_regional_sebrae-senai_plataforma.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/32/92/32920835-daf0-4d41-9f23-a313a63fd495/comunicado_de_resultado_final_agroind_-_dn_1.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/78/d6/78d64722-422a-41cc-9ef1-4c086ea6597f/resultado_chamada_regional_sebrae-senai_plataforma.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/b2/3a/b23a59c3-b087-4448-9fcd-47b007b17c69/resultado_chamada_regional_sebrae-senai_plataforma.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/d8/e8/d8e8f045-62af-4a46-8135-0612d520bbbd/resultado_industria_parceiras_rev1.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/ba/37/ba375fa1-3162-4ec8-af49-972691c78fb3/chamada_edital_sesi_inova_resultado_2o_ciclo.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/8d/5f/8d5f586a-65c8-4db7-b4c4-c334f4e00c22/chamada_edital_sesi_inova_012021.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/3b/15/3b15f724-b617-4990-ae96-78657ef54731/resultado_chamada_regional_2021_4.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/59/d0/59d0b4d4-9aeb-4279-918c-5d937864c1dc/chamadaparanaense2021_aprovadas_vf.pdf"
+    ],
+    "processadoEm": "2026-04-09T23:06:38.851Z"
+  },
+  {
+    "titulo": "[SENAI/RJ] CONCURSO DE INOVAÇÃO PARA SOLUÇÕES EM EFICIÊNCIA ENERGÉTICA - (SENAI RJ/ENBPAR) - CHAMADA 1",
+    "dataPublicacao": "11/02/2026",
+    "dataEncerramento": "27/02/2026",
+    "orgao": "Chamada Regional (SENAI) [SENAI/RJ] CONCURSO DE INOVAÇÃO PARA SOLUÇÕES EM EFICIÊNCIA ENERGÉTICA - (SENAI RJ/ENBPAR) - CHAMADA 1",
+    "fonte": "plataforma-inovacao-industria",
+    "link": "http://plataforma.editaldeinovacao.com.br/",
+    "pdfUrls": [
+      "https://static.portaldaindustria.com.br/media/filer_public/c2/51/c25109ee-2665-475c-ae02-494f63fcd5ad/plataforma_inovacao_2025_24042025_-_atualizacao_23032026.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/72/dd/72ddd734-e5b5-4a5d-980a-f16eb2b1e76c/edital-de-inovacao-para-a-industria_sebrae_senai_2o_ciclo.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/47/ae/47ae551e-b6de-4c32-8116-ebcb603ac477/edital-sesi-inova__04_errata.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/4d/7e/4d7e4dee-6ec4-4c55-8ba0-0f9704a63e2f/regulamento_regional_-_industrias_parceiras_rev3.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/36/78/3678f121-88b0-4b97-a85e-475a63e41f08/edital_chamada_inteligencia_artificial_vfinal.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/8f/39/8f39b457-e07c-4d35-9c7e-7c2506de797b/chamadaparanaense2021_210916cronosite.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/94/14/94141f65-7e61-42b8-bd8c-ba68822307b1/edital-furnas-conecta-startups-plataforma-vfpdf.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/dc/3f/dc3f7a7b-82f0-4b40-a335-f40b17083178/edital_sebrae_senai_-_v_revisado_final_00.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/49/1c/491c2a3f-4e00-4e0c-9efa-1d5c42b9c7d4/chamamento_0012024_-_programa_inovalab_colatina__2a.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/6a/d4/6ad4a293-1886-4f97-bbf0-f26f891fdf5d/chamada_bioeconomia_senai_fundect_-_vfinal3.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/6c/f0/6cf0cbdd-3db9-4872-ba5d-c9feef42f143/edital_sebrae-senai_goias_-_2024_3_e_4_ciclo.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/dd/e2/dde22b28-eb98-4c6e-b85d-f7f2771183e3/resultado_chamada_regional_sebrae-senai_plataforma.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/32/92/32920835-daf0-4d41-9f23-a313a63fd495/comunicado_de_resultado_final_agroind_-_dn_1.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/78/d6/78d64722-422a-41cc-9ef1-4c086ea6597f/resultado_chamada_regional_sebrae-senai_plataforma.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/b2/3a/b23a59c3-b087-4448-9fcd-47b007b17c69/resultado_chamada_regional_sebrae-senai_plataforma.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/d8/e8/d8e8f045-62af-4a46-8135-0612d520bbbd/resultado_industria_parceiras_rev1.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/ba/37/ba375fa1-3162-4ec8-af49-972691c78fb3/chamada_edital_sesi_inova_resultado_2o_ciclo.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/8d/5f/8d5f586a-65c8-4db7-b4c4-c334f4e00c22/chamada_edital_sesi_inova_012021.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/3b/15/3b15f724-b617-4990-ae96-78657ef54731/resultado_chamada_regional_2021_4.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/59/d0/59d0b4d4-9aeb-4279-918c-5d937864c1dc/chamadaparanaense2021_aprovadas_vf.pdf"
+    ],
+    "processadoEm": "2026-04-09T23:06:38.851Z"
+  },
+  {
+    "titulo": "CHAMADA: AGENDA.TECH PARA MAPEAMENTO DE TECNOLOGIAS PARA INTEGRIDADE DE ATIVOS APLICADO AO SETOR DE EXPLORAÇÃO E PRODUÇÃO DE PETRÓLEO - 2025",
+    "dataPublicacao": "17/09/2025",
+    "dataEncerramento": "30/09/2025",
+    "orgao": "Agenda.Tech (SENAI) CHAMADA: AGENDA.TECH MAPEAMENTO DE OPORTUNIDADES E TECNOLOGIAS PARA PARA POWERSHORING NO BRASIL - 2025",
+    "fonte": "plataforma-inovacao-industria",
+    "link": "http://plataforma.editaldeinovacao.com.br/",
+    "pdfUrls": [
+      "https://static.portaldaindustria.com.br/media/filer_public/c2/51/c25109ee-2665-475c-ae02-494f63fcd5ad/plataforma_inovacao_2025_24042025_-_atualizacao_23032026.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/18/6f/186f36c0-6311-4dd2-b555-6570f853342d/agendatech_-_chamada_2025_petrobras_vfinal-errata.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/33/43/33437eee-2158-4d22-aa78-b1deb1292999/agendatech_-_powershoring-abr.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/f3/4a/f34aff18-9bae-4fcb-bd98-edae37e3f36c/chamada_agendatech_bioeconomia_-_cronograma_retificado_-_v2.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/d1/a2/d1a2189c-e120-4637-b93c-e92440dca47a/resultado_agendatech_-_integridade_de_ativos.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/27/fd/27fd2818-7889-4411-a5b7-78c5575f17dc/resultado_agendatech_bioeconomia.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/13/bd/13bd2743-6893-48e7-85fa-57316ab26419/resultado_agendatech_2024.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/80/6d/806dfeaf-0f8d-4246-97cd-b86bacfbc38b/resultado_agendatech_2023.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/4e/f4/4ef4d0cb-698a-4430-a87a-569a28e161c7/resultado_agendatech_2022.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/24/bc/24bce05e-a602-4226-bb86-d5ce8691b809/resultado_agendatech_2021.pdf"
+    ],
+    "processadoEm": "2026-04-09T23:06:41.507Z"
+  },
+  {
+    "titulo": "CHAMADA: AGENDA.TECH MAPEAMENTO DE OPORTUNIDADES E TECNOLOGIAS PARA PARA POWERSHORING NO BRASIL - 2025",
+    "dataPublicacao": "19/12/2025",
+    "dataEncerramento": "27/03/2026",
+    "orgao": "Agenda.Tech (SENAI) CHAMADA: AGENDA.TECH MAPEAMENTO DE OPORTUNIDADES E TECNOLOGIAS PARA PARA POWERSHORING NO BRASIL - 2025",
+    "fonte": "plataforma-inovacao-industria",
+    "link": "http://plataforma.editaldeinovacao.com.br/",
+    "pdfUrls": [
+      "https://static.portaldaindustria.com.br/media/filer_public/c2/51/c25109ee-2665-475c-ae02-494f63fcd5ad/plataforma_inovacao_2025_24042025_-_atualizacao_23032026.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/18/6f/186f36c0-6311-4dd2-b555-6570f853342d/agendatech_-_chamada_2025_petrobras_vfinal-errata.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/33/43/33437eee-2158-4d22-aa78-b1deb1292999/agendatech_-_powershoring-abr.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/f3/4a/f34aff18-9bae-4fcb-bd98-edae37e3f36c/chamada_agendatech_bioeconomia_-_cronograma_retificado_-_v2.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/d1/a2/d1a2189c-e120-4637-b93c-e92440dca47a/resultado_agendatech_-_integridade_de_ativos.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/27/fd/27fd2818-7889-4411-a5b7-78c5575f17dc/resultado_agendatech_bioeconomia.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/13/bd/13bd2743-6893-48e7-85fa-57316ab26419/resultado_agendatech_2024.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/80/6d/806dfeaf-0f8d-4246-97cd-b86bacfbc38b/resultado_agendatech_2023.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/4e/f4/4ef4d0cb-698a-4430-a87a-569a28e161c7/resultado_agendatech_2022.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/24/bc/24bce05e-a602-4226-bb86-d5ce8691b809/resultado_agendatech_2021.pdf"
+    ],
+    "processadoEm": "2026-04-09T23:06:41.507Z"
+  },
+  {
+    "titulo": "CHAMADA: AGENDA.TECH PARA MAPEAMENTO E AVALIAÇÃO DE TECNOLOGIAS PARA A BIOECONOMIA - 2025",
+    "dataPublicacao": "08/09/2025",
+    "dataEncerramento": "23/09/2025",
+    "orgao": "Agenda.Tech (SENAI) CHAMADA: AGENDA.TECH MAPEAMENTO DE OPORTUNIDADES E TECNOLOGIAS PARA PARA POWERSHORING NO BRASIL - 2025",
+    "fonte": "plataforma-inovacao-industria",
+    "link": "http://plataforma.editaldeinovacao.com.br/",
+    "pdfUrls": [
+      "https://static.portaldaindustria.com.br/media/filer_public/c2/51/c25109ee-2665-475c-ae02-494f63fcd5ad/plataforma_inovacao_2025_24042025_-_atualizacao_23032026.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/18/6f/186f36c0-6311-4dd2-b555-6570f853342d/agendatech_-_chamada_2025_petrobras_vfinal-errata.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/33/43/33437eee-2158-4d22-aa78-b1deb1292999/agendatech_-_powershoring-abr.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/f3/4a/f34aff18-9bae-4fcb-bd98-edae37e3f36c/chamada_agendatech_bioeconomia_-_cronograma_retificado_-_v2.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/d1/a2/d1a2189c-e120-4637-b93c-e92440dca47a/resultado_agendatech_-_integridade_de_ativos.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/27/fd/27fd2818-7889-4411-a5b7-78c5575f17dc/resultado_agendatech_bioeconomia.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/13/bd/13bd2743-6893-48e7-85fa-57316ab26419/resultado_agendatech_2024.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/80/6d/806dfeaf-0f8d-4246-97cd-b86bacfbc38b/resultado_agendatech_2023.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/4e/f4/4ef4d0cb-698a-4430-a87a-569a28e161c7/resultado_agendatech_2022.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/24/bc/24bce05e-a602-4226-bb86-d5ce8691b809/resultado_agendatech_2021.pdf"
+    ],
+    "processadoEm": "2026-04-09T23:06:41.508Z"
+  },
+  {
+    "titulo": "CHAMADA: PROJETO SEMENTE DE PROGRAMA PRIORITÁRIO DE INTERESSE (PPI) NACIONAL EM BIOINFORMÁTICA - 2025",
+    "dataPublicacao": "08/09/2025",
+    "dataEncerramento": "17/09/2025",
+    "orgao": "Categoria Projeto Semente (SENAI)",
+    "fonte": "plataforma-inovacao-industria",
+    "link": "http://plataforma.editaldeinovacao.com.br/",
+    "pdfUrls": [
+      "https://static.portaldaindustria.com.br/media/filer_public/c2/51/c25109ee-2665-475c-ae02-494f63fcd5ad/plataforma_inovacao_2025_24042025_-_atualizacao_23032026.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/1f/6c/1f6c3c55-8048-463e-9b37-aa9f744a2bb1/projeto_semente_-_ppi_bioinformatica_vfinal.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/2c/cc/2ccc2407-0787-4402-a5ec-100572b2623b/projeto_semente_-_chamada_de_projetos_estruturantes_ou_mobilizadores_1.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/55/57/55570ec0-5dad-42c6-a9d2-9c282a372c1d/resultado_chamada_estruturantes_e_mobilizadores_v3.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/a3/62/a362ece2-84d0-44fa-90c7-6066123f3783/resultado_chamada_ppi_bioinformatica.pdf"
+    ],
+    "processadoEm": "2026-04-09T23:06:47.054Z"
+  },
+  {
+    "titulo": "CHAMADA TÉCNICA SESI – COP 30 – DESCARBONIZAÇÃO (SESI)",
+    "dataPublicacao": "24/06/2025",
+    "dataEncerramento": "08/07/2025",
+    "orgao": "Saúde Conectada (SESI) Apoiar e financiar o desenvolvimento de soluções inovadoras para operacionalização das linhas de cuidados coordenadas.",
+    "fonte": "plataforma-inovacao-industria",
+    "link": "https://plataforma.editaldeinovacao.com.br/",
+    "pdfUrls": [
+      "https://static.portaldaindustria.com.br/media/filer_public/c2/51/c25109ee-2665-475c-ae02-494f63fcd5ad/plataforma_inovacao_2025_24042025_-_atualizacao_23032026.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/53/eb/53ebbf4a-0a09-43e7-b01f-faafc6d54bf3/apendice_2_diretrizes_sesi_para_aps.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/92/65/92650b50-7875-4b54-9f46-8f746301e790/apendice_3_guia_orientativo_para_tecnologia_da_informacao_rev2_compressed.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/59/bc/59bc0958-cb3e-4a72-a84a-8f69b38ceb17/apendice_1_guia_orientativo_cefaleia_final.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/83/7b/837b957d-1f66-49c9-ba67-61fa0e5b36be/2a-saude_conectada_chamada_regional_lc_cefaleias_1.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/92/e4/92e4d7c7-60fa-4d73-acac-52011a464c39/4a-saude_conectada_chamada_regional_lc_diabetes_tipo_2_1.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/ef/45/ef4581bf-009a-43af-b669-03c3d192c6c3/1a-saude_conectada_chamada_regional_lc_dor_lombar_em_adultos_1.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/86/25/862537cf-cbde-4088-9255-5a2bdf59c05f/5a-saude_conectada_chamada_regional_lc_hipertensao_arterial_sistemica_3.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/2f/b5/2fb5086e-9425-45c1-b886-e37fee624982/6a-saude_conectada_chamada_regional_lc_sobrepeso_e_obesidade_1.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/8a/7b/8a7b6b56-710e-4c9d-8374-e2397edb155c/3a-saude_conectada_chamada_regional_lc_transtornos_de_ansiedade_e_depressao_1.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/d7/82/d78242d5-6eda-417c-98a5-f906106dcded/categoria_saude_conectada_chamada_descarbonizacao.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/a8/16/a816f85b-2c19-496b-9321-633f83fabee7/saude_conectada_chamada_regional_lc_cefaleias.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/69/aa/69aa92d5-4472-4b99-b765-4f5810dfac7d/resultado_chamada_saude_conectada_sesi_cefaleia_2025_v2.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/1f/d6/1fd65158-1721-4c96-b7cb-24695d3fb582/resultado_chamada_saude_conectada_sesi_cefaleia.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/29/26/2926c9b8-f237-4e7a-84c8-c77059b63351/resultado_chamada_saude_conectada_cop_sesi__descarbonizacao_160725_.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/92/a3/92a35d7a-00c1-433f-8592-f745e74f2581/resultado_chamada_saude_conectada_sesi_hipertensao.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/5d/36/5d368d5d-9016-4b58-b5ca-e26ab60fe415/resultado_chamada_saude_conectada_sesi_cefaleias.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/2e/28/2e28cb07-6c41-451b-8fd8-9a63494d6e5c/resultado_chamada_saude_conectada_sesi_dor_lombar.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/a7/25/a7255930-bf96-476b-a5ab-4dc751d806f9/resultado_chamada_saude_conectada_sesi_sobrepeso.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/e4/f9/e4f918ae-fa72-42c5-a921-fbb7016540ad/resultado_chamada_saude_conectada_sesi_ansiedade.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/db/8b/db8bfbfb-d1d0-49b0-b572-d539ae18a454/resultado_chamada_saude_conectada_sesi_diabetes.pdf"
+    ],
+    "processadoEm": "2026-04-09T23:06:52.540Z"
+  },
+  {
+    "titulo": "CHAMADA TÉCNICA – Linhas de cuidados de DCNT – Cefaleias",
+    "dataPublicacao": "18/09/2025",
+    "dataEncerramento": "12/12/2025",
+    "orgao": "Saúde Conectada (SESI) Apoiar e financiar o desenvolvimento de soluções inovadoras para operacionalização das linhas de cuidados coordenadas.",
+    "fonte": "plataforma-inovacao-industria",
+    "link": "https://plataforma.editaldeinovacao.com.br/",
+    "pdfUrls": [
+      "https://static.portaldaindustria.com.br/media/filer_public/c2/51/c25109ee-2665-475c-ae02-494f63fcd5ad/plataforma_inovacao_2025_24042025_-_atualizacao_23032026.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/53/eb/53ebbf4a-0a09-43e7-b01f-faafc6d54bf3/apendice_2_diretrizes_sesi_para_aps.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/92/65/92650b50-7875-4b54-9f46-8f746301e790/apendice_3_guia_orientativo_para_tecnologia_da_informacao_rev2_compressed.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/59/bc/59bc0958-cb3e-4a72-a84a-8f69b38ceb17/apendice_1_guia_orientativo_cefaleia_final.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/83/7b/837b957d-1f66-49c9-ba67-61fa0e5b36be/2a-saude_conectada_chamada_regional_lc_cefaleias_1.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/92/e4/92e4d7c7-60fa-4d73-acac-52011a464c39/4a-saude_conectada_chamada_regional_lc_diabetes_tipo_2_1.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/ef/45/ef4581bf-009a-43af-b669-03c3d192c6c3/1a-saude_conectada_chamada_regional_lc_dor_lombar_em_adultos_1.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/86/25/862537cf-cbde-4088-9255-5a2bdf59c05f/5a-saude_conectada_chamada_regional_lc_hipertensao_arterial_sistemica_3.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/2f/b5/2fb5086e-9425-45c1-b886-e37fee624982/6a-saude_conectada_chamada_regional_lc_sobrepeso_e_obesidade_1.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/8a/7b/8a7b6b56-710e-4c9d-8374-e2397edb155c/3a-saude_conectada_chamada_regional_lc_transtornos_de_ansiedade_e_depressao_1.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/d7/82/d78242d5-6eda-417c-98a5-f906106dcded/categoria_saude_conectada_chamada_descarbonizacao.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/a8/16/a816f85b-2c19-496b-9321-633f83fabee7/saude_conectada_chamada_regional_lc_cefaleias.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/69/aa/69aa92d5-4472-4b99-b765-4f5810dfac7d/resultado_chamada_saude_conectada_sesi_cefaleia_2025_v2.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/1f/d6/1fd65158-1721-4c96-b7cb-24695d3fb582/resultado_chamada_saude_conectada_sesi_cefaleia.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/29/26/2926c9b8-f237-4e7a-84c8-c77059b63351/resultado_chamada_saude_conectada_cop_sesi__descarbonizacao_160725_.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/92/a3/92a35d7a-00c1-433f-8592-f745e74f2581/resultado_chamada_saude_conectada_sesi_hipertensao.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/5d/36/5d368d5d-9016-4b58-b5ca-e26ab60fe415/resultado_chamada_saude_conectada_sesi_cefaleias.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/2e/28/2e28cb07-6c41-451b-8fd8-9a63494d6e5c/resultado_chamada_saude_conectada_sesi_dor_lombar.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/a7/25/a7255930-bf96-476b-a5ab-4dc751d806f9/resultado_chamada_saude_conectada_sesi_sobrepeso.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/e4/f9/e4f918ae-fa72-42c5-a921-fbb7016540ad/resultado_chamada_saude_conectada_sesi_ansiedade.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/db/8b/db8bfbfb-d1d0-49b0-b572-d539ae18a454/resultado_chamada_saude_conectada_sesi_diabetes.pdf"
+    ],
+    "processadoEm": "2026-04-09T23:06:52.542Z"
+  },
+  {
+    "titulo": "Startup.Tech 2025 – Transformação Digital na Indústria - SENAI/CE",
+    "dataPublicacao": "18/06/2025",
+    "dataEncerramento": "30/06/2025",
+    "orgao": "Empreendedorismo Industrial - Startup.Tech (SENAI) Conexão de ofertas e demandas da indústria de maneira ágil e por temas estratégicos",
+    "fonte": "plataforma-inovacao-industria",
+    "link": "https://plataforma.editaldeinovacao.com.br/",
+    "pdfUrls": [
+      "https://static.portaldaindustria.com.br/media/filer_public/c2/51/c25109ee-2665-475c-ae02-494f63fcd5ad/plataforma_inovacao_2025_24042025_-_atualizacao_23032026.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/38/6c/386c86c1-a169-4997-983b-716eb312a269/chamada-startup-tech-senai-ce_transformacao_digital_2025_cronograma_atualizado.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/ef/95/ef95657f-5155-4fe5-a166-dcfea39f0029/chamada-startup-tech-senai-ce-2022-0408-1pdf.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/47/37/4737a7f9-f4d2-462f-bf03-c6400fbd63df/1_-_chamada_carbono_neutro_sucroenergetico_retificado_cronograma_v01.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/9a/45/9a458e8e-94ac-4fda-968e-d41564008278/chamada_2022__errata.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/ef/f0/eff0459a-26ed-4284-8545-5bb8206787bf/edital_startuptech_conexsus__senaijul_2022_alteracao_cronogramadocx.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/08/dd/08dda89a-cc76-46c2-9f53-ae5f6e663cdb/regulamento-chamada_startuptech_embalagens-2.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/33/44/3344dcb1-e5c3-4c22-9cbe-63a33e4770ee/chamada_startuptech_seguranca_saude_pr_211122_errata.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/f3/ef/f3ef067b-c6d1-496d-a571-11339958cfc0/2021_09_03_nova_proposta_de_chamada_apos_submissao011220211_4.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/7e/f7/7ef7be19-3beb-44eb-9443-cc4445cc6498/regulamento_carbono_zero_v2021_08_11_retificacao.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/34/97/349723df-c8c2-4f89-9aed-42adea67fac4/edital-programa-conexoes-startuptechpdf.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/f0/29/f029ec4b-7731-4255-be37-d7debc8ca244/1-chamada-startup-tech-senai-ce-conexao-40-27062024docx-0312pdf.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/cf/33/cf33dfe6-b758-49cd-a729-35ef1978441f/chamada_startup_tech_senai-ce_-_conexao_40_vf.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/57/d6/57d62260-75b6-41e3-944c-310ef86efe90/chamada-startuptech-mt-tdpdf-2.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/89/c9/89c99364-9d6e-4176-87b6-c146f5d1903c/edital_senai_pi_23_de_chamamento_startup_tech_novo.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/72/1f/721f37a8-62b5-4271-8dac-9934c6f2a429/chamada-startuptech-mt-eopdf_1.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/40/6e/406ea41c-fa26-410a-aa02-f895720a7293/resultado_startuptech_2025_transformacao_digital-_senai_ce.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/17/54/1754f734-4f15-4aeb-ba2f-88ba6d49d500/resultado_empreendedorismo_industrial_2025_-_ancora_e_startuptech.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/72/d5/72d5526a-a7df-4696-b8fa-a11e11304126/resultado_da_conexao_8.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/8b/dc/8bdcd86e-1dfa-4ea4-b057-ba1cd8a544a8/resultado_empreendedorismo_industrial_2024_-_ancora_e_startuptech.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/64/d9/64d90ddf-c82e-499c-804b-229b878ea088/resultado_da_conexao_-_eficiencia_energetica.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/97/1a/971a7994-9139-4fbd-a942-a01657948b74/resultado_da_conexao_vf_2.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/2c/e2/2ce2c043-5c62-4c34-80cb-836375027c4f/senai_pi_resultado_startup_tech_ciclo_1_2023.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/e7/23/e7233365-ef39-4ca1-ac3b-2c9d4dfe8e89/resultado_conexao_40.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/9b/6c/9b6cf8b3-133e-46dd-bc74-5cac53e28d12/comunicado_de_resultado_final_agroind_-_dn.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/7e/c3/7ec38a88-b0e1-4ea9-b432-0ce469cdd116/resultado_empreendedorismo_industrial_2023_-_ancora_e_startuptech.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/cd/82/cd829a4a-3c6b-478d-b5d1-8f665234b40e/resultado_fase_1808.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/c6/fa/c6fa26c3-4b2e-4024-a9b2-1c0cfe667102/resultado_chamada_carbono_neutro_go-2.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/94/33/9433b053-c9ce-441c-a61f-ad4c571f54b9/resultado_final_-_startuptech_senai_ce.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/47/fd/47fd155a-ed52-4569-827b-72de856b45d7/resultado_de_aprovacao.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/0e/19/0e19c86e-2d27-492f-a0ca-894cc7d7cf35/chamada_startuptech__resultadofinal_relacao_startups_industriais_2503_1.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/97/b0/97b0b762-b140-4e28-8611-9622da113be2/comunicado_startuptech-_es.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/a3/fa/a3fa2166-9e25-46c8-8884-6093335a2e88/resultado__startuptech_senai-sp.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/ce/ff/ceffa27e-f1eb-4021-b080-07cc523df91f/resultado_startuptech_-_pr.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/7b/12/7b12e70a-ecda-48cd-a418-d237e222ed42/resultado_startuptech_2021.pdf"
+    ],
+    "processadoEm": "2026-04-09T23:07:04.874Z"
+  },
+  {
+    "titulo": "Missão Industrial - Monitoramento e Controle de Plantas Aquáticas Submersas em Usinas Hidrelétricas - CTG Brasil",
+    "dataPublicacao": "11/11/2024",
+    "dataEncerramento": "29/01/2025",
+    "orgao": "Missão Industrial (SENAI) Inovação de alto impacto para investidores, associações setoriais e empresas industriais",
+    "fonte": "plataforma-inovacao-industria",
+    "link": "http://plataforma.editaldeinovacao.com.br/",
+    "pdfUrls": [
+      "https://static.portaldaindustria.com.br/media/filer_public/c2/51/c25109ee-2665-475c-ae02-494f63fcd5ad/plataforma_inovacao_2025_24042025_-_atualizacao_23032026.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/50/29/5029cae8-768d-4505-8178-be32e198f36f/errata_chamada_vidro_prorrogacao.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/8f/18/8f1827e0-a0ec-4d93-9143-939aa6893a8c/edital_chamada_ctg_final.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/11/5e/115e029b-651f-44df-8421-60aac945aba9/chamada_balbina_aditivo_1.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/e6/e7/e6e7866a-452f-4a26-a320-8e545ff7c787/chamada_missao_industrial_-_suzano_versao_final_17082022.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/fe/3b/fe3b6072-bcd0-4e6c-b8ee-a02a40ebe4a6/chamada_missao_ctg_-_vfinal.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/be/b3/beb3de49-7b8b-47b5-894e-dcff1aad1c08/resultado_fase_final_ctg.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/dd/a7/dda7c7f8-5e5b-4fcf-9967-9ab3db1780e7/resultado_fase_1_chamada_ctg_final.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/cc/8f/cc8f9255-6dec-44e5-9111-c9894b3a7ec3/resultado_missao_industrial_2024.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/70/59/70592dfa-d5af-4d79-84a4-adf18d7777bb/missao_estrategica_nestle_-_resultado_final___rev13012025.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/4c/8d/4c8d7212-e30a-4281-9899-7a1056374574/resultado_missao_industrial_2023.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/22/b8/22b8aec8-6943-4b08-a1d5-dcb6d85421ef/resultado_-_missao_industrial_-_circularidade_do_vidro_-_grupo_petropolis_e_sen.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/86/2e/862eb7da-e9da-4956-91e1-59e09a23dc3c/propostas_contratacao_missao_suzano_retif_2024.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/1d/dc/1ddc0d3e-77da-41b6-a84f-92a69d763948/resultado_final_ctg_brasil_1.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/ae/09/ae09eced-9614-4710-9265-6b932024a07c/resultado_missao_industrial_2022.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/2b/18/2b18bd5a-6c36-4e46-890f-cfe0a6474f11/resultado_final_eletronorte_1.pdf"
+    ],
+    "processadoEm": "2026-04-09T23:07:10.462Z"
+  },
+  {
+    "titulo": "CHAMADA TÉCNICA – Saúde Mental e Emocional na População Industrial",
+    "dataPublicacao": "11/07/2025",
+    "dataEncerramento": "28/07/2025",
+    "orgao": "Linhas de Cuidado na Saúde Suplementar SESI e ANS (SESI) Apoiar e financiar projetos no contexto da operacionalização de linhas de cuidados na saúde suplementar.",
+    "fonte": "plataforma-inovacao-industria",
+    "link": "https://plataforma.editaldeinovacao.com.br/",
+    "pdfUrls": [
+      "https://static.portaldaindustria.com.br/media/filer_public/c2/51/c25109ee-2665-475c-ae02-494f63fcd5ad/plataforma_inovacao_2025_24042025_-_atualizacao_23032026.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/c1/22/c1228f7a-509d-4416-b7cd-7d32ab501761/acordo_de_cooperacao_tecnica_e_financeira.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/97/d2/97d268dc-eacc-4d5f-8730-ab96a9644bd3/modelo_de_plano_de_projeto_orientador_.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/65/45/6545d7d8-2d06-41f3-99fc-3c23aa4a3fd3/apendice_1_diretrizes_sesi_para_aps.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/3e/2f/3e2f6b90-5503-4100-b11e-bd6116d5c690/apendice2_estudo1_referencia_protocolo_lc_saude_mental_1.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/12/d7/12d72f96-d2c0-4554-98ba-bf3442038e1c/apendice2_estudo2_referencia_protocolo_lc_saude_mental_1.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/8b/48/8b48347a-c6c3-4e9a-8f0d-b95ae6f37215/apendice2_estudo3_referencia_protocolo_lc_saude_mental_vf_1.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/34/48/3448a1c2-627c-45ea-9d88-d83fad77594f/chamada_lc_na_saude_suplementar_saude_mental_e_emocional.pdf",
+      "https://static.portaldaindustria.com.br/media/filer_public/bd/50/bd50544b-f3ed-4c6b-b1ae-62b43d3a7165/resultado_chamada_tecnica_-_saude_mental_e_emocional_na_populacao_industrial_05082025.pdf"
+    ],
+    "processadoEm": "2026-04-09T23:08:37.532Z"
   }
 ]

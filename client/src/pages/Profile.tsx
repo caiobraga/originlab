@@ -21,9 +21,12 @@ import {
   AlertCircle,
   CheckCircle2,
   Share2,
-  RefreshCw
+  RefreshCw,
+  CreditCard,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { createBillingPortalSession } from "@/lib/stripeBilling";
 
 const AREA_LABELS: Record<string, string> = {
   tech: "Tecnologia",
@@ -57,6 +60,7 @@ export default function Profile() {
   const [loadingCNPJ, setLoadingCNPJ] = useState(false);
   const [loadingCPF, setLoadingCPF] = useState(false);
   const [importingPdf, setImportingPdf] = useState(false);
+  const [portalLoading, setPortalLoading] = useState(false);
   const hasRefetched = useRef(false);
 
   const loading = authLoading || profileLoading;
@@ -264,6 +268,97 @@ export default function Profile() {
                 </div>
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CreditCard className="w-5 h-5" />
+              Assinatura
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {profile?.stripeCustomerId || profile?.subscriptionStatus ? (
+              <>
+                <div className="grid gap-2 text-sm">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-gray-500">Status:</span>
+                    <Badge variant="secondary">
+                      {profile.subscriptionStatus === "active"
+                        ? "Ativa"
+                        : profile.subscriptionStatus === "trialing"
+                          ? "Período de teste"
+                          : profile.subscriptionStatus === "past_due"
+                            ? "Pagamento em atraso"
+                            : profile.subscriptionStatus === "canceled"
+                              ? "Cancelada"
+                              : profile.subscriptionStatus || "—"}
+                    </Badge>
+                  </div>
+                  {profile.subscriptionPlanKey ? (
+                    <p className="text-gray-700">
+                      Plano:{" "}
+                      <span className="font-medium">
+                        {profile.subscriptionPlanKey === "empresas"
+                          ? "Empresas"
+                          : profile.subscriptionPlanKey === "pro"
+                            ? "Pro"
+                            : profile.subscriptionPlanKey}
+                      </span>
+                    </p>
+                  ) : null}
+                  {profile.subscriptionCurrentPeriodEnd ? (
+                    <p className="text-gray-600 text-sm">
+                      Renovação / fim do período atual:{" "}
+                      {new Date(profile.subscriptionCurrentPeriodEnd).toLocaleDateString("pt-BR", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      })}
+                    </p>
+                  ) : null}
+                </div>
+                {profile.stripeCustomerId ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={portalLoading}
+                    onClick={async () => {
+                      setPortalLoading(true);
+                      try {
+                        const url = await createBillingPortalSession();
+                        window.location.href = url;
+                      } catch (e) {
+                        toast.error(e instanceof Error ? e.message : "Erro ao abrir portal.");
+                      } finally {
+                        setPortalLoading(false);
+                      }
+                    }}
+                  >
+                    {portalLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Abrindo…
+                      </>
+                    ) : (
+                      "Gerenciar assinatura e faturas"
+                    )}
+                  </Button>
+                ) : null}
+              </>
+            ) : (
+              <p className="text-gray-600 text-sm">
+                Você está no plano gratuito. Assine o Pro ou Empresas para desbloquear todos os recursos.
+              </p>
+            )}
+            <div>
+              <Link href="/planos">
+                <Button variant="default" className="bg-gradient-to-r from-blue-600 to-violet-600">
+                  Ver planos
+                </Button>
+              </Link>
+            </div>
           </CardContent>
         </Card>
 

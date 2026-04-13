@@ -4,6 +4,8 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
+    "daily:pipeline": "bash scripts/daily-pipeline.sh",
+    "daily:cron": "bash scripts/cron/run-daily-pipeline.sh",
     "dev": "vite --host",
     "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "start": "NODE_ENV=production node dist/index.js",
@@ -62,6 +64,7 @@
     "db:rename-files": "tsx scripts/db/rename-files.ts",
     "db:test-env": "tsx -e \"import './scripts/load-env'; console.log('SUPABASE_URL:', process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL); console.log('SERVICE_ROLE_KEY:', process.env.VITE_SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY ? 'Configurada' : 'Não configurada');\"",
     "api:process-edital-info": "UPDATE_EDITAL_DEBUG_CONTENT=1 tsx scripts/api/processEditalInfo.ts",
+    "api:process-edital-info:cron": "bash scripts/cron/run-process-edital-info.sh",
     "api:process-edital-info-null": "tsx scripts/api/processEditalInfoNull.ts",
     "api:process-edital-info-nao-informado": "tsx scripts/api/processEditalInfoNaoInformado.ts",
     "api:process-edital-info-loop": "tsx scripts/api/processEditalInfoLoop.ts",
@@ -69,7 +72,10 @@
     "api:update-edital-info": "UPDATE_EDITAL_DEBUG_CONTENT=1 tsx scripts/api/updateEditalInfo.ts",
     "api:update-edital-info-inconsistent-timeline": "tsx scripts/api/updateEditalInfoInconsistentTimeline.ts",
     "api:check-edital-data": "tsx scripts/api/checkEditalData.ts",
-    "api:fix-edital-flags": "tsx scripts/api/fixEditalFlags.ts"
+    "api:fix-edital-flags": "tsx scripts/api/fixEditalFlags.ts",
+    "daily:pipeline": "bash scripts/daily-pipeline.sh",
+    "daily:cron": "bash scripts/cron/run-daily-pipeline.sh",
+    "stripe:grant-subscription": "tsx scripts/stripe/grant-subscription.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
@@ -124,6 +130,7 @@
     "recharts": "^2.15.2",
     "sonner": "^2.0.7",
     "streamdown": "^1.4.0",
+    "stripe": "^22.0.1",
     "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",
     "undici": "^7.22.0",

@@ -11,7 +11,6 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createClient } from '@supabase/supabase-js';
 
 const router = express.Router();
-router.use(express.json({ limit: '50mb' }));
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY?.trim() || '';
 const genAI = GEMINI_API_KEY ? new GoogleGenerativeAI(GEMINI_API_KEY) : null;

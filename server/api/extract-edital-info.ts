@@ -4,7 +4,6 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createClient } from '@supabase/supabase-js';
 
 const router = express.Router();
-router.use(express.json({ limit: '50mb' }));
 
 function parsePositiveIntEnv(key: string, fallback: number): number {
   const v = process.env[key];

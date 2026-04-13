@@ -1,8 +1,6 @@
 import express from "express";
 
 const router = express.Router();
-router.use(express.json({ limit: "1mb" }));
-
 type TranslateRequestBody = {
   text: string;
   source?: string; // ex.: "pt"

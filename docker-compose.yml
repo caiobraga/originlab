@@ -1,76 +1,20 @@
+# Scheduler only. Ollama é acessado via HTTP (OLLAMA_BASE_URL no .env.local), sem serviço Ollama neste compose.
 services:
-  ollama:
-    image: ollama/ollama:latest
-    container_name: originlab-ollama
-    restart: unless-stopped
-    environment:
-      TZ: UTC
-    volumes:
-      - ollama:/root/.ollama
-    # No host port: avoids conflict when Ollama já roda na máquina (11434).
-    # O scheduler fala com ollama pela rede interna: http://ollama:11434
-    # Para expor na máquina, descomente (ou use outra porta, ex.: "11435:11434"):
-    # ports:
-    #   - "11435:11434"
-
-  # Pull models once on startup (idempotent).
-  # Uses OLLAMA_MODEL and OLLAMA_EMBED_MODEL from env_file.
-  ollama-init:
-    image: ollama/ollama:latest
-    container_name: originlab-ollama-init
-    depends_on:
-      - ollama
-    restart: "no"
-    env_file:
-      - .env.local
-    environment:
-      TZ: UTC
-      OLLAMA_BASE_URL: http://ollama:11434
-      # Default embed model (scripts/lib/ollama-edital.ts) — override in .env.local
-      OLLAMA_EMBED_MODEL: mxbai-embed-large:latest
-    entrypoint: ["/bin/sh", "-lc"]
-    # Use $$ so Docker Compose does not substitute ${...} from the host (avoids blank WARN).
-    command: >
-      '
-      set -e;
-      echo "[ollama-init] waiting for ollama...";
-      for i in $$(seq 1 60); do
-        if wget -qO- http://ollama:11434/api/tags >/dev/null 2>&1; then break; fi;
-        sleep 1;
-      done;
-      echo "[ollama-init] pulling main model: $${OLLAMA_MODEL:-qwen2.5:7b}";
-      ollama pull "$${OLLAMA_MODEL:-qwen2.5:7b}";
-      if [ -n "$${OLLAMA_EMBED_MODEL:-}" ]; then
-        echo "[ollama-init] pulling embed model: $${OLLAMA_EMBED_MODEL}";
-        ollama pull "$${OLLAMA_EMBED_MODEL}";
-      fi;
-      echo "[ollama-init] done";
-      '
-
   scheduler:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: originlab-scheduler
     restart: unless-stopped
-    # If you use .env.local locally, you can also change to env_file: [.env.local]
     env_file:
       - .env.local
     environment:
       TZ: UTC
-      # Ensure puppeteer uses system chromium
       PUPPETEER_SKIP_DOWNLOAD: "true"
       PUPPETEER_EXECUTABLE_PATH: "/usr/bin/chromium"
-      # Point scripts to the ollama container (not localhost inside container)
-      OLLAMA_BASE_URL: http://ollama:11434
-    depends_on:
-      - ollama
-      - ollama-init
+      # OLLAMA_BASE_URL, OLLAMA_MODEL, etc. vêm do .env.local (ex.: servidor remoto).
     # Optional: persist logs/locks if you want
     # volumes:
     #   - originlab-scheduler-tmp:/tmp
 
-volumes:
-  ollama:
-  # originlab-scheduler-tmp:
-
+# Para Ollama local + ollama-init (pull de modelos), use um override ou perfil separado.

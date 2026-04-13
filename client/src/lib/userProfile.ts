@@ -58,6 +58,13 @@ export interface UserProfile {
   phone?: string;
   /** Área de atuação principal (ex: tech, health), coletada no onboarding. */
   area?: string;
+  /** Stripe + assinatura (colunas em `profiles`, preenchidas pelo webhook). */
+  stripeCustomerId?: string;
+  stripeSubscriptionId?: string;
+  subscriptionStatus?: string;
+  subscriptionPriceId?: string;
+  subscriptionCurrentPeriodEnd?: string;
+  subscriptionPlanKey?: string;
 }
 
 /**
@@ -377,6 +384,12 @@ export async function getUserProfile(user: User | null): Promise<UserProfile | n
         onboardingCompleted: profile.onboarding_completed ?? Boolean(metadataProfile?.onboarding_completed),
         phone: profile.phone ?? undefined,
         area: profile.area ?? undefined,
+        stripeCustomerId: profile.stripe_customer_id ?? undefined,
+        stripeSubscriptionId: profile.stripe_subscription_id ?? undefined,
+        subscriptionStatus: profile.subscription_status ?? undefined,
+        subscriptionPriceId: profile.subscription_price_id ?? undefined,
+        subscriptionCurrentPeriodEnd: profile.subscription_current_period_end ?? undefined,
+        subscriptionPlanKey: profile.subscription_plan_key ?? undefined,
       };
     }
 

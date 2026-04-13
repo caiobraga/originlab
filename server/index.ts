@@ -1,7 +1,10 @@
+import "../scripts/load-env.js";
 import express from "express";
 import { createServer } from "http";
 import path from "path";
 import { fileURLToPath } from "url";
+import stripeWebhookHandler from "./api/stripe-webhook.js";
+import stripeBillingRouter from "./api/stripe-billing.js";
 import extractEditalInfoRouter from "./api/extract-edital-info.js";
 import calculateEditalScoresRouter from "./api/calculate-edital-scores.js";
 import generatePropostaRouter from "./api/generate-proposta.js";
@@ -17,6 +20,15 @@ const __dirname = path.dirname(__filename);
 async function startServer() {
   const app = express();
   const server = createServer(app);
+
+  app.post(
+    "/api/stripe/webhook",
+    express.raw({ type: "application/json" }),
+    stripeWebhookHandler,
+  );
+  // Um único parser JSON (evita body consumido / vazio ao encadear vários routers — ex.: parse-pdf Lattes).
+  app.use(express.json({ limit: "50mb" }));
+  app.use("/api", stripeBillingRouter);
 
   // API routes (before static files)
   app.use("/api", extractEditalInfoRouter);
@@ -54,6 +66,8 @@ async function startServer() {
     console.log(`  - http://localhost:${port}/api/translate`);
     console.log(`  - http://localhost:${port}/api/generate-field-text`);
     console.log(`  - http://localhost:${port}/api/analyze-field`);
+    console.log(`  - http://localhost:${port}/api/stripe/webhook (POST raw)`);
+    console.log(`  - http://localhost:${port}/api/stripe/create-checkout-session`);
   });
 }
 

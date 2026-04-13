@@ -14,12 +14,21 @@ export function translateSupabaseAuthError(
   const normalized = raw.toLowerCase();
   const normalizedCode = String(code || "").toLowerCase();
 
-  if (normalizedCode === "email_not_confirmed" || normalized.includes("email not confirmed")) {
-    return "Seu email ainda não foi confirmado. Verifique sua caixa de entrada (e spam) e clique no link de confirmação.";
+  if (
+    normalizedCode === "email_not_confirmed" ||
+    normalized.includes("email not confirmed") ||
+    normalized.includes("confirm your email") ||
+    normalized.includes("email address is not confirmed")
+  ) {
+    return "Seu email ainda não foi confirmado. Abra o link que enviamos (verifique spam). Você pode reenviar o email na tela de login.";
   }
 
-  if (normalizedCode === "invalid_login_credentials" || normalized.includes("invalid login credentials")) {
-    return "Email ou senha inválidos.";
+  if (
+    normalizedCode === "invalid_login_credentials" ||
+    normalized.includes("invalid login credentials") ||
+    normalized.includes("invalid credentials")
+  ) {
+    return "Não foi possível entrar. Confira email e senha. Se acabou de se cadastrar, confirme o email primeiro (link na caixa de entrada).";
   }
 
   if (

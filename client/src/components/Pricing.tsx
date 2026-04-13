@@ -1,9 +1,27 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Check, Sparkles } from "lucide-react";
-import { Link } from "wouter";
+import { Check, Sparkles, Loader2 } from "lucide-react";
+import { Link, useLocation } from "wouter";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
+import { createCheckoutSession } from "@/lib/stripeBilling";
 
-const plans = [
+type PlanAction =
+  | { kind: "signup" }
+  | { kind: "checkout"; planKey: "pro" | "empresas" }
+  | { kind: "contact"; href: string };
+
+const plans: Array<{
+  name: string;
+  price: string;
+  period: string;
+  description: string;
+  features: string[];
+  cta: string;
+  popular: boolean;
+  action: PlanAction;
+}> = [
   {
     name: "Free",
     price: "R$ 0",
@@ -13,10 +31,11 @@ const plans = [
       "3 editais por mês",
       "Alertas básicos",
       "Painel simplificado",
-      "Suporte por email"
+      "Suporte por email",
     ],
     cta: "Começar Grátis",
-    popular: false
+    popular: false,
+    action: { kind: "signup" },
   },
   {
     name: "Pro",
@@ -29,10 +48,11 @@ const plans = [
       "Painel completo com métricas",
       "Alertas personalizados",
       "Suporte prioritário",
-      "Histórico de submissões"
+      "Histórico de submissões",
     ],
     cta: "Assinar Pro",
-    popular: true
+    popular: true,
+    action: { kind: "checkout", planKey: "pro" },
   },
   {
     name: "Empresas",
@@ -45,10 +65,11 @@ const plans = [
       "Acompanhamento dedicado",
       "Relatórios executivos",
       "API de integração",
-      "Consultoria estratégica"
+      "Consultoria estratégica",
     ],
-    cta: "Falar com Vendas",
-    popular: false
+    cta: "Assinar Empresas",
+    popular: false,
+    action: { kind: "checkout", planKey: "empresas" },
   },
   {
     name: "Institucional",
@@ -61,14 +82,45 @@ const plans = [
       "Usuários ilimitados",
       "Infraestrutura dedicada",
       "SLA garantido",
-      "Treinamento in-company"
+      "Treinamento in-company",
     ],
     cta: "Solicitar Proposta",
-    popular: false
-  }
+    popular: false,
+    action: { kind: "contact", href: "/contato" },
+  },
 ];
 
 export default function Pricing() {
+  const { user } = useAuth();
+  const [, setLocation] = useLocation();
+  const [loadingPlan, setLoadingPlan] = useState<"pro" | "empresas" | null>(null);
+
+  const handlePlanClick = async (action: PlanAction) => {
+    if (action.kind === "signup") {
+      setLocation("/cadastro");
+      return;
+    }
+    if (action.kind === "contact") {
+      setLocation(action.href);
+      return;
+    }
+    if (!user) {
+      toast.info("Faça login ou crie uma conta para assinar.");
+      setLocation(`/login?redirect=/planos`);
+      return;
+    }
+    setLoadingPlan(action.planKey);
+    try {
+      const url = await createCheckoutSession(action.planKey);
+      window.location.href = url;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Erro ao abrir checkout.";
+      toast.error(msg);
+    } finally {
+      setLoadingPlan(null);
+    }
+  };
+
   return (
     <section id="planos" className="py-24 bg-gradient-to-br from-gray-50 to-blue-50">
       <div className="container">
@@ -83,9 +135,9 @@ export default function Pricing() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
           {plans.map((plan, index) => (
-            <Card 
-              key={index} 
-              className={`relative p-8 ${plan.popular ? 'border-2 border-violet-500 shadow-2xl scale-105' : 'border border-gray-200'} bg-white hover:shadow-xl transition-all`}
+            <Card
+              key={index}
+              className={`relative p-8 ${plan.popular ? "border-2 border-violet-500 shadow-2xl scale-105" : "border border-gray-200"} bg-white hover:shadow-xl transition-all`}
             >
               {plan.popular && (
                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
@@ -114,25 +166,49 @@ export default function Pricing() {
                 ))}
               </ul>
 
-              <Button 
-                className={`w-full ${plan.popular ? 'bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white' : 'bg-white border-2 border-gray-300 text-gray-900 hover:border-blue-500 hover:bg-blue-50'}`}
-              >
-                {plan.cta}
-              </Button>
+              {plan.action.kind === "contact" ? (
+                <Link href={plan.action.href}>
+                  <Button
+                    className={`w-full ${plan.popular ? "bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white" : "bg-white border-2 border-gray-300 text-gray-900 hover:border-blue-500 hover:bg-blue-50"}`}
+                  >
+                    {plan.cta}
+                  </Button>
+                </Link>
+              ) : (
+                <Button
+                  type="button"
+                  disabled={
+                    plan.action.kind === "checkout" &&
+                    loadingPlan === plan.action.planKey
+                  }
+                  className={`w-full ${plan.popular ? "bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white" : "bg-white border-2 border-gray-300 text-gray-900 hover:border-blue-500 hover:bg-blue-50"}`}
+                  onClick={() => void handlePlanClick(plan.action)}
+                >
+                  {plan.action.kind === "checkout" && loadingPlan === plan.action.planKey ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Redirecionando…
+                    </>
+                  ) : (
+                    plan.cta
+                  )}
+                </Button>
+              )}
             </Card>
           ))}
         </div>
 
-        {/* Success Fee */}
         <div className="mt-12 text-center">
           <p className="text-gray-600">
             <span className="font-semibold text-gray-900">Success Fee:</span> 3% sobre projetos aprovados em todos os planos
           </p>
         </div>
 
-        {/* Referral */}
         <div className="mt-6 text-center">
-          <Link href="/referencia" className="inline-flex items-center gap-2 text-green-600 hover:text-green-700 font-medium transition-colors">
+          <Link
+            href="/referencia"
+            className="inline-flex items-center gap-2 text-green-600 hover:text-green-700 font-medium transition-colors"
+          >
             <span>Indique amigos e ganhe R$ 50 em créditos</span>
             <span>→</span>
           </Link>

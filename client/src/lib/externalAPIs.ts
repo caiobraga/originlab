@@ -99,17 +99,34 @@ export interface CPFData {
   // Nota: APIs públicas de CPF são limitadas por questões de privacidade
 }
 
+/** Converte PDF para base64 sem estourar pilha/memória (loop byte-a-byte quebra arquivos Lattes grandes). */
+function uint8ArrayToBase64(bytes: Uint8Array): string {
+  const chunk = 0x8000;
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += chunk) {
+    const sub = bytes.subarray(i, i + chunk);
+    binary += String.fromCharCode.apply(null, sub as unknown as number[]);
+  }
+  return btoa(binary);
+}
+
+const MAX_CURRICULUM_PDF_BYTES = 48 * 1024 * 1024;
+
 /**
  * Envia um PDF de currículo para extração de dados.
  * POST /api/lattes/parse-pdf com o arquivo em base64.
  */
 export async function parseCurriculumFromPdf(file: File): Promise<LattesData | null> {
   try {
+    if (!file.size || file.size < 500) {
+      throw new Error("Arquivo PDF muito pequeno ou vazio.");
+    }
+    if (file.size > MAX_CURRICULUM_PDF_BYTES) {
+      throw new Error("PDF acima de 48 MB. Exporte um currículo mais enxuto do Lattes ou use o ID Lattes no perfil.");
+    }
     const buffer = await file.arrayBuffer();
     const bytes = new Uint8Array(buffer);
-    let binary = "";
-    for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
-    const pdfBase64 = btoa(binary);
+    const pdfBase64 = uint8ArrayToBase64(bytes);
     const base = typeof window !== "undefined" ? "" : process.env.VITE_APP_URL || "http://localhost:3000";
     const response = await fetch(`${base}/api/lattes/parse-pdf`, {
       method: "POST",
@@ -117,8 +134,13 @@ export async function parseCurriculumFromPdf(file: File): Promise<LattesData | n
       body: JSON.stringify({ pdfBase64 }),
     });
     if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      throw new Error((err as { error?: string }).error || "Falha ao processar PDF");
+      const err = (await response.json().catch(() => ({}))) as { error?: string };
+      const detail = err.error?.trim();
+      if (detail) throw new Error(detail);
+      if (response.status === 413) {
+        throw new Error("Arquivo grande demais para o servidor. Tente um PDF menor ou use o ID Lattes.");
+      }
+      throw new Error(`Falha ao processar PDF (${response.status}). Tente de novo ou use o ID Lattes no perfil.`);
     }
     const raw = (await response.json()) as Record<string, unknown>;
     const eleg = raw.elegibilidade as Record<string, unknown> | undefined;

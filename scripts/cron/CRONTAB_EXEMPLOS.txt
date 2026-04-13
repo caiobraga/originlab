@@ -1,0 +1,22 @@
+## Exemplos de crontab (Linux)
+#
+# Edite com:
+#   crontab -e
+#
+# Dica: use caminhos absolutos + redirecione logs.
+#
+
+## 1) Pipeline diário (scrape:all -> db:sync -> db:populate-documents-from-pdfs)
+# Todo dia às 03:00
+0 3 * * * /home/caio/development/sites/originlab/scripts/cron/run-daily-pipeline.sh >> /home/caio/development/sites/originlab/.tmp/daily-pipeline.log 2>&1
+
+## 2) api:process-edital-info (mais vezes)
+# A cada 30 minutos
+*/30 * * * * /home/caio/development/sites/originlab/scripts/cron/run-process-edital-info.sh >> /home/caio/development/sites/originlab/.tmp/process-edital-info.log 2>&1
+
+# Alternativas comuns:
+# - A cada 10 minutos:
+# */10 * * * * /home/caio/development/sites/originlab/scripts/cron/run-process-edital-info.sh >> /home/caio/development/sites/originlab/.tmp/process-edital-info.log 2>&1
+#
+# - Horários específicos (ex.: 08:00, 13:00, 18:00):
+# 0 8,13,18 * * * /home/caio/development/sites/originlab/scripts/cron/run-process-edital-info.sh >> /home/caio/development/sites/originlab/.tmp/process-edital-info.log 2>&1

@@ -63,17 +63,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error("Supabase not configured");
     }
 
+    const trimmedEmail = email.trim();
+
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: trimmedEmail,
         password,
       });
 
       if (error) throw error;
 
-      if (data.user) {
-        toast.success("Login realizado com sucesso!");
+      // Atualizar estado na hora — onAuthStateChange pode atrasar e a tela de login não redireciona.
+      if (data.session) {
+        setSession(data.session);
+        setUser(data.session.user);
+      } else if (data.user) {
+        setUser(data.user);
       }
+
+      toast.success("Login realizado com sucesso!");
     } catch (error) {
       const authError = error as AuthError;
       toast.error(translateSupabaseAuthError(authError, "Erro ao fazer login"));

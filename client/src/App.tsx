@@ -25,7 +25,17 @@ import Contato from "./pages/Contato";
 import PoliticaPrivacidade from "./pages/PoliticaPrivacidade";
 import TermosDeUso from "./pages/TermosDeUso";
 import Cookies from "./pages/Cookies";
+import Planos from "./pages/Planos";
 import CookieBanner from "./components/CookieBanner";
+import { useEffect } from "react";
+import { captureAttributionFromUrl } from "@/lib/attribution";
+
+function AttributionCapture() {
+  useEffect(() => {
+    captureAttributionFromUrl();
+  }, []);
+  return null;
+}
 
 function Router() {
   return (
@@ -49,6 +59,7 @@ function Router() {
       <Route path={"/politica-privacidade"} component={PoliticaPrivacidade} />
       <Route path={"/termos-de-uso"} component={TermosDeUso} />
       <Route path={"/cookies"} component={Cookies} />
+      <Route path={"/planos"} component={Planos} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
@@ -81,6 +92,7 @@ function App() {
         >
           <TooltipProvider>
             <Toaster />
+            <AttributionCapture />
             <Router />
             <CookieBanner />
           </TooltipProvider>
