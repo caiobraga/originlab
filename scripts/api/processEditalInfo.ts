@@ -46,27 +46,232 @@ interface ProcessedInfo {
   timeline_estimada?: any;
 }
 
+/** Expõe mensagem do Postgrest e, em falhas de rede, códigos em `cause` (ex.: ENOTFOUND, ECONNREFUSED). */
+function formatSupabaseRequestError(err: unknown): string {
+  const chunks: string[] = [];
+  const e = err as {
+    message?: string;
+    details?: string;
+    hint?: string;
+    code?: string;
+    cause?: unknown;
+  };
+  if (e?.message) chunks.push(String(e.message));
+  if (e?.details) chunks.push(`details: ${e.details}`);
+  if (e?.hint) chunks.push(`hint: ${e.hint}`);
+  if (e?.code != null && String(e.code) !== "") chunks.push(`code: ${e.code}`);
+
+  let c: unknown = e?.cause;
+  let depth = 0;
+  while (c != null && depth < 6) {
+    if (typeof AggregateError !== "undefined" && c instanceof AggregateError && Array.isArray(c.errors)) {
+      chunks.push(
+        `causa (aggregate): ${c.errors
+          .map((x) => {
+            if (!(x instanceof Error)) return String(x);
+            const ne = x as NodeJS.ErrnoException;
+            return `${x.message}${ne.code ? ` [${ne.code}]` : ""}`;
+          })
+          .join("; ")}`,
+      );
+    } else if (c instanceof Error) {
+      const ne = c as NodeJS.ErrnoException;
+      const code = ne.code ? ` [${ne.code}]` : "";
+      chunks.push(`causa: ${c.name}: ${c.message}${code}`);
+    } else if (typeof c === "object" && c !== null && "message" in c) {
+      chunks.push(`causa: ${String((c as { message: unknown }).message)}`);
+    } else {
+      chunks.push(`causa: ${String(c)}`);
+    }
+    c =
+      typeof c === "object" && c !== null && "cause" in c
+        ? (c as { cause: unknown }).cause
+        : undefined;
+    depth++;
+  }
+
+  return chunks.length > 0 ? chunks.join(" | ") : String(err);
+}
+
+/** Percorre `cause` / `AggregateError` para achar códigos `errno` (ex.: ENETUNREACH). */
+function collectNetworkErrnoCodes(err: unknown, depth = 0): Set<string> {
+  const out = new Set<string>();
+  if (depth > 10 || err == null) return out;
+  if (typeof err === "object") {
+    const code = (err as NodeJS.ErrnoException).code;
+    if (typeof code === "string" && code.length > 0) out.add(code);
+    if (typeof AggregateError !== "undefined" && err instanceof AggregateError && Array.isArray(err.errors)) {
+      for (const sub of err.errors) {
+        for (const c of collectNetworkErrnoCodes(sub, depth + 1)) out.add(c);
+      }
+    }
+    const cause = (err as { cause?: unknown }).cause;
+    if (cause !== undefined && cause !== err) {
+      for (const c of collectNetworkErrnoCodes(cause, depth + 1)) out.add(c);
+    }
+  }
+  return out;
+}
+
+/** Dicas quando o Supabase falha antes do PostgREST (fetch / TLS / rota). */
+function supabaseNetworkUserHint(err: unknown): string {
+  const codes = collectNetworkErrnoCodes(err);
+  const triggers = new Set(["ENETUNREACH", "EHOSTUNREACH", "ECONNREFUSED", "ENOTFOUND", "ETIMEDOUT", "EAI_AGAIN", "ECONNRESET"]);
+  if (![...codes].some((c) => triggers.has(c))) return "";
+  const lines = [
+    "",
+    "💡 Falha de rede até o Supabase (não é SQL):",
+    "  · Teste (use a mesma URL do .env.local): curl -sI \"https://<projeto>.supabase.co/rest/v1/\" | head -5",
+    "  · Confirme internet, VPN e firewall (rede corporativa costuma bloquear *.supabase.co).",
+  ];
+  if (codes.has("ENETUNREACH") || codes.has("EHOSTUNREACH")) {
+    lines.push(
+      "  · ENETUNREACH: sem rota ao host — às vezes DNS/IPv6 no Node; tente: NODE_OPTIONS=--dns-result-order=ipv4first npm run api:process-edital-info",
+    );
+  }
+  if (codes.has("ENOTFOUND") || codes.has("EAI_AGAIN")) {
+    lines.push("  · DNS: verifique resolução do hostname (ex.: dig +short <projeto>.supabase.co).");
+  }
+  return `\n${lines.join("\n")}`;
+}
+
+/** Linha de `edital_pdfs` usada para ordem/filtro antes de montar o contexto PDF no Ollama. */
+type EditalPdfRef = {
+  /** `file_id` do storage quando existir; senão `id` da linha (compatível com `documents` / Ollama). */
+  storageKey: string;
+  nome_arquivo: string;
+  criado_em: string | null;
+};
+
+function normalizeEditalPdfNomeArquivo(nomeArquivo: string): string {
+  return String(nomeArquivo || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
 /**
- * Busca os IDs dos PDFs de um edital para uso no RAG (documents) e no Ollama.
- * Retorna file_id (storage) quando existir, senão edital_pdfs.id, para bater com documents.file_id.
+ * PDF institucional anexado ao processo mas que não é o texto da chamada (integridade, conduta, LGPD…).
+ * Usado em ordenação (tier 2) e filtro quando há ≥2 ficheiros.
  */
-async function fetchEditalPdfIds(supabase: SupabaseClient, editalId: string): Promise<string[]> {
+function editalPdfNomeLooksInstitutionalNoise(nomeArquivo: string): boolean {
+  const n = normalizeEditalPdfNomeArquivo(nomeArquivo);
+  if (
+    /\b(integridade|compliance|plano\s+de\s+integridade|codigo\s+de\s+etica|codigo\s+etica|politica\s+de\s+privacidade|protecao\s+de\s+dados|\blgpd\b|canal\s+de\s+denuncia)\b/.test(
+      n,
+    )
+  ) {
+    return true;
+  }
+  // «Código de Conduta», variações com _ ou - no nome do ficheiro (com ou sem «de»)
+  if (/\bcodigo[\s_\-]+de[\s_\-]+conduta\b/.test(n) || /\bcodigo[\s_\-]+conduta\b/.test(n)) return true;
+  if (/\bconduta[\s_\-]+fapesc\b/.test(n) || /\bfapesc[\s_\-]+conduta\b/.test(n)) return true;
+  if (/\bmanual\s+de\s+conduta\b/.test(n)) return true;
+  return false;
+}
+
+/**
+ * Ordem no contexto PDF concatenado: **menor = mais à frente** (ganha a janela truncada).
+ * -1: nome sugere edital/chamada/extrato (prioridade).
+ * 0: neutro.
+ * 1: anexo/modelo de formulário.
+ * 2: documentos institucionais — muita densidade de texto sem valores/prazos do edital.
+ */
+function editalPdfContextSortTier(nomeArquivo: string): number {
+  const n = normalizeEditalPdfNomeArquivo(nomeArquivo);
+  if (
+    /\b(chamada\s+publica|chamada_publica|chamada-publica|edital|extrato|publicacao\s+de\s+chamada|retificacao)\b/.test(
+      n,
+    )
+  ) {
+    return -1;
+  }
+  if (editalPdfNomeLooksInstitutionalNoise(nomeArquivo)) return 2;
+  if (/\b(anexo|declaracao|declarac|termo\s+de|modelo|formulario|formulari)\b/.test(n)) return 1;
+  return 0;
+}
+
+function sortEditalPdfRefs(refs: EditalPdfRef[]): EditalPdfRef[] {
+  return [...refs].sort((a, b) => {
+    const w = editalPdfContextSortTier(a.nome_arquivo) - editalPdfContextSortTier(b.nome_arquivo);
+    if (w !== 0) return w;
+    const ta = a.criado_em ? Date.parse(a.criado_em) : 0;
+    const tb = b.criado_em ? Date.parse(b.criado_em) : 0;
+    if (ta !== tb) return ta - tb;
+    return a.nome_arquivo.localeCompare(b.nome_arquivo, "pt", { sensitivity: "base" });
+  });
+}
+
+/**
+ * Omitir PDFs cujo `nome_arquivo` sugira: (a) anexo/modelo de declaração ou (b) documento institucional
+ * (Plano de Integridade, compliance, LGPD, etc.) — ruído no modo PDF concatenado / RAG=0.
+ * Usado na extração de campos do edital; anexos com valores podem ficar de fora só quando há outro PDF.
+ * Com um único PDF não filtra; se o filtro removesse tudo, mantém a lista completa ordenada.
+ */
+function filterPdfRefsOmitFormAnnexByFileName(refs: EditalPdfRef[]): EditalPdfRef[] {
+  if (refs.length <= 1) return refs;
+  const looksLikeNoise = (nome: string) => {
+    const n = normalizeEditalPdfNomeArquivo(nome);
+    if (/\b(anexo|declaracao|declarac|termo\s+de|modelo|formulario|formulari)\b/.test(n)) return true;
+    if (editalPdfNomeLooksInstitutionalNoise(nome)) return true;
+    return false;
+  };
+  const kept = refs.filter((r) => !looksLikeNoise(r.nome_arquivo));
+  return kept.length > 0 ? kept : refs;
+}
+
+/** `OLLAMA_EXTRACT_PDF_NOME_FILTER=0`: não omite PDFs por nome (lista completa para RAG/concat). Default: filtra. */
+function isExtractPdfNomeFilterOn(): boolean {
+  const v = (process.env.OLLAMA_EXTRACT_PDF_NOME_FILTER ?? "1").trim().toLowerCase();
+  return v !== "0" && v !== "false" && v !== "off";
+}
+
+function filterPdfRefsForExtract(refs: EditalPdfRef[]): EditalPdfRef[] {
+  return isExtractPdfNomeFilterOn() ? filterPdfRefsOmitFormAnnexByFileName(refs) : refs;
+}
+
+/**
+ * Busca PDFs do edital com `nome_arquivo` e `criado_em` para ordenação estável (principal antes de anexos-modelo).
+ */
+async function fetchEditalPdfRefs(supabase: SupabaseClient, editalId: string): Promise<EditalPdfRef[]> {
   try {
     const { data, error } = await supabase
-      .from('edital_pdfs')
-      .select('file_id, id')
-      .eq('edital_id', editalId);
+      .from("edital_pdfs")
+      .select("file_id, id, nome_arquivo, criado_em")
+      .eq("edital_id", editalId);
 
     if (error) {
       console.error(`Erro ao buscar PDFs do edital ${editalId}:`, error);
       return [];
     }
 
-    return data?.map((pdf: any) => pdf.file_id || pdf.id).filter((p: any): p is string => typeof p === 'string' && p.trim().length > 0) || [];
+    const refs: EditalPdfRef[] = (data || [])
+      .map((pdf: { file_id?: string | null; id?: string; nome_arquivo?: string | null; criado_em?: string | null }) => {
+        const key = String(pdf.file_id || pdf.id || "").trim();
+        if (!key) return null;
+        return {
+          storageKey: key,
+          nome_arquivo: String(pdf.nome_arquivo || "").trim() || "(sem nome)",
+          criado_em: pdf.criado_em != null ? String(pdf.criado_em) : null,
+        };
+      })
+      .filter((r): r is EditalPdfRef => r != null);
+
+    return sortEditalPdfRefs(refs);
   } catch (error) {
     console.error(`Erro ao buscar PDFs do edital ${editalId}:`, error);
     return [];
   }
+}
+
+/**
+ * Busca os IDs dos PDFs de um edital para uso no RAG (documents) e no Ollama.
+ * Retorna file_id (storage) quando existir, senão edital_pdfs.id, para bater com documents.file_id.
+ * Ordem: edital/chamada no nome primeiro; depois neutros; anexos-modelo; por último integridade/compliance/LGPD; `criado_em` asc como desempate.
+ */
+async function fetchEditalPdfIds(supabase: SupabaseClient, editalId: string): Promise<string[]> {
+  const refs = await fetchEditalPdfRefs(supabase, editalId);
+  return refs.map((r) => r.storageKey);
 }
 
 /**
@@ -136,6 +341,274 @@ function isNotFoundMessage(value: string): boolean {
   return false;
 }
 
+/** Texto explicativo do modelo sobre ausência de dados — não persistir como valor de campo estruturado. */
+const META_ABSENCE_PROSE_RE =
+  /não especificad|não contém|documento (fornecido )?não|o documento fornecido|sem (uma )?(cronograma|data|valor)|observa(ç|c)ão textual|portanto, o campo|preenchendo com (uma )?observa|não há (informa|cronograma)|valor único para o projeto/i;
+
+function hasLikelyCalendarOrNumericHint(s: string): boolean {
+  const t = String(s || "").trim();
+  return (
+    /\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{2,4}/.test(t) ||
+    /\d{4}-\d{2}-\d{2}/.test(t) ||
+    /\d{1,2}\s+de\s+\w+\s+de\s+\d{4}/i.test(t) ||
+    /\d+\s*dias?\b/i.test(t) ||
+    /\b\d{1,3}\s*(?:h|horas)\b/i.test(t)
+  );
+}
+
+function looksLikeValorProjetoSnippet(s: string, maxLen = 320): boolean {
+  const t = String(s || "").trim();
+  if (!t) return false;
+  if (t.length > maxLen) return false;
+  if (META_ABSENCE_PROSE_RE.test(t) && !/(R\$|US\$|€|\bEUR\b|\bUSD\b|\d+[.,]\d{3})/i.test(t)) {
+    return false;
+  }
+  return (
+    /(r\$|us\$|€|£|\$|eur|usd|brl|\bvalor\b.{0,40}\d)/i.test(t) ||
+    /\d{1,3}(?:[.,]\d{3})+(?:[.,]\d{2})?/.test(t) ||
+    /^\s*[\d]+(?:[.,]\d+)?\s*$/.test(t)
+  );
+}
+
+/** Evita gravar objeto {"valor":"parágrafo dizendo que não há valor"...} ou só meta-texto. */
+function isSubstantiveValorProjetoPayload(jsonData: unknown): boolean {
+  if (jsonData === null || jsonData === undefined) return false;
+  if (typeof jsonData === 'string') return looksLikeValorProjetoSnippet(jsonData);
+  if (typeof jsonData !== 'object' || Array.isArray(jsonData)) return false;
+  const o = jsonData as Record<string, unknown>;
+  const list = o.valores;
+  if (Array.isArray(list) && list.length > 0) {
+    const ok = list.some((item) =>
+      typeof item === 'string'
+        ? looksLikeValorProjetoSnippet(item, 420)
+        : typeof item === 'number' && Number.isFinite(item),
+    );
+    if (ok) return true;
+  }
+  const inner = o.valor ?? o.valor_projeto ?? o.value;
+  if (typeof inner === 'string') return looksLikeValorProjetoSnippet(inner);
+  if (typeof inner === 'number') return Number.isFinite(inner);
+  if (Array.isArray(inner)) return inner.length > 0 && inner.some((x) => typeof x === 'string' && looksLikeValorProjetoSnippet(x, 420));
+  if (typeof inner === 'object' && inner !== null && Object.keys(inner).length > 0) return true;
+  return false;
+}
+
+/** `{"valor":null}` / `{"valores":[]}` — resposta explícita de “sem valor”, não JSON inválido. */
+function isExplicitEmptyValorProjetoJson(jsonData: unknown): boolean {
+  if (typeof jsonData !== 'object' || jsonData === null || Array.isArray(jsonData)) return false;
+  const o = jsonData as Record<string, unknown>;
+  const allowedKeys = new Set(['valor', 'valores', 'valor_projeto', 'value']);
+  const keys = Object.keys(o);
+  if (keys.length === 0) return true;
+  if (!keys.every((k) => allowedKeys.has(k))) return false;
+
+  const rawValor = o.valor ?? o.valor_projeto ?? o.value;
+  const valorEmpty =
+    rawValor == null ||
+    (typeof rawValor === 'string' && !looksLikeValorProjetoSnippet(rawValor)) ||
+    (typeof rawValor === 'number' && !Number.isFinite(rawValor));
+
+  const list = o.valores;
+  const valsEmpty =
+    !Array.isArray(list) ||
+    list.length === 0 ||
+    list.every((item) => {
+      if (item == null) return true;
+      if (typeof item === 'number') return !Number.isFinite(item);
+      if (typeof item === 'string') return !looksLikeValorProjetoSnippet(item, 420);
+      return true;
+    });
+
+  return valorEmpty && valsEmpty;
+}
+
+/** timeline_estimada deve ter fases com dados úteis, não só {"timeline":"<meta>"}. */
+function isSubstantiveTimelinePayload(timeline: unknown): boolean {
+  if (timeline === null) return true;
+  if (typeof timeline !== 'object' || timeline === null) return false;
+  const o = timeline as Record<string, unknown>;
+  if (o.fases && Array.isArray(o.fases)) {
+    if (o.fases.length === 0) return false;
+    return o.fases.some((f) => {
+      if (!f || typeof f !== 'object') return false;
+      const fo = f as Record<string, unknown>;
+      const nome = typeof fo.nome === 'string' ? fo.nome.trim() : '';
+      const prazo = typeof fo.prazo === 'string' ? fo.prazo.trim() : '';
+      const blob = `${nome} ${prazo} ${typeof fo.descricao === 'string' ? fo.descricao : ''}`;
+      if (nome.length >= 2 && hasLikelyCalendarOrNumericHint(blob)) return true;
+      if (typeof fo.data_inicio === 'string' && hasLikelyCalendarOrNumericHint(fo.data_inicio)) return true;
+      if (typeof fo.data_fim === 'string' && hasLikelyCalendarOrNumericHint(fo.data_fim)) return true;
+      if (nome.length >= 3 && blob.length <= 900 && !META_ABSENCE_PROSE_RE.test(blob)) return true;
+      return false;
+    });
+  }
+  if (typeof o.timeline === 'string') {
+    const ts = o.timeline.trim();
+    if (ts.length > 0 && META_ABSENCE_PROSE_RE.test(ts)) return false;
+    if (hasLikelyCalendarOrNumericHint(ts)) return true;
+    return ts.length >= 8 && ts.length <= 280 && !META_ABSENCE_PROSE_RE.test(ts);
+  }
+  return false;
+}
+
+function sanitizePrazoEntries(prazos: unknown[]): unknown[] {
+  return prazos.filter((p) => {
+    if (p == null) return false;
+    if (typeof p === 'object') {
+      const po = p as Record<string, unknown>;
+      const blob = `${po.inicio ?? ''} ${po.fim ?? ''} ${po.chamada ?? ''} ${po.prazo ?? ''}`;
+      if (hasLikelyCalendarOrNumericHint(blob)) return true;
+      if (po.inicio || po.fim || po.chamada || po.prazo) return true;
+      return false;
+    }
+    if (typeof p === 'string') {
+      const s = p.trim();
+      if (!s) return false;
+      if (hasLikelyCalendarOrNumericHint(s)) return true;
+      if (s.length <= 120 && !META_ABSENCE_PROSE_RE.test(s)) return true;
+      return false;
+    }
+    return false;
+  });
+}
+
+function isSubstantivePrazoPayload(jsonData: unknown): boolean {
+  if (jsonData === null || jsonData === undefined) return false;
+  let raw: unknown[] = [];
+  if (Array.isArray(jsonData)) raw = jsonData;
+  else if (typeof jsonData === 'object' && jsonData !== null && Array.isArray((jsonData as { prazos?: unknown }).prazos)) {
+    raw = (jsonData as { prazos: unknown[] }).prazos;
+  } else return false;
+  return sanitizePrazoEntries(raw).length > 0;
+}
+
+/**
+ * Extrai um objeto JSON “de campo” da resposta bruta do modelo (markdown, n8n com `output`, etc.).
+ * Usado só para validação rápida antes de retentar o RAG com outro top_k.
+ */
+function tryExtractJsonDataFromOllamaResponse(responseText: string): any | null {
+  let t = String(responseText || "").trim();
+  if (!t) return null;
+
+  try {
+    const p = JSON.parse(t);
+    if (Array.isArray(p) && p.length > 0) {
+      const first = p[0] as Record<string, unknown>;
+      if (first && typeof first.output === "string") {
+        t = first.output.trim();
+      } else if (first && first.output != null) {
+        t = typeof first.output === "object" ? JSON.stringify(first.output) : String(first.output);
+      }
+    }
+  } catch {
+    // continua com texto bruto
+  }
+
+  const fb = t.indexOf("```");
+  if (fb !== -1) {
+    const lb = t.lastIndexOf("```");
+    if (lb > fb) {
+      let inner = t.slice(fb + 3, lb).replace(/^json\s*/i, "").trim();
+      const i0 = inner.indexOf("{");
+      const i1 = inner.lastIndexOf("}");
+      if (i0 !== -1 && i1 > i0) inner = inner.slice(i0, i1 + 1);
+      if (inner.startsWith("{")) t = inner;
+    }
+  }
+
+  const m = t.match(/\{[\s\S]*\}/);
+  if (!m) return null;
+  try {
+    let j = JSON.parse(m[0]);
+    if (j && typeof j === "object" && !Array.isArray(j) && typeof (j as { output?: unknown }).output === "string") {
+      const out = String((j as { output: string }).output).trim();
+      if (out.startsWith("{")) {
+        try {
+          j = JSON.parse(out);
+        } catch {
+          // mantém j
+        }
+      }
+    }
+    return j;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * `{"valor":null}` na resposta, mas o modelo cita montantes na prosa (ex.: explicação com «R$ …») —
+ * tratar como “ainda inválido” para permitir retentativa com outro recorte/top_k.
+ */
+function valorExplicitEmptyContradictsResponseProse(responseText: string): boolean {
+  const raw = String(responseText || "");
+  if (/\bR\$\s*[\d]{1,3}(?:[.\d]*,[\d]{2}|[.\d]{2,})\b/i.test(raw)) return true;
+  if (/\bR\$\s*\d+/i.test(raw)) return true;
+  if (/(?:US\$|\$|€|£)\s*[\d.,]+/i.test(raw)) return true;
+  if (/valor\s+(mensal|total|da\s+bolsa)|bolsa\s+de|teto\s+(de\s+)?R\$/i.test(raw) && /\d/.test(raw)) return true;
+  return false;
+}
+
+/** Com `OLLAMA_RAG_INVALID_RETRY_INCLUDE_EXPLICIT_NULL_VALOR=1`, `{"valor":null}` puro também dispara retentativas (útil quando o PDF tem valores noutro recorte). */
+function invalidRetryIncludeExplicitNullValor(): boolean {
+  const raw = (process.env.OLLAMA_RAG_INVALID_RETRY_INCLUDE_EXPLICIT_NULL_VALOR ?? "").trim().toLowerCase();
+  return raw === "1" || raw === "true" || raw === "on";
+}
+
+/** Com `OLLAMA_RAG_INVALID_RETRY_INCLUDE_EMPTY_PRAZO=1` (default), `{"prazos":[]}` conta como inválido e dispara retentativas. */
+function invalidRetryIncludeEmptyPrazo(): boolean {
+  const raw = (process.env.OLLAMA_RAG_INVALID_RETRY_INCLUDE_EMPTY_PRAZO ?? "1").trim().toLowerCase();
+  return !(raw === "0" || raw === "false" || raw === "off" || raw === "no");
+}
+
+function isExplicitEmptyPrazoInscricaoJson(j: unknown): boolean {
+  if (!j) return false;
+  if (Array.isArray(j)) return j.length === 0;
+  if (typeof j === "object") {
+    const o = j as any;
+    return Array.isArray(o.prazos) && o.prazos.length === 0;
+  }
+  return false;
+}
+
+function prazoExplicitEmptyContradictsResponseProse(responseText: string): boolean {
+  const raw = String(responseText || "");
+  if (/\b\d{1,2}\/\d{1,2}\/\d{4}\b/.test(raw)) return true;
+  if (/\b\d{4}-\d{2}-\d{2}\b/.test(raw)) return true;
+  if (/\b(janeiro|fevereiro|mar[cç]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\b/i.test(raw))
+    return true;
+  if (/\b(fase|etapa)\s*\d+\b/i.test(raw)) return true;
+  return false;
+}
+
+/** True se a resposta contém JSON parseável que satisfaz `isValidJsonFormat` para o campo. */
+function isOllamaModelResponseStructurallyValid(field: string, responseText: string): boolean {
+  const j = tryExtractJsonDataFromOllamaResponse(responseText);
+  if (j == null) return false;
+  // `valor_projeto`: `{"valor":null}` / `{"valores":[]}` sem contradição na prosa = válido (não retentar).
+  // Se o JSON está vazio mas o texto da resposta menciona R$/teto/bolsa com dígitos, retentar (resposta “errada”).
+  if (
+    field === "valor_projeto" &&
+    typeof j === "object" &&
+    j !== null &&
+    !Array.isArray(j) &&
+    isExplicitEmptyValorProjetoJson(j)
+  ) {
+    if (valorExplicitEmptyContradictsResponseProse(responseText)) return false;
+    if (invalidRetryIncludeExplicitNullValor()) return false;
+    return true;
+  }
+  // `prazo_inscricao`: `{"prazos":[]}` (ou array vazio) por defeito conta como inválido para permitir retentativas,
+  // porque frequentemente o recorte RAG não trouxe o cronograma certo. Se a prosa menciona datas/meses/fase,
+  // também é sinal claro de falha do JSON.
+  if (field === "prazo_inscricao" && isExplicitEmptyPrazoInscricaoJson(j)) {
+    if (prazoExplicitEmptyContradictsResponseProse(responseText)) return false;
+    if (invalidRetryIncludeEmptyPrazo()) return false;
+    return true;
+  }
+  return isValidJsonFormat(j, field);
+}
+
 /**
  * Valida se o JSON tem a estrutura esperada para o campo
  * Retorna true apenas se estiver no formato JSON correto
@@ -146,15 +619,15 @@ function isValidJsonFormat(jsonData: any, field: string): boolean {
   if (field === 'valor_projeto') {
     // Aceitar string (ex.: {"valor":"3.000,00"} extraído como string)
     if (typeof jsonData === 'string' && jsonData.trim().length > 0) {
-      return true;
+      return looksLikeValorProjetoSnippet(jsonData);
     }
     // Deve ser um objeto JSON válido (não string, não array simples)
     if (typeof jsonData === 'object' && jsonData !== null && !Array.isArray(jsonData)) {
-      return true; // Objeto válido (pode ser complexo)
+      return isSubstantiveValorProjetoPayload(jsonData);
     }
-    // Aceitar array se estiver dentro de chave "valor"
+    // Array no topo = lista de montantes (mesmo formato que chave "valores")
     if (Array.isArray(jsonData) && jsonData.length > 0) {
-      return true; // Array de valores é válido
+      return isSubstantiveValorProjetoPayload({ valores: jsonData });
     }
     return false;
   }
@@ -162,19 +635,13 @@ function isValidJsonFormat(jsonData: any, field: string): boolean {
   // Para prazo_inscricao, aceitar objeto com array "prazos" ou array direto de objetos
   if (field === 'prazo_inscricao') {
     if (Array.isArray(jsonData)) {
-      // Array deve conter objetos com estrutura de prazo
-      return (
-        jsonData.length > 0 &&
-        jsonData.some(
-          (p: any) =>
-            (typeof p === 'string' && p.trim().length > 0) ||
-            (typeof p === 'object' && p !== null && (p.inicio || p.fim || p.chamada || p.prazo)),
-        )
-      );
+      if (jsonData.length === 0) return true;
+      return isSubstantivePrazoPayload(jsonData);
     }
     if (typeof jsonData === 'object' && jsonData !== null) {
-      // Objeto deve ter "prazos" como array
-      return Array.isArray(jsonData.prazos);
+      if (!Array.isArray(jsonData.prazos)) return false;
+      if (jsonData.prazos.length === 0) return true;
+      return isSubstantivePrazoPayload(jsonData);
     }
     return false; // Não aceitar string simples
   }
@@ -236,8 +703,9 @@ function isValidJsonFormat(jsonData: any, field: string): boolean {
   // Para timeline_estimada, aceitar objeto JSON com chave "timeline_estimada": {"timeline_estimada": {"fases": [...]}}
   if (field === 'timeline_estimada') {
     if (typeof jsonData === 'object' && jsonData !== null && !Array.isArray(jsonData)) {
-      // Deve ter a chave "timeline_estimada" com valor objeto (ou null)
-      return jsonData.timeline_estimada !== undefined && (typeof jsonData.timeline_estimada === 'object' || jsonData.timeline_estimada === null);
+      if (jsonData.timeline_estimada === undefined) return false;
+      if (jsonData.timeline_estimada === null) return true;
+      return typeof jsonData.timeline_estimada === 'object' && isSubstantiveTimelinePayload(jsonData.timeline_estimada);
     }
     return false;
   }
@@ -504,62 +972,53 @@ async function extractInfoFromWebhook(
 
     // Mapear campos para perguntas em português (melhoradas e mais específicas)
     const fieldQuestions: Record<string, string> = {
-      valor_projeto: "Qual é o valor financeiro disponível neste edital? Procure ESPECIFICAMENTE por valores numéricos que contenham símbolos monetários: R$ (reais), $ (dólar), US$ (dólar americano), € (euro), £ (libra esterlina), ¥ (iene), CHF (franco suíço), CAD (dólar canadense), AUD (dólar australiano), NZD (dólar neozelandês), BRL (reais), EUR (euro), GBP (libra), JPY (iene), ou outras moedas internacionais. Procure por valores de bolsa, auxílio, subvenção, investimento ou recurso financeiro que estejam expressos com qualquer símbolo monetário. Se houver múltiplos valores ou modalidades, liste todos. IMPORTANTE: Foque em valores que tenham símbolo monetário (R$, $, US$, €, £, ¥, CHF, CAD, AUD, NZD, BRL, EUR, GBP, JPY, etc.) e sejam numéricos. Mantenha o símbolo da moeda original no valor retornado. Retorne em formato JSON: {\"valor\": \"valor encontrado ou lista de valores\"}. Se não encontrar valor específico com símbolo monetário, retorne null.",
+      valor_projeto:
+        "Use **somente** o bloco **«CONTEÚDO DOS DOCUMENTOS (editais):»** deste prompt (antes de «PERGUNTA:»). " +
+        "Ache valores monetários **com R$** nesse bloco (ex.: \"R$ 1.000\", \"R$ 1.000,00\", \"R$ 1.000.000,00\"). " +
+        "Se não existir **nenhum** \"R$\" no bloco: {\"valor\":null}. " +
+        "Se existir 1 valor principal: {\"valor\":\"R$ …\"}. " +
+        "Se existirem vários valores distintos (bolsa mensal + teto, modalidades, faixas): {\"valores\":[\"R$ … (rótulo curto)\",\"R$ … (rótulo curto)\"]}. " +
+        "IMPORTANTE: em {\"valor\":...} e em cada item de {\"valores\":...} o texto **deve conter \"R$\"**. " +
+        "Para ajudar a busca, procure também por números e padrões próximos de \"R$\": 1 2 3 4 5 6 7 8 9. " +
+        "Retorne APENAS JSON válido (sem texto fora do JSON).",
       prazo_inscricao:
-        'Extraia os prazos de inscrição/submissão deste edital. Retorne SOMENTE JSON válido no formato {"prazos":["DD/MM/AAAA a DD/MM/AAAA (descrição opcional)", "..."]}. Se não encontrar, {"prazos":[]}. Não retorne objetos, só strings dentro do array.',
+        "FONTE ÚNICA: use **somente** o texto do bloco **«CONTEÚDO DOS DOCUMENTOS (editais):»** (antes de «PERGUNTA:»). " +
+        "TAREFA (modo scanner): varra esse bloco procurando **linhas/frases** que contenham QUALQUER um destes gatilhos: " +
+        "inscri, inscrição, inscrições, submiss, submeter, envio, enviar, proposta, propostas, candidatura, candidaturas, cadastro, registrar, registro, protocolo, manifestação de interesse, chamada, abertura, encerramento, prazo, prorroga, retificação, cronograma, calendário, fase, etapa. " +
+        "Depois, dentro dessas mesmas linhas/frases (ou no trecho imediatamente adjacente), capture o que parecer PRAZO/DATA, com estes padrões-alvo: " +
+        "1 2 3 4 5 6 7 8 9; DD/MM/AAAA; D/M/AAAA; DD-MM-AAAA; AAAA-MM-DD; \"até\" + data; \"de\"...\"a\"...; \"entre\"...\"e\"...; \"às\"/\"até\" + hora (ex.: 18h, 23h59). " +
+        "Meses por extenso também contam como data: janeiro fevereiro março abril maio junho julho agosto setembro outubro novembro dezembro. " +
+        "Se houver cronograma por fases/etapas, priorize itens que mencionem explicitamente: Fase 1, Fase 2, Fase 3, Etapa 1, Etapa 2, Etapa 3. " +
+        "SAÍDA: devolva um array de strings, cada string sendo uma **cópia curta** do próprio texto do bloco que contém o prazo (pode incluir o rótulo, ex.: \"Fase 1 — inscrições: 10/01/2026 a 20/02/2026\" ou \"Inscrições até 23h59 de 31/08/2026\"). " +
+        "NÃO normalize formato, NÃO complete ano, NÃO invente. Se não houver nada com gatilhos + data/prazo no bloco: {\"prazos\":[]}." +
+        "Retorne SOMENTE JSON válido: {\"prazos\":[\"...\",\"...\"]}.",
       localizacao: "Do edital, qual localização preciso estar para participar desse edital? Ou posso participar de qualquer lugar do Brasil? Procure por informações sobre requisitos de localização, residência, ou área geográfica necessária para participar. IMPORTANTE: Você DEVE retornar SEMPRE em formato JSON válido, nunca em texto livre. Se o edital aceita participantes de qualquer lugar do Brasil (sem restrição geográfica), retorne: {\"localizacao\": \"Brasil\"} ou {\"localizacao\": \"Nacional\"}. Se houver restrição geográfica específica (ex: apenas Espírito Santo, apenas São Paulo, apenas região Sudeste), retorne: {\"localizacao\": \"Espírito Santo\"} ou {\"localizacao\": \"São Paulo\"} ou {\"localizacao\": \"Região Sudeste\"} com o estado, cidade ou região específica encontrada. Procure também por termos como 'localização', 'residência', 'área de atuação', 'abrangência', 'região', 'estado', 'município', 'nacional', 'brasileiro'. Se não encontrar nenhuma informação sobre restrição geográfica, retorne: {\"localizacao\": \"Brasil\"} (assumindo que não há restrição). Se não encontrar nenhuma informação no documento, retorne: {\"localizacao\": null}. LEMBRE-SE: Retorne APENAS o JSON, sem texto adicional antes ou depois.",
-      vagas: "Qual é o número máximo de participantes, projetos ou propostas que este edital aceita para inscrição? Procure ESPECIFICAMENTE por valores numéricos inteiros (números como 10, 20, 50, 100, 200, etc) que estejam próximos ou ao lado das palavras: 'vagas', 'propostas', 'projetos', 'inscrições', 'beneficiados', 'beneficiários', 'selecionados', 'aprovados', 'contratados', 'quantidade', 'total de', 'número de', 'máximo de', 'limite de', 'até', 'serão selecionados', 'serão aprovados', 'serão contratados', 'projetos aprovados', 'propostas aprovadas', 'número de projetos', 'quantidade de projetos', 'total de projetos', 'número de beneficiários', 'quantidade de beneficiários'. REGRAS CRÍTICAS: 1) Busque apenas números inteiros (10, 20, 50, 100) que NÃO sejam parte do nome/número do edital (ignore 'Edital 21/2024', 'Nº 10', datas '2024', '2025'). 2) Os números devem representar quantidade de vagas/propostas/projetos/beneficiados/selecionados, NÃO valores monetários ou datas. 3) Procure por padrões como: 'X vagas', 'X propostas', 'até X projetos', 'máximo de X', 'limite de X', 'X beneficiados', 'serão selecionados X', 'serão aprovados X', 'total de X projetos', 'quantidade de X', 'número de X', onde X é um número inteiro. 4) CÁLCULO BASEADO EM VALORES: Se encontrar valores financeiros totais e valores por projeto/beneficiário, calcule o número de vagas. Exemplo: se há R$ 1.000.000 total e cada projeto recebe R$ 50.000, então há 20 vagas. Procure por tabelas de 'recursos disponíveis', 'distribuição de recursos', 'valores por projeto', 'valores por beneficiário'. 5) PROCURE EM SEÇÕES ESPECÍFICAS: 'Objetivo', 'Recursos', 'Seleção', 'Aprovação', 'Quantidade de Projetos', 'Número de Vagas', 'Distribuição de Recursos', 'Critérios de Seleção', 'Resultado Esperado'. 6) Se encontrar 'cada proponente pode apresentar apenas uma proposta', isso é limite por proponente, NÃO o total de vagas - continue procurando pelo número total de vagas/projetos aprovados. 7) Ignore números de identificação do edital, datas, valores monetários ou contextos não relacionados. FORMATO DE RESPOSTA OBRIGATÓRIO: Você DEVE retornar APENAS JSON válido, SEM texto adicional. Se encontrar um número, retorne: {\"vagas\": \"X\"} onde X é o número encontrado. Se não encontrar nenhum número específico, retorne: {\"vagas\": null}. NUNCA retorne texto livre como 'Não foi possível encontrar' - sempre retorne JSON válido.",
-      is_researcher: `Analise o edital COMPLETO e determine se ele é direcionado EXCLUSIVA ou PRINCIPALMENTE para PESQUISADORES ACADÊMICOS.
+      vagas:
+        'FONTE ÚNICA: use **somente** o texto do bloco **«CONTEÚDO DOS DOCUMENTOS (editais):»** (antes de «PERGUNTA:»). ' +
+        'TAREFA (modo scanner): encontre no bloco frases/linhas com gatilhos de quantitativo/limite: "vagas", "bolsas", "bolsistas", "beneficiários", "propostas", "selecionados", "aprovadas", "contempladas", "contratadas", "classificadas", "limite", "teto", "máximo", "mínimo", "até", "no máximo", "serão selecionados", "será selecionada", "uma única", "apenas uma", "somente uma". ' +
+        'Dentro dessas mesmas frases/linhas, procure números explícitos (1 2 3 4 5 6 7 8 9) e padrões tipo "N vagas", "até N propostas", "máximo de N", "serão selecionados N", "N bolsistas". ' +
+        'REGRA: devolva o **limite máximo** claro do edital (um inteiro). Se o texto disser "uma única" / "apenas 1" / "somente um projeto" / "o projeto mais bem classificado" (único), retorne 1. ' +
+        'NÃO use: números de edital/ano/CEP/página, datas, valores monetários (R$), percentuais de orçamento (ex.: 30% do valor do projeto) a menos que o próprio texto diga que isso é limite de propostas/vagas. ' +
+        'Não infira vagas dividindo orçamento por valor. ' +
+        'SAÍDA: Retorne SOMENTE JSON válido: {"vagas":"N"} com N inteiro em string, ou {"vagas":null} se o bloco não trouxer nenhum limite/quantitativo claro.'
+        ,
+      is_researcher: `Determine se o edital é relevante para PESQUISADORES / BOLSISTAS DE PESQUISA / PERFIL ACADÊMICO-CIENTÍFICO (incluindo ICT, docentes, pós-graduação, PD&I com pessoas em pesquisa).
 
-REGRAS CRÍTICAS DE CLASSIFICAÇÃO:
+Use {"is_researcher": true} quando QUALQUER um destes sinais aparecer no texto (não precisa ser exclusivo nem “programa europeu”):
+- Bolsas ou auxílios ligados a pesquisa, inovação científica/tecnológica, desenvolvimento tecnológico, PD&I com bolsistas ou pesquisadores (ex.: «bolsas de inovação e pesquisa», «bolsa de pesquisa», «bolsista», «auxílio a pesquisa»).
+- Público-alvo ou proponente típico: pesquisador, docente, estudante de pós-graduação, ICT, instituição de ensino/universidade como sede ou vínculo do beneficiário, Lattes/ORCID como documentação, titulação (mestrado/doutorado) ainda que não seja escrita como «obrigatório».
+- Programas internacionais de pesquisa: MSCA, Horizon, Marie Curie, ERC, fellowship, research grant (sempre true).
+- Iniciação científica, IC, bolsa CNPq/CAPES/FAPESP etc. quando claramente no âmbito de pesquisa acadêmica.
 
-RETORNE {"is_researcher": true} APENAS SE:
-1. O edital menciona PROGRAMAS ACADÊMICOS CONHECIDOS no título ou texto principal:
-   - "Marie Skłodowska-Curie", "MSCA", "Horizon Europe", "Horizon 2020", "ERC", "European Research Council"
-   - "intercâmbio de pessoal", "mobility", "fellowship", "research grant", "research fellowship"
-   Estes programas são SEMPRE para pesquisadores acadêmicos, mesmo que mencionem empresas.
+Use {"is_researcher": false} quando o edital for claramente só para PJ/empresa, sem linha de bolsa ou seleção de pessoas em pesquisa:
+- CNPJ/pessoa jurídica como ÚNICO proponente elegível, ou «somente empresas», sem menção a pesquisador/bolsista/ICT/universidade como beneficiário de bolsa ou de projeto de pesquisa.
+- Foco exclusivo em comercialização/contratação empresarial sem componente de pesquisa ou bolsas.
 
-2. O edital EXIGE EXPLICITAMENTE títulos acadêmicos como REQUISITO OBRIGATÓRIO:
-   - "requisito de doutorado", "requisito de mestrado"
-   - "título de doutor obrigatório", "título de mestre obrigatório"
-   - "deve ter doutorado", "deve ter mestrado", "exige doutorado", "exige mestrado"
-   - "PhD obrigatório", "pós-doutorado", "postdoc", "post-doctoral"
-   IMPORTANTE: Apenas se for REQUISITO OBRIGATÓRIO, não apenas menção casual.
+Use {"is_researcher": null} APENAS quando o trecho analisado não trouxer quase nenhuma pista (texto genérico, só cronograma, fragmento insuficiente). NÃO use null só porque não citou MSCA/Horizon nem «doutorado obrigatório»: editais brasileiros de bolsa/PD&I costumam ser true com «bolsas», «pesquisa», «bolsista» ou ICT.
 
-3. O edital EXIGE vínculo com instituição de ensino como REQUISITO:
-   - "vinculado a universidade", "pesquisador de universidade"
-   - "pesquisador de instituição de ensino", "docente pesquisador", "professor pesquisador"
-   - "requer vínculo institucional com universidade"
-   IMPORTANTE: Apenas se for REQUISITO, não apenas menção casual de universidades.
+Se empresas e pesquisadores coexistem mas há bolsas ou seleção de bolsistas/pesquisadores/ICT, prefira {"is_researcher": true}. Reserve null para ausência real de sinais.
 
-4. O edital menciona bolsas acadêmicas específicas:
-   - "bolsa de iniciação científica", "bolsista de iniciação científica", "IC - iniciação científica"
-   - "bolsa de pesquisa científica", "bolsa científica"
-
-RETORNE {"is_researcher": false} SE:
-- O edital menciona "CNPJ obrigatório", "pessoa jurídica obrigatória", "formação de empresa obrigatória" E NÃO menciona títulos acadêmicos ou vínculo com instituição de ensino como requisito
-- O edital menciona apenas "empresas", "startups", "negócios", "empreendedores", "MEI", "microempresa" SEM mencionar pesquisa acadêmica ou requisitos acadêmicos
-- O edital é claramente para atividade empresarial/comercial sem componente acadêmico
-
-RETORNE {"is_researcher": null} SE:
-- Não houver informação suficiente no documento
-- O edital menciona tanto empresas quanto pesquisadores sem deixar claro qual é o público principal
-- Não for possível determinar com certeza baseado no conteúdo disponível
-
-REGRA DE PRIORIDADE:
-- Se o edital menciona programas acadêmicos conhecidos (MSCA, Horizon, ERC), SEMPRE retorne true, mesmo que também mencione empresas
-- Se o edital menciona CNPJ/empresa como requisito obrigatório E NÃO menciona títulos acadêmicos ou vínculo institucional como requisito, retorne false
-- Se o edital menciona títulos acadêmicos como requisito obrigatório E NÃO menciona CNPJ/empresa como requisito obrigatório, retorne true
-
-EXEMPLOS ESPECÍFICOS:
-- "MSCA - Marie Skłodowska-Curie Intercâmbio de Pessoal 2025" → true (programa acadêmico conhecido)
-- "Edital para pesquisadores com doutorado vinculados a universidade" → true (requisito acadêmico explícito)
-- "CNPJ obrigatório para empresas inovadoras" → false (requisito empresarial sem requisito acadêmico)
-- "Edital para startups e pesquisadores" → null (ambos mencionados, não é claro qual é o principal)
-- "Horizon Europe - Research and Innovation" → true (programa acadêmico conhecido)
-- "Formação de empresa obrigatória para receber o recurso" → false (requisito empresarial sem requisito acadêmico)
-
-Retorne APENAS o JSON válido: {"is_researcher": true/false/null}`,
+Retorne APENAS JSON válido, sem texto extra: {"is_researcher": true} ou {"is_researcher": false} ou {"is_researcher": null}`,
       is_company: `Analise o edital COMPLETO e determine se ele é direcionado EXCLUSIVA ou PRINCIPALMENTE para EMPRESAS ou requer CNPJ como requisito obrigatório.
 
 REGRAS CRÍTICAS DE CLASSIFICAÇÃO:
@@ -611,9 +1070,52 @@ EXEMPLOS ESPECÍFICOS:
 - "CNPJ obrigatório E título de doutor obrigatório" → null (ambos são requisitos, precisa avaliar qual é o principal)
 
 Retorne APENAS o JSON válido: {"is_company": true/false/null}`,
-      sobre_programa: "Quais são as informações sobre o programa deste edital? Procure por seções como 'Sobre o Programa', 'Sobre o Edital', 'Objetivo do Programa', 'Descrição do Programa', 'Apresentação', 'Introdução', 'Contexto', 'Justificativa', 'Objetivos Gerais', 'Objetivos Específicos', 'Público-alvo', 'Área de Atuação'. Extraia um resumo completo e informativo sobre o programa, incluindo seus objetivos, público-alvo, área de atuação e contexto. IMPORTANTE: Retorne em formato JSON: {\"sobre_programa\": \"texto completo extraído sobre o programa\"}. Se não encontrar informações, retorne: {\"sobre_programa\": null}. LEMBRE-SE: Retorne APENAS o JSON, sem texto adicional antes ou depois.",
-      criterios_elegibilidade: "Quais são os CRITÉRIOS DE ELEGIBILIDADE deste edital? Procure ESPECIFICAMENTE pela seção 'Critérios de Elegibilidade', 'Critérios de Habilitação', 'Requisitos para Participação', 'Condições de Elegibilidade', 'Condições de Habilitação', 'Requisitos de Elegibilidade', 'Critérios de Participação', 'Condições para Participação'. Extraia TODOS os critérios, requisitos e condições necessários para participar do edital. IMPORTANTE: Retorne em formato JSON: {\"criterios_elegibilidade\": \"texto completo com todos os critérios de elegibilidade encontrados\"}. Se não encontrar a seção de critérios de elegibilidade, retorne: {\"criterios_elegibilidade\": null}. LEMBRE-SE: Retorne APENAS o JSON, sem texto adicional antes ou depois.",
-      timeline_estimada: "IMPORTANTE: Você recebeu os arquivos do edital através dos file_ids fornecidos. Analise o conteúdo desses arquivos para responder esta pergunta. Quais são as fases e cronograma deste edital? Procure por seções como 'Cronograma', 'Timeline', 'Calendário', 'Fases do Edital', 'Etapas', 'Fases de Execução', 'Cronograma de Atividades', 'Calendário de Execução', 'Linha do Tempo'. Para cada fase encontrada, extraia: nome da fase, prazo (em dias ou datas), status (aberto/fechado/pendente), data de início (se disponível), data de fim (se disponível). IMPORTANTE: Retorne em formato JSON: {\"timeline_estimada\": {\"fases\": [{\"nome\": \"Inscrição\", \"prazo\": \"30 dias\", \"status\": \"aberto\", \"data_inicio\": \"2024-01-01\", \"data_fim\": \"2024-01-31\"}, {\"nome\": \"Fase 1\", \"prazo\": \"60 dias\", \"status\": \"pendente\"}, ...]}}. Se não encontrar informações sobre cronograma/fases, retorne: {\"timeline_estimada\": null}. LEMBRE-SE: Retorne APENAS o JSON, sem texto adicional antes ou depois.",
+      sobre_programa:
+        "Use **apenas** o bloco «CONTEÚDO DOS DOCUMENTOS» acima. Não invente objetivos nem copie requisitos de elegibilidade como se fossem descrição do programa. " +
+        "Quais são as informações sobre o **PROGRAMA** da chamada (o quê / para quê / em que contexto institucional ou político)? " +
+        "Procure por secções ou parágrafos tipo: «Sobre o Programa», «Sobre o Edital», «Objetivo», «Justificativa», «Apresentação», «Introdução», «Contexto», «Público-alvo», «Objeto da chamada», «Objetivos gerais ou específicos», «Área de atuação», «Linha de fomento», «Instrumento», «Finalidades». " +
+        "Extraia um resumo substantivo **só com base no texto fornecido** (finalidade, público, fundamento, metas quando vierem como narrativa do programa — não como lista seca de pré-requisitos). " +
+        "IGNORE: anexos-modelo em branco; tabelas só de valores/orçamento; cronograma só de datas sem narrativa do programa; listas longas só de documentação/titulação sem descrever o programa. " +
+        "Se o trecho acima não descrever o programa de forma útil: {\"sobre_programa\": null}. " +
+        "IMPORTANTE: Retorne APENAS JSON válido: {\"sobre_programa\": \"texto completo sobre o programa\"} ou {\"sobre_programa\": null}. Sem texto fora do JSON.",
+      criterios_elegibilidade:
+        "FONTE ÚNICA: use **somente** o texto do bloco **«CONTEÚDO DOS DOCUMENTOS (editais):»** (antes de «PERGUNTA:»). " +
+        "TAREFA (modo extrator literal): encontre e COPIE do bloco todas as frases/itens que imponham regra de participação, usando estes gatilhos (se aparecer, provavelmente é elegibilidade): " +
+        "\"requisito\", \"pré-requisito\", \"condição\", \"obrigatório\", \"deverá\", \"deve\", \"somente\", \"apenas\", \"vedado\", \"não poderá\", \"impedimento\", \"inelegível\", \"habilitação\", \"admissibilidade\", \"enquadramento\", \"documentação\", \"comprovação\", \"declaração\", \"regularidade\", \"CND\", \"FGTS\", \"certidão\". " +
+        "Inclua também itens que definam QUEM pode concorrer (proponente/beneficiário/público-alvo) e QUEM não pode. " +
+        "Se houver lista com marcadores/numeração no bloco, preserve a lista (pode unir com quebras de linha). " +
+        "NÃO resuma demais: prefira **colar trechos** do bloco (até onde couber) em vez de reescrever com suas palavras. " +
+        "SAÍDA: {\"criterios_elegibilidade\":\"...\"} contendo essas cópias (separadas por \\n). " +
+        "Use {\"criterios_elegibilidade\": null} somente se, após procurar pelos gatilhos acima, não existir no bloco nenhuma regra/requisito/documento obrigatório/impedimento. " +
+        "Retorne APENAS JSON válido (sem texto fora do JSON).",
+      timeline_estimada:
+        "Quais são as FASES e o CRONOGRAMA deste edital (datas e etapas do processo)? " +
+        "Procure por: 'Cronograma', 'Calendário', 'Fases do Edital', 'Etapas', 'Linha do tempo', 'Datas importantes', 'Cronograma de atividades', 'Execução'. " +
+        "Para cada fase/atividade relevante, extraia quando possível: nome, prazo (dias ou datas), status (aberto/fechado/pendente), data_inicio, data_fim. " +
+        "IGNORE: anexos-modelo em branco; tabelas só de valores/orçamento; listas longas só de pré-requisitos sem datas; texto só de elegibilidade sem calendário. " +
+        "IMPORTANTE: Retorne APENAS JSON válido: {\"timeline_estimada\": {\"fases\": [{\"nome\": \"...\", \"prazo\": \"...\", \"status\": \"...\", \"data_inicio\": \"...\", \"data_fim\": \"...\"}, ...]}} ou {\"timeline_estimada\": null}. Sem texto fora do JSON.",
+    };
+
+    /** Consulta curta só para embedding/RAG (top-k). Mantém o prompt longo para o modelo, sem “poluir” o vetor da busca. */
+    const fieldRagQueries: Record<string, string> = {
+      valor_projeto:
+        "orçamento teto dotação montante máximo mínimo faixa bolsa auxílio diária subsídio valor mensal parcela repasse subvenção aporte financiamento capital custeio contrapartida percentual sobre valor aprovado modalidade tabela valores recursos financeiros anexo financeiro cronograma financeiro linha fomento desembolso R$ reais milhões mil reais US$ €",
+      prazo_inscricao:
+        "prazo inscrição submissão candidatura proposta envio cadastro manifestação interesse pré-inscrição registro protocolo sistema portal eletrônico etapa fase período abertura encerramento limite final último dia útil corrido horário prorrogação suspensão retificação republicação publicação DOU calendário cronograma tabela etapas processo seletivo homologação preliminar recurso contrarrazões DD/MM AAAA-MM-DD",
+      localizacao:
+        "abrangência localização residência domicílio sede estado município região nacional internacional território",
+      vagas:
+        "limite máximo vagas bolsas bolsistas beneficiários quantitativo ofertadas teto seleção mérito classificação ranking remanescentes contratações vagas na chamada quantidade selecionados (evitar só cronograma de datas)",
+      is_researcher:
+        "pesquisador coordenador proponente ICT universidade doutorado mestrado titulação vínculo Lattes ORCID bolsista docente PD&I CTI requisito acadêmico CNPJ obrigatório empresa",
+      is_company:
+        "CNPJ pessoa jurídica empresa startup MEI microempresa constituição formação de empresa obrigatório PJ",
+      sobre_programa:
+        "sobre o programa sobre o edital apresentação introdução objetivo finalidade justificativa contexto público-alvo escopo objeto da chamada linha de fomento instrumento modalidade CTI inovação política pública metas específicas área temática eixo prioritário finalidades descrição da ação resumo da chamada",
+      criterios_elegibilidade:
+        "elegibilidade admissibilidade habilitação qualificação requisitos pré-requisitos condições participação quem pode concorrer perfil proponente coordenador executor instituição proposta enquadramento documentação comprovação anexos obrigatórios declaração CNPJ CPF vínculo titulação experiência capacidade técnica econômica regularidade fiscal trabalhista CND FGTS impedimento inelegível sanção incompatibilidade contrapartida cofinanciamento cota PCD mulher MEI PJ ICT não poderão concorrer",
+      timeline_estimada:
+        "cronograma calendário fases etapas datas prazos publicação divulgação homologação recurso entrevista resultado seleção execução marcos entregas início fim",
     };
     const fieldFallbackQuestions: Partial<Record<keyof typeof fieldQuestions, string>> = {
       localizacao:
@@ -621,7 +1123,11 @@ Retorne APENAS o JSON válido: {"is_company": true/false/null}`,
       vagas:
         'Extraia APENAS número de vagas/quantidade de bolsas/beneficiários do edital. Retorne somente JSON válido: {"vagas":"..."}; se não encontrar, {"vagas":null}.',
       prazo_inscricao:
-        'Extraia APENAS o prazo de inscrição. Retorne somente JSON válido no formato {"prazos":["..."]}; se não encontrar, {"prazos":[]}.',
+        'Use só o bloco «CONTEÚDO DOS DOCUMENTOS (editais):» deste prompt (texto antes de PERGUNTA). Copie prazos de inscrição/submissão/cadastro/envio de proposta como aparecem. JSON: {"prazos":["..."]} ou {"prazos":[]} se o bloco não tiver nenhum.',
+      valor_projeto:
+        'Liste montantes do edital (R$, reais, tabela). JSON apenas: {"valor":"…"} ou {"valores":["…"]}; se nada no texto: {"valor":null}.',
+      criterios_elegibilidade:
+        'Use só o bloco «CONTEÚDO DOS DOCUMENTOS (editais):» (antes de PERGUNTA). Reúna requisitos e elegibilidade **desse** texto numa única string. JSON: {"criterios_elegibilidade":"…"} ou {"criterios_elegibilidade":null} se não houver regra ao participante no bloco.',
     };
 
     // Verificar se file_ids está vazio
@@ -638,17 +1144,44 @@ Retorne APENAS o JSON válido: {"is_company": true/false/null}`,
     let response: Response | null = null;
 
     if (USE_OLLAMA) {
-      const { extractInfoViaOllama } = await import('../lib/ollama-edital');
-      const model = process.env.OLLAMA_MODEL || 'qwen2.5:7b';
+      const {
+        extractInfoViaOllama,
+        normalizeOllamaChatModelName,
+        getRagInvalidRetryTopKList,
+        isRagCragEnabled,
+        buildCragCorrectiveRagQuery,
+      } = await import('../lib/ollama-edital');
+      const model = normalizeOllamaChatModelName(process.env.OLLAMA_MODEL || 'qwen2.5:7b');
       console.log(`  📤 Extraindo via Ollama (${model}) para: ${field}`);
       const maxEmptyRetries = Math.max(0, parseInt(process.env.OLLAMA_EMPTY_RESPONSE_RETRIES || '1', 10) || 1);
+      let finalPrompt = fieldQuestions[field];
+      let finalRagQuery: string = fieldRagQueries[field];
+      /** Fingerprints do CONTEÚDO já enviado ao Ollama (1.ª extração + retentativas JSON) para forçar janela diferente. */
+      const invalidRetryContextSigHistory: string[] = [];
       for (let attempt = 0; attempt <= maxEmptyRetries; attempt++) {
         const useFallback = attempt > 0;
         const prompt = useFallback && fieldFallbackQuestions[field]
           ? fieldFallbackQuestions[field]!
           : fieldQuestions[field];
+        finalPrompt = prompt;
+        if (useFallback && fieldFallbackQuestions[field]) {
+          finalRagQuery = prompt;
+        } else if (isRagCragEnabled() && attempt > 0) {
+          finalRagQuery = buildCragCorrectiveRagQuery(
+            field,
+            fieldRagQueries[field],
+            responseText.trim() ? responseText : '(resposta vazia do modelo)',
+            attempt - 1,
+          );
+        } else {
+          finalRagQuery = fieldRagQueries[field];
+        }
         const ollamaText = await extractInfoViaOllama(prompt, fileIds, {
           editalId: editalId || undefined,
+          field,
+          // No fallback, o prompt muda bastante — alinhar o embedding ao texto realmente usado.
+          ragQuery: finalRagQuery,
+          invalidRetryUsedContextSigs: invalidRetryContextSigHistory,
         });
         responseText = ollamaText ?? '';
         if (responseText.trim()) break;
@@ -660,6 +1193,49 @@ Retorne APENAS o JSON válido: {"is_company": true/false/null}`,
         console.warn(`  ⚠️ Resposta vazia do Ollama para ${field} (após retries)`);
         return null;
       }
+
+      const ragEnabled =
+        process.env.OLLAMA_USE_RAG !== '0' &&
+        process.env.OLLAMA_USE_RAG !== 'false' &&
+        String(process.env.OLLAMA_USE_RAG ?? 'true').toLowerCase() !== 'off';
+      const invalidRetryKs = ragEnabled ? getRagInvalidRetryTopKList() : [];
+      if (invalidRetryKs.length > 0 && !isOllamaModelResponseStructurallyValid(field, responseText)) {
+        console.warn(
+          isRagCragEnabled()
+            ? `  🔁 ${field}: resposta sem JSON aceitável (CRAG): retentativas com ragQuery corrigida + RAG top_k ∈ [${invalidRetryKs.join(', ')}] + janela sobre o texto completo.`
+            : `  🔁 ${field}: resposta sem JSON aceitável para o campo; retentativas com RAG top_k ∈ [${invalidRetryKs.join(', ')}] + janela aleatória sobre o texto completo (mesma PERGUNTA).`,
+        );
+        let recovered = false;
+        let lastInvalidResponse = responseText;
+        for (let ri = 0; ri < invalidRetryKs.length; ri++) {
+          const k = invalidRetryKs[ri]!;
+          const ragQueryRetry = isRagCragEnabled()
+            ? buildCragCorrectiveRagQuery(field, fieldRagQueries[field], lastInvalidResponse, ri)
+            : finalRagQuery;
+          const retryText = await extractInfoViaOllama(finalPrompt, fileIds, {
+            editalId: editalId || undefined,
+            field,
+            ragQuery: ragQueryRetry,
+            invalidRetryTopK: k,
+            invalidRetryContentVariant: ri + 1,
+            invalidRetryUsedContextSigs: invalidRetryContextSigHistory,
+          });
+          if (!retryText?.trim()) continue;
+          if (isOllamaModelResponseStructurallyValid(field, retryText)) {
+            responseText = retryText;
+            recovered = true;
+            console.log(`  ✅ ${field}: retentativa top_k=${k} produziu JSON estruturalmente válido.`);
+            break;
+          }
+          if (retryText?.trim()) lastInvalidResponse = retryText;
+        }
+        if (!recovered) {
+          console.warn(
+            `  ⚠️ ${field}: após retentativas com top_k alternativos, a resposta ainda não passa na validação estrutural — mantendo a 1.ª resposta para o parser tentar recuperar.`,
+          );
+        }
+      }
+
       console.log(`  📥 Resposta Ollama: ${responseText.length} caracteres`);
     } else {
     // Formato esperado pelo n8n: o body HTTP é acessado como $json.body
@@ -1098,15 +1674,27 @@ Retorne APENAS o JSON válido: {"is_company": true/false/null}`,
             return null;
           }
           if (typeof timeline === 'object' && timeline !== null) {
+            if (!isSubstantiveTimelinePayload(timeline)) {
+              console.warn(`  ⚠️ ${field}: objeto timeline só com texto explicativo/meta — ignorando`);
+              return null;
+            }
             const fasesCount = timeline.fases && Array.isArray(timeline.fases) ? timeline.fases.length : 0;
             console.log(`  ✅ Extraído ${field} do JSON: objeto timeline com ${fasesCount} fase(s)`);
             return JSON.stringify(timeline);
           }
         }
+
+        // valor_projeto: modelo costuma devolver {"valor":null} — é JSON válido e significa “não achei”.
+        if (field === 'valor_projeto' && jsonData && typeof jsonData === 'object' && !Array.isArray(jsonData)) {
+          if (!isSubstantiveValorProjetoPayload(jsonData) && isExplicitEmptyValorProjetoJson(jsonData)) {
+            console.log(`  ℹ️ ${field}: null/vazio (não encontrado)`);
+            return null;
+          }
+        }
         
         // Tentar extrair o valor do campo específico
         const fieldKeys: Record<string, string[]> = {
-          valor_projeto: ['valor', 'valor_projeto', 'value', 'output', 'result'],
+          valor_projeto: ['valor', 'valores', 'valor_projeto', 'value', 'output', 'result'],
           prazo_inscricao: ['prazo', 'prazos', 'prazo_inscricao', 'deadline', 'output', 'result'],
           localizacao: ['localizacao', 'localização', 'location', 'regiao', 'região', 'output', 'result'],
           vagas: ['vagas', 'vagas_disponiveis', 'projects', 'numero_vagas', 'output', 'result'],
@@ -1144,32 +1732,63 @@ Retorne APENAS o JSON válido: {"is_company": true/false/null}`,
               console.warn(`  ⚠️ JSON encontrado mas formato inválido para ${field}, tentando próximo...`);
               continue; // Tentar próxima chave
             }
-            // Para prazo_inscricao, verificar se é array de prazos
+            // Para prazo_inscricao, verificar se é array de prazos ou objeto { prazos }
             if (field === 'prazo_inscricao' && Array.isArray(extractedValue)) {
-              const prazos = extractedValue;
-              if (prazos.length > 0) {
-                // Validar que são objetos com informações de prazo ou strings
-                const prazosValidos = prazos.filter((p: any) => 
-                  p && (typeof p === 'string' || (typeof p === 'object' && (p.fim || p.inicio || p.chamada || p.prazo)))
-                );
-                if (prazosValidos.length > 0) {
-                  console.log(`  ✅ Extraído array de ${prazosValidos.length} prazo(s) em formato válido`);
-                  // Retornar JSON stringificado para manter estrutura
-                  return JSON.stringify({ prazos: prazosValidos });
-                }
+              const cleaned = sanitizePrazoEntries(extractedValue);
+              if (cleaned.length > 0) {
+                console.log(`  ✅ Extraído array de ${cleaned.length} prazo(s) em formato válido`);
+                return JSON.stringify({ prazos: cleaned });
               }
+              if (extractedValue.length === 0) {
+                console.log(
+                  `  ℹ️ ${field}: {"prazos":[]} — nenhum prazo extraído (resposta vazia do modelo ou datas removidas por ancoragem no Ollama).`,
+                );
+              } else {
+                console.log(
+                  `  ℹ️ ${field}: entradas em "prazos" não passaram na sanitização (formato/data) — tratando como não encontrado`,
+                );
+              }
+              return null;
+            }
+            if (
+              field === 'prazo_inscricao' &&
+              typeof extractedValue === 'object' &&
+              extractedValue !== null &&
+              !Array.isArray(extractedValue) &&
+              Array.isArray((extractedValue as { prazos?: unknown[] }).prazos)
+            ) {
+              const cleaned = sanitizePrazoEntries((extractedValue as { prazos: unknown[] }).prazos);
+              if (cleaned.length > 0) {
+                console.log(`  ✅ Extraído objeto prazos com ${cleaned.length} entrada(s) válida(s)`);
+                return JSON.stringify({ prazos: cleaned });
+              }
+              console.log(`  ℹ️ ${field}: {"prazos":[]} ou entradas removidas na sanitização — tratando como não encontrado`);
+              return null;
             }
             
-            // Para valor_projeto, aceitar objeto complexo OU array dentro de chave "valor"
+            // Para valor_projeto: string (chave valor), objeto {valor}/{valores}, ou array → {valores}
             if (field === 'valor_projeto') {
+              if (typeof extractedValue === 'string') {
+                const s = extractedValue.trim();
+                if (s.length > 0 && looksLikeValorProjetoSnippet(s)) {
+                  return JSON.stringify({ valor: s });
+                }
+                continue;
+              }
               if (typeof extractedValue === 'object' && extractedValue !== null && !Array.isArray(extractedValue)) {
+                if (!isSubstantiveValorProjetoPayload(extractedValue)) {
+                  console.warn(`  ⚠️ ${field}: objeto sem valor monetário/dados concretos — ignorando`);
+                  continue;
+                }
                 console.log(`  ✅ Extraído objeto JSON válido para ${field}`);
                 return JSON.stringify(extractedValue);
               }
-              // Se for array dentro de "valor", aceitar também
               if (Array.isArray(extractedValue) && extractedValue.length > 0) {
+                if (!isSubstantiveValorProjetoPayload({ valores: extractedValue })) {
+                  continue;
+                }
                 console.log(`  ✅ Extraído array de valores para ${field}`);
-                return JSON.stringify({ valor: extractedValue });
+                return JSON.stringify({ valores: extractedValue });
               }
             }
             
@@ -1294,12 +1913,20 @@ Retorne APENAS o JSON válido: {"is_company": true/false/null}`,
                     return null;
                   }
                   if (typeof timeline === 'object' && timeline !== null) {
+                  if (!isSubstantiveTimelinePayload(timeline)) {
+                    console.warn(`  ⚠️ ${field}: timeline sem fases/datas úteis — ignorando`);
+                    continue;
+                  }
                     console.log(`  ✅ Extraído ${field} do JSON: objeto com fases`);
                     return JSON.stringify(timeline);
                   }
                 }
                 // Se extractedValue é o objeto timeline_estimada diretamente (sem chave wrapper)
                 if (extractedValue.fases && Array.isArray(extractedValue.fases)) {
+                  if (!isSubstantiveTimelinePayload(extractedValue)) {
+                    console.warn(`  ⚠️ ${field}: fases sem conteúdo útil — ignorando`);
+                    continue;
+                  }
                   console.log(`  ✅ Extraído ${field} do JSON: objeto com fases`);
                   return JSON.stringify(extractedValue);
                 }
@@ -1380,15 +2007,16 @@ Retorne APENAS o JSON válido: {"is_company": true/false/null}`,
                   return null;
                 }
                 if (typeof timeline === 'object' && timeline !== null) {
-                  // Validar se tem estrutura de fases
+                  if (!isSubstantiveTimelinePayload(timeline)) {
+                    console.warn(`  ⚠️ ${field}: output JSON com timeline não substantiva — ignorando`);
+                    return null;
+                  }
                   if (timeline.fases && Array.isArray(timeline.fases)) {
                     console.log(`  ✅ Extraído ${field} de output JSON: objeto com ${timeline.fases.length} fase(s)`);
                     return JSON.stringify(timeline);
-                  } else if (typeof timeline === 'object') {
-                    // Aceitar objeto mesmo sem fases explícitas
+                  }
                     console.log(`  ✅ Extraído ${field} de output JSON: objeto timeline`);
                     return JSON.stringify(timeline);
-                  }
                 }
               }
             } catch (e) {
@@ -1444,7 +2072,12 @@ Retorne APENAS o JSON válido: {"is_company": true/false/null}`,
         // Caso especial: timeline_estimada truncada no meio do array fases.
         if (field === 'timeline_estimada') {
           const timeline = extractTimelineFromTruncatedText(responseText);
-          if (timeline && Array.isArray(timeline.fases) && timeline.fases.length > 0) {
+          if (
+            timeline &&
+            Array.isArray(timeline.fases) &&
+            timeline.fases.length > 0 &&
+            isSubstantiveTimelinePayload(timeline)
+          ) {
             console.warn(`  ⚠️ timeline_estimada: JSON inválido/truncado; reconstruindo ${timeline.fases.length} fase(s) válidas.`);
             return JSON.stringify(timeline);
           }
@@ -1526,12 +2159,34 @@ Retorne APENAS o JSON válido: {"is_company": true/false/null}`,
                     }
                   }
                   if (field === 'valor_projeto') {
+                    if (!isSubstantiveValorProjetoPayload(outputJson)) {
+                      console.warn(`  ⚠️ ${field}: output sem valor monetário concreto — ignorando`);
+                      return null;
+                    }
                     console.log(`  ✅ Extraído ${field} do output`);
                     return JSON.stringify(outputJson);
                   }
                   if (field === 'prazo_inscricao' && outputJson.prazos) {
+                    const cleaned = sanitizePrazoEntries(outputJson.prazos as unknown[]);
+                    if (cleaned.length === 0) {
+                      console.warn(`  ⚠️ ${field}: prazos só com texto meta — ignorando`);
+                      return null;
+                    }
                     console.log(`  ✅ Extraído ${field} do output`);
-                    return JSON.stringify({ prazos: outputJson.prazos });
+                    return JSON.stringify({ prazos: cleaned });
+                  }
+                  if (field === 'timeline_estimada' && outputJson.timeline_estimada !== undefined) {
+                    const timeline = outputJson.timeline_estimada;
+                    if (timeline === null) {
+                      console.log(`  ℹ️ ${field}: null (não encontrado)`);
+                      return null;
+                    }
+                    if (typeof timeline === 'object' && timeline !== null && isSubstantiveTimelinePayload(timeline)) {
+                      console.log(`  ✅ Extraído ${field} do output (array)`);
+                      return JSON.stringify(timeline);
+                    }
+                    console.warn(`  ⚠️ ${field}: output sem cronograma útil — ignorando`);
+                    return null;
                   }
                 }
               } catch (e) {
@@ -1591,8 +2246,9 @@ export async function processEditalInfo(
   const forceReextract = options?.forceReextract ?? false;
   const keepExistingOnEmpty = options?.keepExistingOnEmpty ?? false;
 
-  // Buscar PDF IDs
-  const pdfIds = await fetchEditalPdfIds(supabase, edital.id);
+  // Buscar PDFs (ordenados: texto principal antes de anexos-modelo; ver `fetchEditalPdfRefs`)
+  const pdfRefs = await fetchEditalPdfRefs(supabase, edital.id);
+  const pdfIds = pdfRefs.map((r) => r.storageKey);
   
   if (pdfIds.length === 0) {
     console.log(`  ⚠️ Nenhum PDF encontrado para este edital`);
@@ -1686,8 +2342,15 @@ export async function processEditalInfo(
   const extractionTasks: (() => Promise<void>)[] = [];
 
   if (needsValorProjeto) {
+    const valorPdfRefs = filterPdfRefsForExtract(pdfRefs);
+    const valorPdfIds = valorPdfRefs.map((r) => r.storageKey);
+    if (valorPdfIds.length !== pdfIds.length) {
+      console.log(
+        `  📎 Valor projeto: ${valorPdfIds.length}/${pdfIds.length} PDF(s) após omitir anexos/modelos e PDFs institucionais (por nome_arquivo).`,
+      );
+    }
     extractionTasks.push(async () => {
-      const result = await extractInfoFromWebhook('valor_projeto', pdfIds, edital.id);
+      const result = await extractInfoFromWebhook("valor_projeto", valorPdfIds, edital.id);
       valor_projeto = (typeof result === 'string' || Array.isArray(result)) ? result : null;
       if (forceReextract && keepExistingOnEmpty && (!valor_projeto || (Array.isArray(valor_projeto) ? valor_projeto.length === 0 : valor_projeto.trim().length === 0))) {
         valor_projeto = edital.valor_projeto || null;
@@ -1695,8 +2358,15 @@ export async function processEditalInfo(
     });
   }
   if (needsPrazoInscricao) {
+    const prazoPdfRefs = filterPdfRefsForExtract(pdfRefs);
+    const prazoPdfIds = prazoPdfRefs.map((r) => r.storageKey);
+    if (prazoPdfIds.length !== pdfIds.length) {
+      console.log(
+        `  📎 Prazo inscrição: ${prazoPdfIds.length}/${pdfIds.length} PDF(s) após omitir anexos/modelos e PDFs institucionais (por nome_arquivo).`,
+      );
+    }
     extractionTasks.push(async () => {
-      const result = await extractInfoFromWebhook('prazo_inscricao', pdfIds, edital.id);
+      const result = await extractInfoFromWebhook("prazo_inscricao", prazoPdfIds, edital.id);
       prazo_inscricao = (typeof result === 'string' || Array.isArray(result)) ? result : null;
       if (forceReextract && keepExistingOnEmpty && (!prazo_inscricao || (Array.isArray(prazo_inscricao) ? prazo_inscricao.length === 0 : prazo_inscricao.trim().length === 0))) {
         prazo_inscricao = edital.prazo_inscricao || null;
@@ -1713,8 +2383,15 @@ export async function processEditalInfo(
     });
   }
   if (needsVagas) {
+    const vagasPdfRefs = filterPdfRefsForExtract(pdfRefs);
+    const vagasPdfIds = vagasPdfRefs.map((r) => r.storageKey);
+    if (vagasPdfIds.length !== pdfIds.length) {
+      console.log(
+        `  📎 Vagas: ${vagasPdfIds.length}/${pdfIds.length} PDF(s) após omitir anexos/modelos e PDFs institucionais (por nome_arquivo).`,
+      );
+    }
     extractionTasks.push(async () => {
-      const result = await extractInfoFromWebhook('vagas', pdfIds, edital.id);
+      const result = await extractInfoFromWebhook("vagas", vagasPdfIds, edital.id);
       vagas = (typeof result === 'string' || Array.isArray(result)) ? result : null;
       if (forceReextract && keepExistingOnEmpty && (!vagas || (Array.isArray(vagas) ? vagas.length === 0 : vagas.trim().length === 0))) {
         vagas = edital.vagas || null;
@@ -1738,8 +2415,15 @@ export async function processEditalInfo(
   }
 
   if (needsSobrePrograma) {
+    const sobrePdfRefs = filterPdfRefsForExtract(pdfRefs);
+    const sobrePdfIds = sobrePdfRefs.map((r) => r.storageKey);
+    if (sobrePdfIds.length !== pdfIds.length) {
+      console.log(
+        `  📎 Sobre o programa: ${sobrePdfIds.length}/${pdfIds.length} PDF(s) após omitir anexos/modelos ou institucionais (nome_arquivo).`,
+      );
+    }
     extractionTasks.push(async () => {
-      const result = await extractInfoFromWebhook('sobre_programa', pdfIds, edital.id);
+      const result = await extractInfoFromWebhook("sobre_programa", sobrePdfIds, edital.id);
       sobre_programa = typeof result === 'string' ? result : null;
       if (forceReextract && keepExistingOnEmpty && (!sobre_programa || !sobre_programa.trim())) {
         sobre_programa = edital.sobre_programa || null;
@@ -1747,8 +2431,15 @@ export async function processEditalInfo(
     });
   }
   if (needsCriteriosElegibilidade) {
+    const criteriosPdfRefs = filterPdfRefsForExtract(pdfRefs);
+    const criteriosPdfIds = criteriosPdfRefs.map((r) => r.storageKey);
+    if (criteriosPdfIds.length !== pdfIds.length) {
+      console.log(
+        `  📎 Critérios de elegibilidade: ${criteriosPdfIds.length}/${pdfIds.length} PDF(s) após omitir anexos/modelos (por nome_arquivo).`,
+      );
+    }
     extractionTasks.push(async () => {
-      const result = await extractInfoFromWebhook('criterios_elegibilidade', pdfIds, edital.id);
+      const result = await extractInfoFromWebhook("criterios_elegibilidade", criteriosPdfIds, edital.id);
       criterios_elegibilidade = typeof result === 'string' ? result : null;
       if (forceReextract && keepExistingOnEmpty && (!criterios_elegibilidade || !criterios_elegibilidade.trim())) {
         criterios_elegibilidade = edital.criterios_elegibilidade || null;
@@ -1756,15 +2447,28 @@ export async function processEditalInfo(
     });
   }
   if (needsTimelineEstimada) {
+    const timelinePdfRefs = filterPdfRefsForExtract(pdfRefs);
+    const timelinePdfIds = timelinePdfRefs.map((r) => r.storageKey);
+    if (timelinePdfIds.length !== pdfIds.length) {
+      console.log(
+        `  📎 Timeline estimada: ${timelinePdfIds.length}/${pdfIds.length} PDF(s) após omitir anexos/modelos ou institucionais (nome_arquivo).`,
+      );
+    }
     extractionTasks.push(async () => {
-      const result = await extractInfoFromWebhook('timeline_estimada', pdfIds, edital.id);
+      const result = await extractInfoFromWebhook("timeline_estimada", timelinePdfIds, edital.id);
       if (typeof result === 'string' && result.trim().length > 0) {
         try {
           const parsedTimeline = JSON.parse(result);
-          timeline_estimada = (typeof parsedTimeline === 'object' && parsedTimeline !== null) ? parsedTimeline : null;
-          if (timeline_estimada) {
+          if (typeof parsedTimeline === 'object' && parsedTimeline !== null) {
+            if (isSubstantiveTimelinePayload(parsedTimeline)) {
+              timeline_estimada = parsedTimeline;
             console.log(`  ✅ Timeline Estimada extraída com sucesso`);
           } else {
+              timeline_estimada = null;
+              console.warn(`  ⚠️ Timeline Estimada: resposta só com texto explicativo — não gravando`);
+            }
+          } else {
+            timeline_estimada = null;
             console.log(`  ℹ️ Timeline Estimada: null (não encontrado)`);
           }
         } catch (e) {
@@ -1772,7 +2476,10 @@ export async function processEditalInfo(
           timeline_estimada = null;
         }
       } else if (typeof result === 'object' && result !== null) {
-        timeline_estimada = result;
+        timeline_estimada = isSubstantiveTimelinePayload(result) ? result : null;
+        if (!timeline_estimada) {
+          console.warn(`  ⚠️ Timeline Estimada: objeto inválido/meta — não gravando`);
+        }
       } else {
         timeline_estimada = null;
         console.log(`  ℹ️ Timeline Estimada: null (não encontrado)`);
@@ -1982,7 +2689,11 @@ export async function fetchEditaisToProcess(
   const { data: editais, error: fetchError } = await query;
 
   if (fetchError) {
-    throw new Error(`Erro ao buscar editais: ${fetchError.message}`);
+    throw new Error(
+      `Erro ao buscar editais: ${formatSupabaseRequestError(fetchError)}. ` +
+        "Confira rede/VPN, firewall e se VITE_SUPABASE_URL / SUPABASE_URL apontam para o projeto correto." +
+        supabaseNetworkUserHint(fetchError),
+    );
   }
 
   if (!editais || editais.length === 0) {
@@ -2050,7 +2761,13 @@ export async function fetchEditaisWithNullFields(supabase: SupabaseClient): Prom
     .or('valor_projeto.is.null,prazo_inscricao.is.null,localizacao.is.null,vagas.is.null,sobre_programa.is.null,criterios_elegibilidade.is.null,timeline_estimada.is.null,is_researcher.is.null,is_company.is.null')
     .order('criado_em', { ascending: false });
 
-  if (error) throw new Error(`Erro ao buscar editais: ${error.message}`);
+  if (error) {
+    throw new Error(
+      `Erro ao buscar editais: ${formatSupabaseRequestError(error)}. ` +
+        "Confira rede/VPN e variáveis do Supabase no .env.local." +
+        supabaseNetworkUserHint(error),
+    );
+  }
   return editais ?? [];
 }
 
@@ -2064,7 +2781,13 @@ export async function fetchEditaisOnlyNotInformed(supabase: SupabaseClient): Pro
     .not('informacoes_processadas_em', 'is', null)
     .order('criado_em', { ascending: false });
 
-  if (error) throw new Error(`Erro ao buscar editais: ${error.message}`);
+  if (error) {
+    throw new Error(
+      `Erro ao buscar editais: ${formatSupabaseRequestError(error)}. ` +
+        "Confira rede/VPN e variáveis do Supabase no .env.local." +
+        supabaseNetworkUserHint(error),
+    );
+  }
   if (!editais?.length) return [];
 
   return editais.filter(editalHasNotInformed);
@@ -2094,6 +2817,13 @@ export async function processAllEditaisInfo(): Promise<void> {
   }
 
   const supabase = createClient(supabaseUrl, supabaseKey);
+
+  try {
+    const host = new URL(supabaseUrl).host;
+    console.log(`🔗 Supabase (host): ${host}`);
+  } catch {
+    console.warn("⚠️  VITE_SUPABASE_URL / SUPABASE_URL não parece uma URL válida.");
+  }
 
   const mode = (process.env.PROCESS_EDITAL_MODE || '').toLowerCase().trim();
   let editais: EditalInfo[];

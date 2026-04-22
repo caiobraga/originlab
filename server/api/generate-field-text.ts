@@ -336,10 +336,16 @@ async function callAiSecretary(prompt: string): Promise<string> {
     const undici = await import("undici").catch(() => null) as
       | { fetch: typeof fetch; Agent: new (opts?: Record<string, unknown>) => unknown }
       | null;
+    const extractTempRaw = process.env.OLLAMA_TEMPERATURE?.trim();
+    const extractTemp =
+      extractTempRaw === undefined || extractTempRaw === ""
+        ? 0
+        : Math.max(0, Math.min(2, parseFloat(extractTempRaw) || 0));
     const body = {
       model: AI_SECRETARY_MODEL,
       prompt,
       stream: false,
+      options: { temperature: extractTemp },
     };
     const opts: RequestInit & { dispatcher?: unknown } = {
       method: "POST",

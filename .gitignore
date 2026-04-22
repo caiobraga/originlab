@@ -100,6 +100,9 @@ jspm_packages/
 tmp/
 temp/
 
+# Local debug dumps (api:process-edital-info / Ollama)
+teste/
+
 # Database
 *.db
 *.sqlite
