@@ -16,8 +16,13 @@ export class CnpqScraper implements Scraper {
     if (this.browser) return;
 
     const puppeteer = await import('puppeteer');
+    const headless =
+      String(process.env.PUPPETEER_HEADLESS ?? "1").trim() === "0" ||
+      String(process.env.PUPPETEER_HEADLESS ?? "1").trim().toLowerCase() === "false"
+        ? false
+        : true;
     this.browser = await puppeteer.default.launch({
-      headless: false, // Modo visível para debug
+      headless, // Em servidor (AWS) precisa ser headless
       args: [
         '--no-sandbox', 
         '--disable-setuid-sandbox',

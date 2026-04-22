@@ -39,7 +39,11 @@ class SigfapesScraper {
   async init() {
     console.log('🚀 Iniciando navegador...');
     this.browser = await puppeteer.launch({
-      headless: false, // Mostra o navegador para debug
+      headless:
+        String(process.env.PUPPETEER_HEADLESS ?? "1").trim() === "0" ||
+        String(process.env.PUPPETEER_HEADLESS ?? "1").trim().toLowerCase() === "false"
+          ? false
+          : true,
       args: ['--no-sandbox', '--disable-setuid-sandbox'],
       defaultViewport: { width: 1920, height: 1080 }
     });
