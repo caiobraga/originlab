@@ -758,8 +758,8 @@ export default function EditorProposta() {
       {/* Header - Sempre visível no topo */}
       <header className="bg-white border-b border-gray-200 fixed top-0 left-0 right-0 z-50 shadow-sm">
         <div className="container py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-start gap-4">
               <Link href="/minhas-propostas">
                 <Button variant="ghost" size="sm">
                   <ArrowLeft className="w-4 h-4 mr-2" />
@@ -775,13 +775,15 @@ export default function EditorProposta() {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              {getStatusBadge(proposta.status)}
+            <div className="flex flex-wrap items-center gap-2 md:gap-3">
+              <div className="md:hidden">{getStatusBadge(proposta.status)}</div>
+              <div className="hidden md:block">{getStatusBadge(proposta.status)}</div>
               <Button
                 type="button"
                 variant="outline"
                 onClick={handleRefazerResumoProjeto}
                 disabled={saving || refazendoResumo}
+                size="sm"
               >
                 {refazendoResumo ? (
                   <>
@@ -799,6 +801,7 @@ export default function EditorProposta() {
                 onClick={handleSave}
                 disabled={saving}
                 className="bg-gradient-to-r from-blue-600 to-violet-600"
+                size="sm"
               >
                 {saving ? (
                   <>
@@ -845,7 +848,7 @@ export default function EditorProposta() {
 
       {/* Card Fixo - Status, Progresso e Ver Edital - Sempre visível */}
       <div
-        className={`fixed top-[200px] right-6 z-40 bg-white rounded-xl shadow-lg border border-gray-200 transition-all duration-200 ${
+        className={`fixed top-[200px] right-6 z-40 bg-white rounded-xl shadow-lg border border-gray-200 transition-all duration-200 hidden lg:block ${
           statusPanelCollapsed ? "w-12 h-40 p-1" : "w-56 p-5"
         }`}
       >

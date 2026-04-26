@@ -122,7 +122,7 @@ export default function Pricing() {
   };
 
   return (
-    <section id="planos" className="py-24 bg-gradient-to-br from-gray-50 to-blue-50">
+    <section id="planos" className="py-24 bg-gray-50">
       <div className="container">
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold mb-4 text-gray-900">
@@ -137,11 +137,11 @@ export default function Pricing() {
           {plans.map((plan, index) => (
             <Card
               key={index}
-              className={`relative p-8 ${plan.popular ? "border-2 border-violet-500 shadow-2xl scale-105" : "border border-gray-200"} bg-white hover:shadow-xl transition-all`}
+              className={`relative p-8 ${plan.popular ? "border-2 border-gray-950 shadow-lg" : "border border-gray-200"} bg-white hover:shadow-md transition-shadow`}
             >
               {plan.popular && (
                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                  <div className="flex items-center gap-1 px-4 py-1 rounded-full bg-gradient-to-r from-blue-600 to-violet-600 text-white text-sm font-medium">
+                  <div className="flex items-center gap-1 px-4 py-1 rounded-full bg-gray-950 text-white text-sm font-medium shadow-sm">
                     <Sparkles className="w-4 h-4" />
                     Mais Popular
                   </div>
@@ -169,7 +169,7 @@ export default function Pricing() {
               {plan.action.kind === "contact" ? (
                 <Link href={plan.action.href}>
                   <Button
-                    className={`w-full ${plan.popular ? "bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white" : "bg-white border-2 border-gray-300 text-gray-900 hover:border-blue-500 hover:bg-blue-50"}`}
+                    className={`w-full ${plan.popular ? "bg-gray-950 hover:bg-gray-800 text-white" : "bg-white border-2 border-gray-300 text-gray-900 hover:border-gray-950 hover:bg-gray-50"}`}
                   >
                     {plan.cta}
                   </Button>
@@ -181,7 +181,8 @@ export default function Pricing() {
                     plan.action.kind === "checkout" &&
                     loadingPlan === plan.action.planKey
                   }
-                  className={`w-full ${plan.popular ? "bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white" : "bg-white border-2 border-gray-300 text-gray-900 hover:border-blue-500 hover:bg-blue-50"}`}
+                  variant={plan.popular ? "attention" : "outline"}
+                  className={`w-full ${plan.popular ? "" : "border-2 border-gray-300 text-gray-900 hover:border-gray-950 hover:bg-gray-50"}`}
                   onClick={() => void handlePlanClick(plan.action)}
                 >
                   {plan.action.kind === "checkout" && loadingPlan === plan.action.planKey ? (

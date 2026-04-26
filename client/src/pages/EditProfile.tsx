@@ -39,6 +39,7 @@ export default function EditProfile() {
   const [cnpj, setCnpj] = useState("");
   const [telefone, setTelefone] = useState("");
   const [area, setArea] = useState<string>("");
+  const [sexo, setSexo] = useState<"masculino" | "feminino" | "outro" | "nao_informar" | "">("");
 
   const [loading, setLoading] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(true);
@@ -67,6 +68,7 @@ export default function EditProfile() {
         setHasCnpj(existingProfile.hasCnpj ? "sim" : "nao");
         setTelefone(existingProfile.phone ? formatTelefoneDisplay(existingProfile.phone) : "");
         setArea(existingProfile.area || "");
+        setSexo(existingProfile.sexo || "");
       }
     } catch (error) {
       console.error("Erro ao carregar perfil:", error);
@@ -104,6 +106,7 @@ export default function EditProfile() {
         hasCnpj: (userType === "pessoa-empresa" || userType === "ambos") && hasCnpj === "sim",
         phone: telefone.replace(/\D/g, "") || undefined,
         area: area || undefined,
+        sexo: (sexo || undefined) as any,
       });
 
       toast.success("Perfil atualizado com sucesso!");
@@ -226,6 +229,25 @@ export default function EditProfile() {
                       </button>
                     ))}
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Sexo (opcional)</Label>
+                  <select
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 hover:border-gray-400 cursor-pointer bg-white"
+                    value={sexo}
+                    onChange={(e) => setSexo(e.target.value as any)}
+                    disabled={loading}
+                  >
+                    <option value="">Não informar</option>
+                    <option value="masculino">Masculino</option>
+                    <option value="feminino">Feminino</option>
+                    <option value="outro">Outro</option>
+                    <option value="nao_informar">Prefiro não informar</option>
+                  </select>
+                  <p className="text-xs text-gray-500">
+                    Usamos isso apenas para melhorar as indicações (ex.: chamadas exclusivas para mulheres).
+                  </p>
                 </div>
 
                 {/* Aba Pesquisador */}

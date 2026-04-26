@@ -1,5 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Quote } from "lucide-react";
+import ScrollReveal from "@/components/ScrollReveal";
 
 const testimonials = [
   {
@@ -24,21 +25,22 @@ const testimonials = [
 
 export default function Testimonials() {
   return (
-    <section id="depoimentos" className="py-24 bg-white">
+    <section id="depoimentos" className="py-24 bg-gray-50">
       <div className="container">
-        <div className="text-center mb-16">
+        <ScrollReveal className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold mb-4 text-gray-900">
             O que dizem nossos usuários
           </h2>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
             Histórias reais de quem transformou ideias em projetos financiados
           </p>
-        </div>
+        </ScrollReveal>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
           {testimonials.map((testimonial, index) => (
-            <Card key={index} className="p-8 border-2 border-gray-100 hover:border-blue-200 hover:shadow-lg transition-all relative">
-              <Quote className="absolute top-6 right-6 w-12 h-12 text-violet-200" />
+            <ScrollReveal key={index} delay={0.06 * index}>
+              <Card className="p-8 border border-gray-200 hover:shadow-md transition-shadow relative">
+              <Quote className="absolute top-6 right-6 w-12 h-12 text-gray-200" />
               
               <div className="relative z-10">
                 <p className="text-gray-700 mb-6 leading-relaxed italic">
@@ -46,7 +48,7 @@ export default function Testimonials() {
                 </p>
 
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-600 to-violet-600 flex items-center justify-center text-white font-bold">
+                  <div className="w-12 h-12 rounded-full bg-gray-950 flex items-center justify-center text-white font-bold">
                     {testimonial.avatar}
                   </div>
                   <div>
@@ -55,7 +57,8 @@ export default function Testimonials() {
                   </div>
                 </div>
               </div>
-            </Card>
+              </Card>
+            </ScrollReveal>
           ))}
         </div>
       </div>

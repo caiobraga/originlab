@@ -48,6 +48,8 @@ export interface UserProfile {
   lattesId?: string;
   userType: "pesquisador" | "pessoa-empresa" | "ambos";
   hasCnpj?: boolean;
+  /** Sexo/gênero (opcional) para melhorar heurísticas de indicação. */
+  sexo?: "masculino" | "feminino" | "outro" | "nao_informar";
   dataCollectionConsent?: boolean;
   consentVersion?: string;
   /** Dados do currículo extraídos de PDF (persistido em user_metadata). */
@@ -122,6 +124,7 @@ export async function saveUserProfile(
       if (phoneLimpo) profileData.phone = phoneLimpo;
     }
     if (profile.area !== undefined) profileData.area = profile.area || null;
+    if (profile.sexo !== undefined) profileData.sexo = profile.sexo || null;
 
     console.log("Salvando perfil na tabela profiles para userId:", userId);
     console.log("Dados do perfil:", profileData);
@@ -278,6 +281,7 @@ export async function saveUserProfile(
       if (profileData.cpf) metadataProfile.cpf = profileData.cpf;
       if (profileData.cnpj) metadataProfile.cnpj = profileData.cnpj;
       if (profileData.lattes_id) metadataProfile.lattesId = profileData.lattes_id;
+      if (profileData.sexo) metadataProfile.sexo = profileData.sexo;
 
       await supabase.auth.updateUser({
         data: {
@@ -380,6 +384,7 @@ export async function getUserProfile(user: User | null): Promise<UserProfile | n
         lattesId: profile.lattes_id || undefined,
         userType: resolvedUserType as "pesquisador" | "pessoa-empresa" | "ambos",
         hasCnpj: profile.has_cnpj || false,
+        sexo: (profile.sexo as any) ?? (metadataProfile?.sexo as any) ?? undefined,
         curriculumData: (curriculumFromDb ? (profile.curriculum_data as CurriculumData) : metadataProfile?.curriculumData) ?? undefined,
         onboardingCompleted: profile.onboarding_completed ?? Boolean(metadataProfile?.onboarding_completed),
         phone: profile.phone ?? undefined,
@@ -427,6 +432,7 @@ export interface OnboardingProfileUpdate {
   userType?: "pesquisador" | "pessoa-empresa" | "ambos";
   cnpj?: string;
   hasCnpj?: boolean;
+  sexo?: "masculino" | "feminino" | "outro" | "nao_informar";
   markOnboardingCompleted?: boolean;
 }
 
@@ -443,6 +449,7 @@ export async function updateProfileFromOnboarding(
   if (data.phone !== undefined) row.phone = data.phone.replace(/\D/g, "").slice(0, 20) || null;
   if (data.area !== undefined) row.area = data.area || null;
   if (data.userType !== undefined) row.user_type = data.userType;
+  if (data.sexo !== undefined) row.sexo = data.sexo || null;
   if (data.cnpj !== undefined) {
     const cnpjLimpo = data.cnpj.replace(/\D/g, "");
     row.cnpj = cnpjLimpo.length === 14 ? cnpjLimpo : null;
@@ -493,6 +500,7 @@ function getProfileFromMetadata(user: User): UserProfile {
     lattesId: profile.lattesId,
     userType: profile.userType || "pesquisador",
     hasCnpj: profile.hasCnpj,
+      sexo: profile.sexo,
     curriculumData: profile.curriculumData ?? undefined,
     onboardingCompleted: Boolean(profile.onboarding_completed),
     phone: profile.phone,

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useParams } from "wouter";
 import { 
-  ArrowLeft, CheckCircle2, AlertCircle, Loader2,
+  ArrowLeft, AlertCircle, Loader2,
   Calendar, DollarSign, MapPin, Users, FileText, Sparkles,
   Shield, Clock, Download, Send, Info, ChevronDown, Target,
   TrendingUp, AlertTriangle, XCircle, CheckCircle, Building2,
@@ -13,8 +13,10 @@ import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import EditalChat from "@/components/EditalChat";
 import { supabase } from "@/lib/supabase";
-import { DatabaseEdital, calculateEditalScores } from "@/lib/editaisApi";
+import { DatabaseEdital } from "@/lib/editaisApi";
 import { formatValorProjeto, formatPrazoInscricao } from "@/lib/editalFormatters";
+import { getPrazoInscricaoDisplayPreferindoTimeline } from "@/lib/editalSubmissionDeadline";
+import { normalizeJsonLikeToMarkdown } from "@/lib/editalRichText";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { gerarPropostaComIA } from "@/lib/propostasApi";
@@ -26,6 +28,21 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 
+/**
+ * QA manual (Detalhes do Edital) — evidências capturadas em `localhost:3000` (prints full-page):
+ * - `qa-edital-5ced408a-full.png`
+ * - `qa-edital-6ed92cfb-full.png`
+ * - `qa-edital-a272c4d4-full.png`
+ * - `qa-edital-63cd2f69-full.png`
+ * - `qa-edital-3629573c-full.png`
+ *
+ * Checklist:
+ * - [x] `5ced408a-a578-4107-91be-60aab080bf3f` — “Prazo de Inscrição” alinha com a fase **Inscrição** da timeline (fallback quando não há fase “submissão”), mantendo `prazo_inscricao` como referência quando diverge
+ * - [x] `6ed92cfb-e2ad-47e9-acbf-fb4b5e5002a5` — “Prazo de Inscrição” alinha com **Data limite para submissão das propostas**; `prazo_inscricao` mostra outro recorte (“Outubro 2026”) como referência
+ * - [x] `a272c4d4-054c-433d-a0c2-53d7c6d3f920` — timeline com **Invalid Date** não “prende” o prazo; volta para `formatPrazoInscricao` (texto ainda pode ser ruim — dado bruto)
+ * - [x] `63cd2f69-f445-44bc-a841-930f515e3026` — múltiplos prazos embutidos no `prazo_inscricao` continuam listáveis; timeline inválida não sobrescreve
+ * - [x] `3629573c-6aa4-4ffa-957b-c256b0bb77e4` — idem (múltiplos prazos + timeline inválida); critérios longos renderizam sem JSON cru
+ */
 
 interface EditalPdf {
   id: string;
@@ -44,8 +61,6 @@ export default function EditalDetails() {
   const [loading, setLoading] = useState(true);
   const [pdfs, setPdfs] = useState<EditalPdf[]>([]);
   const [loadingPdfs, setLoadingPdfs] = useState(true);
-  const [scores, setScores] = useState<{ match: number; probabilidade: number; justificativa?: string | null } | null>(null);
-  const [loadingScores, setLoadingScores] = useState(false);
   const [linkCopiado, setLinkCopiado] = useState(false);
   const [gerandoProposta, setGerandoProposta] = useState(false);
   const { user, loading: authLoading } = useAuth();
@@ -129,18 +144,6 @@ export default function EditalDetails() {
     }
   }, [user, authLoading, editalId, setLocation]);
 
-  // Não renderizar conteúdo se não estiver autenticado
-  if (!authLoading && !user) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">Redirecionando para login...</p>
-        </div>
-      </div>
-    );
-  }
-
   // Buscar dados do edital (apenas se estiver autenticado)
   useEffect(() => {
     async function fetchEdital() {
@@ -151,17 +154,33 @@ export default function EditalDetails() {
 
       try {
         setLoading(true);
-        const { data, error } = await supabase
-          .from("editais")
+        // Preferir dados validados/normalizados em editais_corretos.
+        // Se ainda não existir nessa tabela, fallback para editais.
+        const { data: correto, error: errCorreto } = await supabase
+          .from("editais_corretos")
           .select("*")
           .eq("id", editalId)
-          .single();
+          .maybeSingle();
 
-        if (error) {
-          console.error("Erro ao buscar edital:", error);
-          toast.error("Erro ao carregar dados do edital");
+        if (errCorreto) {
+          console.error("Erro ao buscar edital (editais_corretos):", errCorreto);
+        }
+
+        if (correto) {
+          setEdital(correto as any);
         } else {
-          setEdital(data);
+          const { data, error } = await supabase
+            .from("editais")
+            .select("*")
+            .eq("id", editalId)
+            .single();
+
+          if (error) {
+            console.error("Erro ao buscar edital:", error);
+            toast.error("Erro ao carregar dados do edital");
+          } else {
+            setEdital(data);
+          }
         }
       } catch (error) {
         console.error("Erro ao buscar edital:", error);
@@ -257,26 +276,9 @@ export default function EditalDetails() {
     }
   }, [editalId, edital, user, authLoading]);
 
-  // Buscar scores do edital
-  useEffect(() => {
-    async function fetchScores() {
-      if (!edital || !user || !editalId) return;
-
-      try {
-        setLoadingScores(true);
-        const calculatedScores = await calculateEditalScores(edital, user.id, user, profile || null);
-        setScores(calculatedScores);
-      } catch (error) {
-        console.error("Erro ao buscar scores:", error);
-      } finally {
-        setLoadingScores(false);
-      }
-    }
-
-    if (edital && user) {
-      fetchScores();
-    }
-  }, [edital, user, editalId, profile]);
+  const prazoInscricaoResumo = edital
+    ? getPrazoInscricaoDisplayPreferindoTimeline(edital.prazo_inscricao, edital.timeline_estimada)
+    : null;
 
   // Função para fazer download do arquivo
   const handleDownloadPdf = async (pdf: EditalPdf) => {
@@ -545,6 +547,17 @@ export default function EditalDetails() {
     }
   };
 
+  if (!authLoading && !user) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600">Redirecionando para login...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -632,20 +645,6 @@ export default function EditalDetails() {
                     <Target className="w-6 h-6 text-blue-600" />
                     <h2 className="text-xl md:text-2xl font-bold text-gray-900">Resumo Executivo</h2>
                   </div>
-                  {user && scores && (
-                    <div className="flex items-center gap-4">
-                      <div className="text-center">
-                        <div className="text-3xl md:text-4xl font-bold text-blue-600">{scores.match}%</div>
-                        <div className="text-xs text-gray-600">Match</div>
-                      </div>
-                      {scores.justificativa && (
-                        <div className="text-center">
-                          <div className="text-3xl md:text-4xl font-bold text-violet-600">{scores.probabilidade}%</div>
-                          <div className="text-xs text-gray-600">Aprovação</div>
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -656,10 +655,31 @@ export default function EditalDetails() {
                       <span className="text-sm font-semibold text-gray-700">Prazo de Inscrição</span>
                     </div>
                     {(() => {
+                      const prazoResumo = getPrazoInscricaoDisplayPreferindoTimeline(
+                        edital?.prazo_inscricao,
+                        edital?.timeline_estimada,
+                      );
                       const prazoFormatado = formatPrazoInscricao(edital?.prazo_inscricao);
                       return (
-                        <div className="text-lg font-bold text-gray-900">
-                          {prazoFormatado.display}
+                        <div className="space-y-1">
+                          <div className="text-lg font-bold text-gray-900">{prazoResumo.display}</div>
+                          {prazoResumo.deadlineSubmissao && prazoFormatado.display !== prazoResumo.display && (
+                            <div className="text-xs text-gray-600">
+                              Campo `prazo_inscricao` (referência):{" "}
+                              <span className="font-medium text-gray-800">{prazoFormatado.display}</span>
+                            </div>
+                          )}
+                          {prazoResumo.deadlineSubmissao && prazoResumo.faseNome && (
+                            <div className="text-xs text-gray-600">
+                              Fonte: fase <span className="font-medium text-gray-800">{prazoResumo.faseNome}</span>
+                              {prazoResumo.fasePrazoTexto ? (
+                                <>
+                                  {" "}
+                                  — <span className="text-gray-700">{prazoResumo.fasePrazoTexto}</span>
+                                </>
+                              ) : null}
+                            </div>
+                          )}
                         </div>
                       );
                     })()}
@@ -722,77 +742,11 @@ export default function EditalDetails() {
                   )}
                 </div>
 
-                {/* Recomendação Rápida */}
-                {user && scores && (
-                  <div className={`rounded-lg p-4 border-2 ${
-                    scores.justificativa
-                      ? (scores.match >= 70 && scores.probabilidade >= 60
-                          ? 'bg-green-50 border-green-300'
-                          : scores.match >= 50 && scores.probabilidade >= 40
-                          ? 'bg-yellow-50 border-yellow-300'
-                          : 'bg-red-50 border-red-300')
-                      : (scores.match >= 70 ? 'bg-green-50 border-green-300' : scores.match >= 50 ? 'bg-yellow-50 border-yellow-300' : 'bg-red-50 border-red-300')
-                  }`}>
-                    <div className="flex items-start gap-3">
-                      {scores.justificativa
-                        ? (scores.match >= 70 && scores.probabilidade >= 60 ? (
-                            <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" />
-                          ) : scores.match >= 50 && scores.probabilidade >= 40 ? (
-                            <AlertTriangle className="w-6 h-6 text-yellow-600 flex-shrink-0 mt-0.5" />
-                          ) : (
-                            <XCircle className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
-                          ))
-                        : (scores.match >= 70 ? (
-                            <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" />
-                          ) : scores.match >= 50 ? (
-                            <AlertTriangle className="w-6 h-6 text-yellow-600 flex-shrink-0 mt-0.5" />
-                          ) : (
-                            <XCircle className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
-                          ))}
-                      <div className="flex-1">
-                        <div className="font-bold text-gray-900 mb-2">
-                          {scores.justificativa
-                            ? (scores.match >= 70 && scores.probabilidade >= 60
-                                ? '✅ Recomendado para você'
-                                : scores.match >= 50 && scores.probabilidade >= 40
-                                ? '⚠️ Avalie com cuidado'
-                                : '❌ Baixa compatibilidade')
-                            : (scores.match >= 70 ? '✅ Recomendado para você' : scores.match >= 50 ? '⚠️ Avalie com cuidado' : '❌ Baixa compatibilidade')}
-                        </div>
-                        {scores.justificativa && (
-                          <div className="prose prose-sm max-w-none text-gray-700">
-                            <ReactMarkdown
-                              components={{
-                                h1: ({node, ...props}) => <h1 className="text-base font-bold mb-2 text-gray-900" {...props} />,
-                                h2: ({node, ...props}) => <h2 className="text-sm font-bold mb-1.5 text-gray-900" {...props} />,
-                                h3: ({node, ...props}) => <h3 className="text-sm font-semibold mb-1 text-gray-900" {...props} />,
-                                p: ({node, ...props}) => <div className="mb-2 leading-relaxed text-sm" {...props} />,
-                                ul: ({node, ...props}) => <ul className="list-disc list-inside mb-2 space-y-0.5 text-sm" {...props} />,
-                                ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-2 space-y-0.5 text-sm" {...props} />,
-                                li: ({node, ...props}) => <li className="ml-1" {...props} />,
-                                strong: ({node, ...props}) => <strong className="font-semibold text-gray-900" {...props} />,
-                                em: ({node, ...props}) => <em className="italic" {...props} />,
-                                code: ({node, ...props}) => <code className="bg-gray-200 px-1 py-0.5 rounded text-xs font-mono" {...props} />,
-                                blockquote: ({node, ...props}) => <blockquote className="border-l-3 border-gray-400 pl-2 italic my-2 text-sm" {...props} />,
-                                a: ({node, ...props}) => <a className="text-blue-600 hover:text-blue-800 underline" target="_blank" rel="noopener noreferrer" {...props} />,
-                              }}
-                            >
-                              {scores.justificativa.length > 200 
-                                ? scores.justificativa.substring(0, 200) + '...'
-                                : scores.justificativa
-                              }
-                            </ReactMarkdown>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             )}
 
             {/* Informações Detalhadas - Organizadas em Accordion */}
-            <Accordion type="multiple" defaultValue={["essenciais", "elegibilidade", "timeline"]} className="space-y-4">
+            <Accordion type="multiple" defaultValue={["essenciais", "descricao", "elegibilidade"]} className="space-y-4">
               {/* Informações Essenciais */}
               <AccordionItem value="essenciais" className="bg-white rounded-xl shadow-sm border border-gray-200">
                 <AccordionTrigger className="px-4 md:px-6 py-4 hover:no-underline">
@@ -844,15 +798,36 @@ export default function EditalDetails() {
                         <div className="flex-1">
                           <div className="text-sm text-gray-600">Prazo de Inscrição</div>
                           {(() => {
+                            const prazoResumo = prazoInscricaoResumo || {
+                              display: formatPrazoInscricao(edital?.prazo_inscricao).display,
+                              details: formatPrazoInscricao(edital?.prazo_inscricao).details,
+                              deadlineSubmissao: null,
+                            };
                             const prazoFormatado = formatPrazoInscricao(edital?.prazo_inscricao);
-                            if (!prazoFormatado.details || prazoFormatado.details.length <= 1) {
-                              return <div className="font-bold text-lg">{prazoFormatado.display}</div>;
+                            if (!prazoResumo.details || prazoResumo.details.length <= 1) {
+                              return (
+                                <div className="space-y-1">
+                                  <div className="font-bold text-lg">{prazoResumo.display}</div>
+                                  {prazoResumo.deadlineSubmissao && prazoFormatado.display !== prazoResumo.display && (
+                                    <div className="text-xs text-gray-600">
+                                      Referência (`prazo_inscricao`):{" "}
+                                      <span className="font-medium text-gray-800">{prazoFormatado.display}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              );
                             }
                             return (
                               <div className="space-y-2">
-                                <div className="font-bold text-lg">{prazoFormatado.display}</div>
+                                <div className="font-bold text-lg">{prazoResumo.display}</div>
+                                {prazoResumo.deadlineSubmissao && prazoFormatado.display !== prazoResumo.display && (
+                                  <div className="text-xs text-gray-600">
+                                    Referência (`prazo_inscricao`):{" "}
+                                    <span className="font-medium text-gray-800">{prazoFormatado.display}</span>
+                                  </div>
+                                )}
                                 <div className="space-y-1 mt-2">
-                                  {prazoFormatado.details.map((prazo, idx) => (
+                                  {prazoResumo.details.map((prazo, idx) => (
                                     <div key={idx} className="text-sm text-gray-600 border-l-2 border-blue-500 pl-2">
                                       {prazo.chamada && (
                                         <div className="font-semibold text-gray-900">{prazo.chamada}</div>
@@ -897,6 +872,52 @@ export default function EditalDetails() {
                 </AccordionContent>
               </AccordionItem>
 
+              {/* Descrição */}
+              <AccordionItem value="descricao" className="bg-white rounded-xl shadow-sm border border-gray-200">
+                <AccordionTrigger className="px-4 md:px-6 py-4 hover:no-underline">
+                  <div className="flex items-center gap-3">
+                    <FileText className="w-5 h-5 text-blue-600" />
+                    <h2 className="text-lg md:text-xl font-bold text-gray-900">Descrição</h2>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 md:px-6 pb-6">
+                  {loading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+                    </div>
+                  ) : edital?.descricao && edital.descricao !== "Não informado" ? (
+                    <div className="prose prose-sm prose-blue max-w-none text-gray-700">
+                      <ReactMarkdown
+                        components={{
+                          h1: ({ node, ...props }) => <h1 className="text-2xl font-bold mb-4 text-gray-900" {...props} />,
+                          h2: ({ node, ...props }) => <h2 className="text-xl font-bold mb-3 text-gray-900" {...props} />,
+                          h3: ({ node, ...props }) => <h3 className="text-lg font-semibold mb-2 text-gray-900" {...props} />,
+                          p: ({ node, ...props }) => <div className="mb-4 leading-relaxed" {...props} />,
+                          ul: ({ node, ...props }) => <ul className="list-disc list-inside mb-4 space-y-1" {...props} />,
+                          ol: ({ node, ...props }) => <ol className="list-decimal list-inside mb-4 space-y-1" {...props} />,
+                          li: ({ node, ...props }) => <li className="ml-4" {...props} />,
+                          strong: ({ node, ...props }) => <strong className="font-semibold text-gray-900" {...props} />,
+                          em: ({ node, ...props }) => <em className="italic" {...props} />,
+                          code: ({ node, ...props }) => (
+                            <code className="bg-gray-100 px-1 py-0.5 rounded text-sm font-mono" {...props} />
+                          ),
+                          blockquote: ({ node, ...props }) => (
+                            <blockquote className="border-l-4 border-blue-500 pl-4 italic my-4" {...props} />
+                          ),
+                          a: ({ node, ...props }) => (
+                            <a className="text-blue-600 hover:text-blue-800 underline" target="_blank" rel="noopener noreferrer" {...props} />
+                          ),
+                        }}
+                      >
+                        {normalizeJsonLikeToMarkdown(edital.descricao as any)}
+                      </ReactMarkdown>
+                    </div>
+                  ) : (
+                    <div className="text-gray-500 italic">Descrição não disponível.</div>
+                  )}
+                </AccordionContent>
+              </AccordionItem>
+
               {/* Critérios de Elegibilidade */}
               <AccordionItem value="elegibilidade" className="bg-white rounded-xl shadow-sm border border-gray-200">
                 <AccordionTrigger className="px-4 md:px-6 py-4 hover:no-underline">
@@ -928,7 +949,7 @@ export default function EditalDetails() {
                           a: ({node, ...props}) => <a className="text-blue-600 hover:text-blue-800 underline" target="_blank" rel="noopener noreferrer" {...props} />,
                         }}
                       >
-                        {edital.criterios_elegibilidade}
+                        {normalizeJsonLikeToMarkdown(edital.criterios_elegibilidade as any)}
                       </ReactMarkdown>
                     </div>
                   ) : (
@@ -970,7 +991,7 @@ export default function EditalDetails() {
                           a: ({node, ...props}) => <a className="text-blue-600 hover:text-blue-800 underline" target="_blank" rel="noopener noreferrer" {...props} />,
                         }}
                       >
-                        {edital.sobre_programa}
+                        {normalizeJsonLikeToMarkdown(edital.sobre_programa as any)}
                       </ReactMarkdown>
                     </div>
                   ) : (
@@ -980,109 +1001,6 @@ export default function EditalDetails() {
                   )}
                 </AccordionContent>
               </AccordionItem>
-
-              {/* Timeline */}
-              {edital?.timeline_estimada && edital.timeline_estimada.fases && Array.isArray(edital.timeline_estimada.fases) && edital.timeline_estimada.fases.length > 0 && (
-                <AccordionItem value="timeline" className="bg-white rounded-xl shadow-sm border border-gray-200">
-                  <AccordionTrigger className="px-4 md:px-6 py-4 hover:no-underline">
-                    <div className="flex items-center gap-3">
-                      <Clock className="w-5 h-5 text-blue-600" />
-                      <h2 className="text-lg md:text-xl font-bold text-gray-900">Timeline Estimada</h2>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="px-4 md:px-6 pb-6">
-                    <div className="space-y-4">
-                      {edital.timeline_estimada.fases.map((fase: any, index: number) => {
-                        const isLast = index === edital.timeline_estimada.fases.length - 1;
-                        
-                        const hoje = new Date();
-                        hoje.setHours(0, 0, 0, 0);
-                        
-                        let statusCalculado = fase.status?.toLowerCase() || 'pendente';
-                        
-                        if (fase.data_fim) {
-                          const dataFim = new Date(fase.data_fim);
-                          dataFim.setHours(23, 59, 59, 999);
-                          if (hoje > dataFim) {
-                            statusCalculado = 'fechado';
-                          } else if (fase.data_inicio) {
-                            const dataInicio = new Date(fase.data_inicio);
-                            dataInicio.setHours(0, 0, 0, 0);
-                            if (hoje >= dataInicio && hoje <= dataFim) {
-                              statusCalculado = 'aberto';
-                            } else if (hoje < dataInicio) {
-                              statusCalculado = 'pendente';
-                            }
-                          } else {
-                            if (hoje <= dataFim) {
-                              statusCalculado = 'aberto';
-                            }
-                          }
-                        } else if (fase.data_inicio) {
-                          const dataInicio = new Date(fase.data_inicio);
-                          dataInicio.setHours(0, 0, 0, 0);
-                          if (hoje >= dataInicio) {
-                            statusCalculado = 'aberto';
-                          } else {
-                            statusCalculado = 'pendente';
-                          }
-                        }
-                        
-                        const status = statusCalculado;
-                        const isAberto = status === 'aberto' || status === 'aberta';
-                        const isFechado = status === 'fechado' || status === 'fechada';
-                        
-                        return (
-                          <div key={index} className="flex gap-3">
-                            <div className="flex flex-col items-center">
-                              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                                isAberto ? 'bg-green-500' : isFechado ? 'bg-red-300' : 'bg-gray-300'
-                              }`}>
-                                {isAberto ? (
-                                  <CheckCircle2 className="w-4 h-4 text-white" />
-                                ) : (
-                                  <div className="w-3 h-3 bg-white rounded-full" />
-                                )}
-                              </div>
-                              {!isLast && <div className="w-0.5 h-full bg-gray-300 my-1" />}
-                            </div>
-                            <div className={`flex-1 ${!isLast ? 'pb-4' : ''}`}>
-                              <div className="font-medium text-sm">{fase.nome || `Fase ${index + 1}`}</div>
-                              {fase.prazo && (
-                                <div className="text-xs text-gray-600">{fase.prazo}</div>
-                              )}
-                              {(fase.data_inicio || fase.data_fim) && (
-                                <div className="text-xs text-gray-500 mt-1">
-                                  {fase.data_inicio && fase.data_fim 
-                                    ? `${new Date(fase.data_inicio).toLocaleDateString('pt-BR')} - ${new Date(fase.data_fim).toLocaleDateString('pt-BR')}`
-                                    : fase.data_inicio 
-                                      ? `Início: ${new Date(fase.data_inicio).toLocaleDateString('pt-BR')}`
-                                      : fase.data_fim 
-                                        ? `Fim: ${new Date(fase.data_fim).toLocaleDateString('pt-BR')}`
-                                        : null
-                                  }
-                                </div>
-                              )}
-                              {fase.status && (
-                                <Badge 
-                                  variant={isAberto ? "default" : "outline"} 
-                                  className={`mt-1 ${
-                                    isAberto ? 'bg-green-100 text-green-700 border-green-200' :
-                                    isFechado ? 'bg-red-100 text-red-700 border-red-200' :
-                                    'bg-gray-100 text-gray-700 border-gray-200'
-                                  }`}
-                                >
-                                  {isAberto ? 'Aberto' : isFechado ? 'Fechado' : 'Pendente'}
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              )}
 
               {/* Arquivos do Edital */}
               <AccordionItem value="arquivos" className="bg-white rounded-xl shadow-sm border border-gray-200">
@@ -1154,68 +1072,6 @@ export default function EditalDetails() {
 
           {/* Sidebar */}
           <div className="space-y-4 md:space-y-6">
-            {/* Análise de Match Detalhada */}
-            {user && (
-              <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-gray-200">
-                <div className="flex items-center gap-2 mb-4">
-                  <TrendingUp className="w-5 h-5 text-blue-600 flex-shrink-0" />
-                  <h3 className="text-base md:text-lg font-bold text-gray-900 break-words">Análise Detalhada</h3>
-                </div>
-                
-                {loadingScores ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-                  </div>
-                ) : scores ? (
-                  <>
-                    <div className="flex items-center gap-4 mb-4">
-                      <div className="text-center flex-1">
-                        <div className="text-3xl font-bold text-blue-600">{scores.match}%</div>
-                        <div className="text-xs text-gray-600">Match</div>
-                      </div>
-                      {scores.justificativa && (
-                        <div className="text-center flex-1">
-                          <div className="text-3xl font-bold text-violet-600">{scores.probabilidade}%</div>
-                          <div className="text-xs text-gray-600">Aprovação</div>
-                        </div>
-                      )}
-                    </div>
-
-                    {scores.justificativa ? (
-                      <div className="prose prose-sm max-w-none text-gray-700">
-                        <ReactMarkdown
-                          components={{
-                            h1: ({node, ...props}) => <h1 className="text-xl font-bold mb-3 text-gray-900" {...props} />,
-                            h2: ({node, ...props}) => <h2 className="text-lg font-bold mb-2 text-gray-900" {...props} />,
-                            h3: ({node, ...props}) => <h3 className="text-base font-semibold mb-2 text-gray-900" {...props} />,
-                            p: ({node, ...props}) => <div className="mb-3 leading-relaxed text-sm" {...props} />,
-                            ul: ({node, ...props}) => <ul className="list-disc list-inside mb-3 space-y-1 text-sm" {...props} />,
-                            ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-3 space-y-1 text-sm" {...props} />,
-                            li: ({node, ...props}) => <li className="ml-2" {...props} />,
-                            strong: ({node, ...props}) => <strong className="font-semibold text-gray-900" {...props} />,
-                            em: ({node, ...props}) => <em className="italic" {...props} />,
-                            code: ({node, ...props}) => <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs font-mono" {...props} />,
-                            blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-blue-500 pl-3 italic my-3 text-sm" {...props} />,
-                            a: ({node, ...props}) => <a className="text-blue-600 hover:text-blue-800 underline" target="_blank" rel="noopener noreferrer" {...props} />,
-                          }}
-                        >
-                          {scores.justificativa}
-                        </ReactMarkdown>
-                      </div>
-                    ) : (
-                      <div className="text-sm text-gray-500 italic">
-                        Justificativa ainda não disponível. Os dados estão sendo processados.
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="text-sm text-gray-500 italic">
-                    Faça login para ver a análise de match personalizada.
-                  </div>
-                )}
-              </div>
-            )}
-
             {/* Chat Agent - Floating Bubble */}
             {editalId && <EditalChat editalId={editalId} />}
 

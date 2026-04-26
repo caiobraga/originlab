@@ -25,7 +25,6 @@ interface EditalDisplay {
   area: string | null;
   is_researcher: boolean | null;
   is_company: boolean | null;
-  match?: number;
 }
 
 type FilterType = "todos" | "alta-aderencia" | "prazo-proximo" | "alto-valor";
@@ -45,7 +44,7 @@ export default function IntelligentPanel() {
     try {
       setLoading(true);
       const { data, error } = await supabase
-        .from("editais")
+        .from("editais_corretos")
         .select("id, numero, titulo, descricao, valor_projeto, prazo_inscricao, data_encerramento, orgao, area, is_researcher, is_company")
         .order("criado_em", { ascending: false })
         .limit(50); // Buscar mais para ter opções de filtro
@@ -68,8 +67,7 @@ export default function IntelligentPanel() {
 
     switch (activeFilter) {
       case "alta-aderencia":
-        // Simular alta aderência - editais com match alto (se tivéssemos scores)
-        // Por enquanto, ordenar por relevância (editais com mais informações)
+        // Alta aderência (heurística simples): editais com mais informações preenchidas
         filtered = filtered
           .filter(e => e.descricao && e.valor_projeto && e.prazo_inscricao)
           .slice(0, 5);
@@ -194,15 +192,15 @@ export default function IntelligentPanel() {
   const filteredEditais = getFilteredEditais();
 
   return (
-    <section className="py-20 bg-gradient-to-br from-gray-50 via-white to-blue-50">
+    <section className="py-20 bg-[radial-gradient(900px_circle_at_50%_-10%,color-mix(in_oklab,var(--attention)_10%,transparent),transparent_60%)] bg-gray-50">
       <div className="container">
         <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-700 px-4 py-2 rounded-full text-sm font-semibold mb-4">
+          <div className="inline-flex items-center gap-2 bg-white text-gray-900 px-4 py-2 rounded-full text-sm font-semibold mb-4 border border-gray-200 shadow-sm">
             <Sparkles className="w-4 h-4" />
             Painel inteligente em ação
           </div>
           <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-            Veja como a IA ranqueia e apresenta as melhores oportunidades para você
+            Veja como a plataforma destaca oportunidades relevantes para você
           </h2>
         </div>
 
@@ -212,8 +210,8 @@ export default function IntelligentPanel() {
             onClick={() => setActiveFilter("todos")}
             className={`px-6 py-2.5 rounded-lg font-semibold transition-all duration-200 ${
               activeFilter === "todos"
-                ? "bg-blue-600 text-white shadow-md hover:shadow-lg"
-                : "bg-white text-gray-700 border-2 border-gray-200 hover:border-blue-500 hover:bg-blue-50"
+                ? "bg-gray-950 text-white shadow-sm"
+                : "bg-white text-gray-800 border-2 border-gray-200 hover:border-gray-950 hover:bg-gray-50"
             }`}
           >
             Todos os editais
@@ -223,7 +221,7 @@ export default function IntelligentPanel() {
             className={`px-6 py-2.5 rounded-lg font-semibold transition-all duration-200 flex items-center gap-2 ${
               activeFilter === "alta-aderencia"
                 ? "bg-green-600 text-white shadow-md hover:shadow-lg"
-                : "bg-white text-gray-700 border-2 border-gray-200 hover:border-green-500 hover:bg-green-50"
+                : "bg-white text-gray-800 border-2 border-gray-200 hover:border-gray-950 hover:bg-gray-50"
             }`}
           >
             <TrendingUp className="w-4 h-4" />
@@ -234,7 +232,7 @@ export default function IntelligentPanel() {
             className={`px-6 py-2.5 rounded-lg font-semibold transition-all duration-200 flex items-center gap-2 ${
               activeFilter === "prazo-proximo"
                 ? "bg-orange-600 text-white shadow-md hover:shadow-lg"
-                : "bg-white text-gray-700 border-2 border-gray-200 hover:border-orange-500 hover:bg-orange-50"
+                : "bg-white text-gray-800 border-2 border-gray-200 hover:border-gray-950 hover:bg-gray-50"
             }`}
           >
             <Clock className="w-4 h-4" />
@@ -245,7 +243,7 @@ export default function IntelligentPanel() {
             className={`px-6 py-2.5 rounded-lg font-semibold transition-all duration-200 flex items-center gap-2 ${
               activeFilter === "alto-valor"
                 ? "bg-purple-600 text-white shadow-md hover:shadow-lg"
-                : "bg-white text-gray-700 border-2 border-gray-200 hover:border-purple-500 hover:bg-purple-50"
+                : "bg-white text-gray-800 border-2 border-gray-200 hover:border-gray-950 hover:bg-gray-50"
             }`}
           >
             <DollarSign className="w-4 h-4" />
@@ -356,32 +354,21 @@ export default function IntelligentPanel() {
                     )}
                   </div>
 
-                  {/* Match Score (simulado para demonstração) */}
-                  {edital.match !== undefined ? (
-                    <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-gray-700">Match</span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-2xl font-bold text-blue-600">{edital.match}%</span>
-                          <CheckCircle2 className="w-5 h-5 text-green-600" />
-                        </div>
+                  <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-700">Indicações</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-gray-600">
+                          {user ? "Personalizadas no dashboard" : "Disponível após login"}
+                        </span>
                       </div>
                     </div>
-                  ) : (
-                    <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-gray-700">Match</span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg font-semibold text-gray-600">Calculado após login</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                  </div>
 
                   {/* Botão */}
                   <Button 
                     variant="outline" 
-                    className="w-full transition-all duration-200 hover:scale-[1.02] group"
+                    className="w-full transition-colors duration-200 hover:bg-gray-50 group"
                     onClick={() => {
                       if (!user) {
                         toast.info("Faça login para ver os detalhes completos do edital");
@@ -414,7 +401,8 @@ export default function IntelligentPanel() {
           <Link href="/dashboard">
             <Button 
               size="lg"
-              className="bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white px-8 py-6 text-lg shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
+              variant="attention"
+              className="px-8 py-6 text-lg"
             >
               Ver todos os editais
               <ArrowRight className="ml-2 w-5 h-5" />

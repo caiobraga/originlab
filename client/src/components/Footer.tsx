@@ -73,12 +73,12 @@ export default function Footer() {
   return (
     <footer className="bg-gray-900 text-white" role="contentinfo">
       {/* CTA Section */}
-      <div className="bg-gradient-to-r from-blue-600 to-violet-600 py-16">
+      <div className="py-16 bg-[radial-gradient(1200px_circle_at_50%_-20%,color-mix(in_oklab,var(--attention)_35%,transparent),transparent_60%),linear-gradient(180deg,#030712,#0b1020)]">
         <div className="container text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
             Pronto para transformar suas ideias em realidade?
           </h2>
-          <p className="text-xl mb-8 text-blue-50">
+          <p className="text-xl mb-8 text-gray-200">
             Comece gratuitamente e descubra oportunidades de fomento feitas para você
           </p>
           
@@ -100,7 +100,8 @@ export default function Footer() {
             <Button 
               type="submit"
               size="lg" 
-              className="bg-gray-900 hover:bg-gray-800 text-white px-8 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+              variant="attention"
+              className="px-8 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
               disabled={loading || success}
               aria-label={loading ? "Processando cadastro" : success ? "Redirecionando para cadastro" : "Cadastrar gratuitamente"}
             >
@@ -128,8 +129,8 @@ export default function Footer() {
           {/* Brand */}
           <div className="col-span-1">
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-violet-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">O</span>
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-[linear-gradient(135deg,var(--attention),#ffffff)]">
+                <span className="text-gray-950 font-bold text-sm">O</span>
               </div>
               <span className="text-xl font-bold">{APP_TITLE}</span>
             </div>

@@ -33,10 +33,11 @@ export interface DatabaseEdital {
   timeline_estimada?: any | null;
 }
 
-export interface EditalWithScores extends DatabaseEdital {
-  match: number; // % de match com o perfil do usuário
-  probabilidade: number; // Probabilidade de aprovação (%)
-  justificativa?: string | null; // Justificativa detalhada do match
+export interface EditalIndicacao {
+  edital: DatabaseEdital;
+  score: number; // 0-100 (heurística no banco)
+  motivos: string[];
+  gerado_em: string;
 }
 
 /**
@@ -48,8 +49,10 @@ export async function fetchEditaisFromSupabase(options?: {
 }): Promise<DatabaseEdital[]> {
   try {
     let query = supabase
-      .from("editais")
+      .from("editais_corretos")
       .select("*")
+      // Recém validados primeiro (evita “sumir” do painel quando criado_em do edital antigo fica fora do top N)
+      .order("validado_em", { ascending: false, nullsFirst: false })
       .order("criado_em", { ascending: false });
 
     if (options?.limit != null) {
@@ -77,7 +80,7 @@ export async function fetchEditaisFromSupabase(options?: {
 export async function fetchEditaisCount(): Promise<number> {
   try {
     const { count, error } = await supabase
-      .from("editais")
+      .from("editais_corretos")
       .select("*", { count: "exact", head: true });
 
     if (error) {
@@ -171,289 +174,41 @@ export async function fetchEditaisStatsForOnboarding(area?: string): Promise<{
   }
 }
 
-/**
- * Busca score existente no banco de dados
- */
-async function fetchEditalScore(
-  editalId: string,
-  userId: string
-): Promise<{ match: number; probabilidade: number; justificativa: string | null } | null> {
+export async function refreshMyIndicacoes(limit = 20): Promise<number> {
+  const { data, error } = await supabase.rpc("refresh_my_indicacoes", { p_limit: limit });
+  if (error) {
+    console.warn("Erro ao atualizar indicações (rpc):", error);
+    return 0;
+  }
+  const n = typeof data === "number" ? data : Number(data);
+  return Number.isFinite(n) ? n : 0;
+}
+
+export async function fetchMyIndicacoes(options?: { limit?: number }): Promise<EditalIndicacao[]> {
   try {
+    const limit = options?.limit ?? 20;
     const { data, error } = await supabase
-      .from("edital_scores")
-      .select("match_percent, probabilidade_percent, justificativa")
-      .eq("edital_id", editalId)
-      .eq("user_id", userId)
-      .maybeSingle();
+      .from("edital_indicacoes")
+      .select("score, motivos, gerado_em, edital:editais(*)")
+      .order("score", { ascending: false })
+      .order("gerado_em", { ascending: false })
+      .limit(limit);
 
     if (error || !data) {
-      return null;
+      if (error) console.warn("Erro ao buscar indicações:", error);
+      return [];
     }
 
-    const justificativa = data.justificativa != null && String(data.justificativa).trim() !== ""
-      ? data.justificativa
-      : null;
-    return {
-      match: data.match_percent,
-      probabilidade: data.probabilidade_percent,
-      justificativa,
-    };
-  } catch (error) {
-    console.error("Erro ao buscar score:", error);
-    return null;
+    return (data as any[]).map((row) => ({
+      edital: row.edital as DatabaseEdital,
+      score: Number(row.score) || 0,
+      motivos: Array.isArray(row.motivos) ? row.motivos.filter(Boolean).map(String) : [],
+      gerado_em: String(row.gerado_em),
+    }));
+  } catch (err) {
+    console.warn("Erro ao buscar indicações:", err);
+    return [];
   }
-}
-
-/**
- * Busca dados do usuário para envio à API
- */
-async function fetchUserDataForScoring(
-  user: User | null,
-  profile: UserProfile | null
-): Promise<{
-  lattesData?: LattesData;
-  cnpjData?: CNPJData;
-  cpfData?: CPFData;
-  userType?: string;
-}> {
-  const userData: any = {};
-
-  if (!user || !profile) {
-    return userData;
-  }
-
-  userData.userType = profile.userType;
-
-  // Usar currículo extraído de PDF (opcional)
-  if (profile.curriculumData) {
-    userData.lattesData = profile.curriculumData as LattesData;
-  }
-
-  // Buscar dados do CNPJ se disponível
-  if (profile.cnpj) {
-    try {
-      const cnpjData = await fetchCNPJData(profile.cnpj);
-      if (cnpjData) {
-        userData.cnpjData = cnpjData;
-      }
-    } catch (error) {
-      console.warn("Erro ao buscar dados do CNPJ:", error);
-    }
-  }
-
-  // Buscar dados do CPF se disponível
-  if (profile.cpf) {
-    try {
-      const cpfData = await fetchCPFData(profile.cpf);
-      if (cpfData) {
-        userData.cpfData = cpfData;
-      }
-    } catch (error) {
-      console.warn("Erro ao buscar dados do CPF:", error);
-    }
-  }
-
-  return userData;
-}
-
-/**
- * Calcula probabilidade de aprovação e % de match usando API
- * Usa cache para evitar requisições duplicadas simultâneas
- */
-export async function calculateEditalScores(
-  edital: DatabaseEdital,
-  userId?: string,
-  user?: User | null,
-  profile?: UserProfile | null,
-  options?: { forceRecalculate?: boolean }
-): Promise<{ match: number; probabilidade: number; justificativa?: string | null }> {
-  const forceRecalculate = options?.forceRecalculate === true;
-
-  // Se não tiver userId, usar cálculo mockado como fallback
-  if (!userId || !user) {
-    console.warn("UserId não fornecido, usando cálculo mockado");
-    return {
-      match: 50,
-      probabilidade: 40,
-      justificativa: null,
-    };
-  }
-
-  const cacheKey = `${edital.id}-${userId}`;
-  if (forceRecalculate) scoreCalculationCache.delete(cacheKey);
-
-  if (!forceRecalculate && scoreCalculationCache.has(cacheKey)) {
-    console.log(`⏳ Aguardando cálculo de score já em andamento para edital ${edital.id}...`);
-    return await scoreCalculationCache.get(cacheKey)!;
-  }
-
-  const calculationPromise = (async () => {
-    try {
-      if (!forceRecalculate) {
-        const existingScore = await fetchEditalScore(edital.id, userId);
-        // Se o score existir, mas estiver "incompleto" (sem justificativa), forçar recálculo.
-        if (existingScore && existingScore.justificativa != null) {
-          console.log(`✅ Score já existe para edital ${edital.id} e usuário ${userId}`);
-          return existingScore;
-        }
-      }
-
-      const userProfile = profile || await getUserProfile(user);
-      const userData = await fetchUserDataForScoring(user, userProfile);
-
-      const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-      // Retry automático (IA / webhook pode falhar pontualmente)
-      const maxAttempts = 3;
-      let lastResult: any = null;
-      let lastError: unknown = null;
-
-      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-        try {
-          // Se não havia forceRecalculate, mas o score no banco estava incompleto, forçar aqui.
-          const forceThisAttempt = forceRecalculate || attempt > 1;
-
-          const response = await fetch("/api/calculate-edital-scores", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              edital_id: edital.id,
-              user_id: userId,
-              user_data: userData,
-              force: forceThisAttempt,
-            }),
-          });
-
-          if (!response.ok) {
-            throw new Error(`Erro na API: ${response.status} ${response.statusText}`);
-          }
-
-          const result = await response.json();
-          lastResult = result;
-
-          // O endpoint pode devolver fallback silencioso quando dá erro interno.
-          // Nesses casos, tentamos novamente.
-          const isFallback = result?._fallback === true;
-          const justificativa =
-            result?.justificativa != null && String(result.justificativa).trim() !== ""
-              ? String(result.justificativa)
-              : null;
-
-          if (!isFallback && justificativa != null) {
-            return {
-              match: result.match ?? 50,
-              probabilidade: result.probabilidade ?? 40,
-              justificativa,
-            };
-          }
-
-          if (attempt < maxAttempts) {
-            // backoff leve
-            await sleep(250 * attempt);
-            continue;
-          }
-        } catch (err) {
-          lastError = err;
-          if (attempt < maxAttempts) {
-            await sleep(250 * attempt);
-            continue;
-          }
-        }
-      }
-
-      // Se esgotou tentativas, usar fallback para não quebrar UI.
-      const justificativa =
-        lastResult?.justificativa != null && String(lastResult.justificativa).trim() !== ""
-          ? String(lastResult.justificativa)
-          : null;
-
-      if (justificativa != null) {
-        return {
-          match: lastResult?.match ?? 50,
-          probabilidade: lastResult?.probabilidade ?? 40,
-          justificativa,
-        };
-      }
-
-      if (!scoreApiErrorLogged) {
-        scoreApiErrorLogged = true;
-        console.warn(
-          "Scores da API indisponíveis (ex.: servidor 500). Exibindo valores padrão. Configure N8N_WEBHOOK_URL ou a API de scores no servidor."
-        );
-      }
-      if (lastError) {
-        console.warn("Falha ao calcular scores após retry:", lastError);
-      }
-      return {
-        match: 50,
-        probabilidade: 40,
-        justificativa: null,
-      };
-    } catch (error) {
-      if (!scoreApiErrorLogged) {
-        scoreApiErrorLogged = true;
-        console.warn(
-          "Scores da API indisponíveis (ex.: servidor 500). Exibindo valores padrão. Configure N8N_WEBHOOK_URL ou a API de scores no servidor."
-        );
-      }
-      return {
-        match: 50,
-        probabilidade: 40,
-        justificativa: null,
-      };
-    } finally {
-      // Remover do cache após completar (sucesso ou erro)
-      scoreCalculationCache.delete(cacheKey);
-    }
-  })();
-
-  // Adicionar ao cache antes de executar
-  scoreCalculationCache.set(cacheKey, calculationPromise);
-
-  return await calculationPromise;
-}
-
-// Cache para evitar requisições duplicadas simultâneas
-const scoreCalculationCache = new Map<string, Promise<{ match: number; probabilidade: number; justificativa?: string | null }>>();
-let scoreApiErrorLogged = false;
-
-/**
- * Busca editais do Supabase e adiciona scores (match e probabilidade)
- * Aceita lista de editais para processar (útil para paginação client-side)
- */
-export async function fetchEditaisWithScores(
-  userId?: string,
-  user?: User | null,
-  profile?: UserProfile | null,
-  editaisToScore?: DatabaseEdital[],
-  options?: { forceRecalculate?: boolean; forceRecalcForIds?: string[] }
-): Promise<EditalWithScores[]> {
-  const editais =
-    editaisToScore ?? (await fetchEditaisFromSupabase());
-
-  const batchSize = 5;
-  const editaisComScores: EditalWithScores[] = [];
-  const forceRecalculate = options?.forceRecalculate === true;
-  const forceRecalcForIds = new Set(options?.forceRecalcForIds ?? []);
-
-  for (let i = 0; i < editais.length; i += batchSize) {
-    const batch = editais.slice(i, i + batchSize);
-    const batchResults = await Promise.all(
-      batch.map(async (edital) => {
-        const forceThis = forceRecalculate || forceRecalcForIds.has(edital.id);
-        const scores = await calculateEditalScores(edital, userId, user, profile, { forceRecalculate: forceThis });
-        return { ...edital, ...scores };
-      })
-    );
-    editaisComScores.push(...batchResults);
-    if (i + batchSize < editais.length) {
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    }
-  }
-
-  return editaisComScores;
 }
 
 /**

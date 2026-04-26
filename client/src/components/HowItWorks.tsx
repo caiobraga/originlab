@@ -1,5 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { User, Search, Target, Send } from "lucide-react";
+import ScrollReveal from "@/components/ScrollReveal";
 
 const steps = [
   {
@@ -30,27 +31,28 @@ const steps = [
 
 export default function HowItWorks() {
   return (
-    <section id="como-funciona" className="py-24 bg-white">
+    <section id="como-funciona" className="py-24 bg-gray-50">
       <div className="container">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold mb-4 text-gray-900">
-            Como funciona
-          </h2>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Do mapeamento à prestação de contas, tudo em um só lugar
-          </p>
-        </div>
+        <ScrollReveal className="mb-16">
+          <div className="max-w-3xl">
+            <h2 className="text-4xl md:text-5xl font-bold mb-4 text-gray-900">Como funciona</h2>
+            <p className="text-lg md:text-xl text-gray-600">
+              Do mapeamento à prestação de contas, tudo em um só lugar.
+            </p>
+          </div>
+        </ScrollReveal>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {steps.map((step, index) => (
-            <Card key={index} className="relative p-8 border-2 border-gray-100 hover:border-blue-200 hover:shadow-lg transition-all group">
+            <ScrollReveal key={index} delay={0.05 * index}>
+              <Card className="relative p-8 border border-gray-200 hover:shadow-md transition-shadow group">
               {/* Step number */}
-              <div className="absolute -top-4 -left-4 w-12 h-12 rounded-full bg-gradient-to-br from-blue-600 to-violet-600 flex items-center justify-center text-white font-bold text-lg shadow-lg">
+              <div className="absolute -top-4 -left-4 w-12 h-12 rounded-full bg-[linear-gradient(135deg,var(--attention),#0b0f1a)] flex items-center justify-center text-white font-bold text-lg shadow-sm">
                 {index + 1}
               </div>
 
               {/* Icon */}
-              <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${step.color} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
+              <div className="w-16 h-16 rounded-2xl bg-[linear-gradient(135deg,var(--attention),#0b0f1a)] flex items-center justify-center mb-6 group-hover:scale-105 transition-transform">
                 <step.icon className="w-8 h-8 text-white" />
               </div>
 
@@ -61,7 +63,8 @@ export default function HowItWorks() {
               <p className="text-gray-600 leading-relaxed">
                 {step.description}
               </p>
-            </Card>
+              </Card>
+            </ScrollReveal>
           ))}
         </div>
       </div>

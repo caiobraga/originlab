@@ -81,12 +81,12 @@ export default function Header() {
           <Link href="/inicio" aria-label={`${APP_TITLE} - Página inicial`}>
             <div className="flex items-center gap-1.5 md:gap-2 cursor-pointer flex-shrink-0 min-w-0 group transition-all duration-200 hover:opacity-80">
               <div 
-                className="w-7 h-7 md:w-8 md:h-8 bg-gradient-to-br from-blue-600 to-violet-600 rounded-lg flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-110 group-hover:shadow-md"
+                className="w-7 h-7 md:w-8 md:h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-105 group-hover:shadow-md bg-[linear-gradient(135deg,var(--attention),#0b0f1a)]"
                 aria-hidden="true"
               >
                 <span className="text-white font-bold text-xs md:text-sm">O</span>
               </div>
-              <span className="text-base md:text-xl font-bold bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent truncate transition-all duration-200">
+              <span className="text-base md:text-xl font-bold text-gray-950 truncate transition-all duration-200">
                 {APP_TITLE}
               </span>
             </div>
@@ -203,7 +203,7 @@ export default function Header() {
                 {planBadgeLabel ? (
                   <Badge
                     variant="default"
-                    className="hidden md:inline-flex bg-gradient-to-r from-blue-600 to-violet-600 text-white border-0 px-3 py-1.5 font-medium shadow-sm"
+                    className="hidden md:inline-flex bg-gray-950 text-white border-0 px-3 py-1.5 font-medium shadow-sm"
                   >
                     <Sparkles className="w-3.5 h-3.5 mr-1.5" />
                     {planBadgeLabel}

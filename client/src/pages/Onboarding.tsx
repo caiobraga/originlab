@@ -609,7 +609,7 @@ export default function Onboarding() {
                   <h3 className="font-semibold text-gray-900">Você pode ver:</h3>
                   <ul className="space-y-1 text-gray-700">
                     <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-green-600" /> Editais completos e elegibilidade</li>
-                    <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-green-600" /> Match score detalhado</li>
+                    <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-green-600" /> Indicações personalizadas no dashboard</li>
                     <li className="flex items-center gap-2"><Sparkles className="w-4 h-4 text-violet-600" /> Upgrade Pro: todos os editais + IA Redatora</li>
                   </ul>
                 </div>
