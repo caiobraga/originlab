@@ -49,6 +49,7 @@ export default function Dashboard() {
   const [filtroArea, setFiltroArea] = useState<string>("todos");
   const [busca, setBusca] = useState("");
   const [mostrarInativos, setMostrarInativos] = useState(false); // Opção para mostrar editais inativos
+  const [ignorarFiltroPerfil, setIgnorarFiltroPerfil] = useState(false); // Mostra editais mesmo com is_researcher/is_company incompatíveis
   const [filtroTipoEdital, setFiltroTipoEdital] = useState<"pesquisadores" | "empresas" | "todos">("todos"); // Filtro para tipo (quando usuário é "ambos")
   const [apenasIndicacoes, setApenasIndicacoes] = useState(false);
   const [ordenacao, setOrdenacao] = useState<"recentes" | "indicacoes">("indicacoes");
@@ -128,7 +129,7 @@ export default function Dashboard() {
   // Resetar paginação quando filtros mudarem
   useEffect(() => {
     setVisibleCount(15);
-  }, [busca, filtroArea, filtroTipoEdital, mostrarInativos, apenasIndicacoes, ordenacao]);
+  }, [busca, filtroArea, filtroTipoEdital, mostrarInativos, ignorarFiltroPerfil, apenasIndicacoes, ordenacao]);
 
   // Paginação infinita: carregar mais 5 editais quando o sentinel entrar na tela
   const handleLoadMore = useCallback(() => {
@@ -229,8 +230,8 @@ export default function Dashboard() {
         return false;
       }
 
-      // Filtro baseado no perfil do usuário (is_researcher ou is_company)
-      if (profile && !profileLoading) {
+      // Filtro baseado no perfil do usuário (is_researcher ou is_company) — pode ocultar centenas de linhas
+      if (!ignorarFiltroPerfil && profile && !profileLoading) {
         const userType = profile.userType;
 
         // Se o usuário é pesquisador, mostrar apenas editais onde is_researcher === true
@@ -270,10 +271,12 @@ export default function Dashboard() {
     }
 
     // Filtro de busca
+    const buscaL = busca.toLowerCase();
     const matchBusca =
-      edital.titulo.toLowerCase().includes(busca.toLowerCase()) ||
-      (edital.orgao?.toLowerCase() || "").includes(busca.toLowerCase()) ||
-      (edital.area?.toLowerCase() || "").includes(busca.toLowerCase());
+      (edital.titulo || "").toLowerCase().includes(buscaL) ||
+      (edital.orgao?.toLowerCase() || "").includes(buscaL) ||
+      (edital.area?.toLowerCase() || "").includes(buscaL) ||
+      (edital.descricao?.toLowerCase() || "").includes(buscaL);
 
     // Filtro de área (Tecnologia, Saúde, Agronegócio, etc.)
     const matchArea = editalMatchesArea(edital, filtroArea);
@@ -405,10 +408,18 @@ export default function Dashboard() {
             <span className="ml-3 text-gray-600">Carregando editais...</span>
           </div>
         ) : listError && editaisRaw.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 px-4">
+          <div className="flex flex-col items-center justify-center py-20 px-4 max-w-lg mx-auto">
             <AlertCircle className="w-12 h-12 text-amber-500 mb-4" />
-            <p className="text-gray-700 text-center mb-4">Não foi possível carregar os editais. Verifique sua conexão e tente novamente.</p>
-            <Button onClick={() => editaisListQuery.refetch()} variant="outline">
+            <p className="text-gray-700 text-center mb-2">Não foi possível carregar os editais a partir de editais_corretos.</p>
+            {editaisListQuery.error && (
+              <p className="text-xs text-gray-500 break-words w-full text-center mb-4 font-mono">
+                {(editaisListQuery.error as Error).message}
+              </p>
+            )}
+            <p className="text-sm text-gray-600 text-center mb-4">
+              Erros comuns: RLS (sem policy de leitura para o anon) ou tabela/URL de outro projeto no .env.
+            </p>
+            <Button onClick={() => void editaisListQuery.refetch()} variant="outline">
               Tentar novamente
             </Button>
           </div>
@@ -562,6 +573,16 @@ export default function Dashboard() {
                         Apenas indicações
                       </Label>
                     </div>
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="ignorar-perfil-mobile"
+                        checked={ignorarFiltroPerfil}
+                        onCheckedChange={(checked) => setIgnorarFiltroPerfil(checked === true)}
+                      />
+                      <Label htmlFor="ignorar-perfil-mobile" className="text-sm text-gray-700 cursor-pointer">
+                        Incluir editais fora do meu perfil (pesquisador/empresa)
+                      </Label>
+                    </div>
                     <Button className="w-full" onClick={() => setFiltrosSheetOpen(false)}>
                       Aplicar filtros
                     </Button>
@@ -642,6 +663,16 @@ export default function Dashboard() {
                 />
                 <Label htmlFor="match-alto" className="text-sm text-gray-700 cursor-pointer">
                   Apenas indicações
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="ignorar-perfil"
+                  checked={ignorarFiltroPerfil}
+                  onCheckedChange={(checked) => setIgnorarFiltroPerfil(checked === true)}
+                />
+                <Label htmlFor="ignorar-perfil" className="text-sm text-gray-700 cursor-pointer">
+                  Incluir editais fora do meu perfil
                 </Label>
               </div>
             </div>
@@ -877,14 +908,86 @@ export default function Dashboard() {
               </div>
             )}
 
-            {editais.length === 0 && !loading && (
-              <div className="text-center py-12">
+            {editais.length === 0 && !loading && !listError && (
+              <div className="text-center py-12 max-w-2xl mx-auto px-2">
                 <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600">
-                  {editaisRaw.length === 0
-                    ? "Nenhum edital encontrado no banco de dados."
-                    : "Nenhum edital encontrado. Tente marcar \"Mostrar editais inativos\" ou ajustar os filtros."}
-                </p>
+                {editaisRawForList.length === 0 ? (
+                  <>
+                    <p className="text-gray-800 font-medium mb-2">Nada para exibir na lista (fonte vazia).</p>
+                    <p className="text-sm text-gray-600 mb-3">
+                      O feed lê <code className="text-xs bg-gray-100 px-1 rounded">editais_corretos</code> (até 250
+                      itens) e, se houver, mescla com indicações. A opção &quot;Mostrar inativos&quot; só muda o filtro de
+                      prazo; não cria linhas. Com &quot;Apenas indicações&quot; e sem indicações em{" "}
+                      <code className="text-xs bg-gray-100 px-1">edital_indicacoes</code>, a fonte fica vazia — desative.
+                      Se no SQL do Supabase há linhas e aqui 0, confira o mesmo projeto em <code className="text-xs bg-gray-100 px-1">.env</code> e execute no banco
+                      a migration <code className="text-xs bg-gray-100 px-1">scripts/db/migration-editais-corretos-rls-public-read.sql</code> (policy de
+                      <code>SELECT</code> para <code>anon</code>).
+                    </p>
+                    {apenasIndicacoes && editaisIndicadosRaw.length === 0 && editaisRaw.length > 0 && (
+                      <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-md p-3 mb-3 text-left">
+                        Há {editaisRaw.length} edital(is) no banco, mas &quot;Apenas indicações&quot; está ativo e você não
+                        possui indicações carregadas. Desmarque a opção para ver o feed completo.
+                      </p>
+                    )}
+                    <Button type="button" variant="outline" onClick={() => void editaisListQuery.refetch()}>
+                      Recarregar lista
+                    </Button>
+                  </>
+                ) : editaisFiltrados.length === 0 && editaisRawForList.length > 0 ? (
+                  <div className="text-left text-sm text-gray-600 space-y-2">
+                    <p>
+                      <span className="font-medium text-gray-800">
+                        {editaisRawForList.length} edital(is) na lista
+                      </span>{" "}
+                      antes do filtro{indicacoesMap.size > 0 ? ` (inclui itens com indicação no merge)` : ""}, mas{" "}
+                      <span className="font-medium">0</span> após os filtros atuais. &quot;Mostrar inativos&quot; só tira a
+                      regra de prazo; não desliga filtro de perfil nem &quot;Apenas indicações&quot;.
+                    </p>
+                    <p className="list-disc pl-5 space-y-1">
+                      {apenasIndicacoes && (
+                        <li>
+                          Desative &quot;Apenas indicações&quot; se quiser o catálogo inteiro, ou clique em &quot;Atualizar
+                          indicações&quot;.
+                        </li>
+                      )}
+                      {filtroArea !== "todos" && (
+                        <li>Área: está em &quot;{AREA_FILTER_OPTIONS.find((o) => o.value === filtroArea)?.label}&quot; — use &quot;Todas as áreas&quot;.</li>
+                      )}
+                      {busca.trim() !== "" && <li>Remova o texto da busca.</li>}
+                      {!apenasIndicacoes && !ignorarFiltroPerfil && profile && (
+                        <li>
+                          Perfil ({profile.userType}): editais com <code>is_researcher</code> ou <code>is_company</code>{" "}
+                          <span className="font-medium">false</span> (explícito) somem. Marque &quot;Incluir editais fora do meu
+                          perfil&quot;.
+                        </li>
+                      )}
+                    </p>
+                    <div className="flex flex-wrap gap-2 justify-center pt-2">
+                      <Button type="button" variant="outline" size="sm" onClick={() => setFiltroArea("todos")}>
+                        Área: todas
+                      </Button>
+                      <Button type="button" variant="outline" size="sm" onClick={() => setBusca("")}>
+                        Limpar busca
+                      </Button>
+                      {apenasIndicacoes && (
+                        <Button type="button" variant="secondary" size="sm" onClick={() => setApenasIndicacoes(false)}>
+                          Desligar: só indicações
+                        </Button>
+                      )}
+                      <Button
+                        type="button"
+                        variant="default"
+                        size="sm"
+                        onClick={() => setIgnorarFiltroPerfil(true)}
+                        disabled={ignorarFiltroPerfil}
+                      >
+                        Incluir fora do perfil
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-gray-600">Nenhum edital a exibir. Ajuste os filtros acima.</p>
+                )}
               </div>
             )}
           </>

@@ -47,31 +47,26 @@ export async function fetchEditaisFromSupabase(options?: {
   limit?: number;
   offset?: number;
 }): Promise<DatabaseEdital[]> {
-  try {
-    let query = supabase
-      .from("editais_corretos")
-      .select("*")
-      // Recém validados primeiro (evita “sumir” do painel quando criado_em do edital antigo fica fora do top N)
-      .order("validado_em", { ascending: false, nullsFirst: false })
-      .order("criado_em", { ascending: false });
+  let query = supabase
+    .from("editais_corretos")
+    .select("*")
+    // Recém validados primeiro (evita “sumir” do painel quando criado_em do edital antigo fica fora do top N)
+    .order("validado_em", { ascending: false, nullsFirst: false })
+    .order("criado_em", { ascending: false });
 
-    if (options?.limit != null) {
-      const offset = options.offset ?? 0;
-      query = query.range(offset, offset + options.limit - 1);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      console.error("Erro ao buscar editais:", error);
-      throw error;
-    }
-
-    return data || [];
-  } catch (error) {
-    console.error("Erro ao buscar editais do Supabase:", error);
-    return [];
+  if (options?.limit != null) {
+    const offset = options.offset ?? 0;
+    query = query.range(offset, offset + options.limit - 1);
   }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error("Erro ao buscar editais:", error);
+    throw error;
+  }
+
+  return (data as DatabaseEdital[] | null) || [];
 }
 
 /**
