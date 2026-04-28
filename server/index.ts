@@ -13,6 +13,7 @@ import fetchLattesRouter from "./api/fetch-lattes.js";
 import translateRouter from "./api/translate.js";
 import generateFieldTextRouter from "./api/generate-field-text.js";
 import analyzeFieldRouter from "./api/analyze-field.js";
+import adminRouter from "./api/admin.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -39,6 +40,7 @@ async function startServer() {
   app.use("/api", generateFieldTextRouter);
   app.use("/api", analyzeFieldRouter);
   app.use("/api", translateRouter);
+  app.use("/api", adminRouter);
 
   // Serve static files from dist/public in production
   const staticPath =

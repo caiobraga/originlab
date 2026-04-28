@@ -4,7 +4,10 @@ import { getServiceSupabase } from "../lib/stripeSubscriptionSync.js";
 
 const router = express.Router();
 
-const stripeSecret = process.env.STRIPE_SECRET_KEY?.trim() || "";
+const stripeSecret =
+  process.env.AISELFIE_STRIPE_SECRET_KEY?.trim() ||
+  process.env.STRIPE_SECRET_KEY?.trim() ||
+  "";
 
 function getStripe(): Stripe | null {
   return stripeSecret ? new Stripe(stripeSecret) : null;
@@ -18,12 +21,18 @@ function appBaseUrl(req: express.Request): string {
   return "http://localhost:3000";
 }
 
-function priceIdForPlan(planKey: string): string | null {
-  if (planKey === "pro")
-    return process.env.STRIPE_PRICE_PRO_MONTHLY?.trim() || null;
-  if (planKey === "empresas")
-    return process.env.STRIPE_PRICE_EMPRESAS_MONTHLY?.trim() || null;
-  return null;
+async function priceIdForPlanFromDb(planKey: string): Promise<string | null> {
+  const supabase = getServiceSupabase();
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from("billing_plans")
+    .select("stripe_price_id")
+    .eq("plan_key", planKey)
+    .eq("active", true)
+    .maybeSingle();
+  if (error) return null;
+  const id = (data as any)?.stripe_price_id;
+  return typeof id === "string" && id.trim() ? id.trim() : null;
 }
 
 async function getUserFromBearer(req: express.Request) {
@@ -44,7 +53,9 @@ async function getUserFromBearer(req: express.Request) {
 router.post("/stripe/create-checkout-session", async (req, res) => {
   const stripe = getStripe();
   if (!stripe) {
-    return res.status(503).json({ error: "Stripe não configurado (STRIPE_SECRET_KEY)" });
+    return res.status(503).json({
+      error: "Stripe não configurado (AISELFIE_STRIPE_SECRET_KEY ou STRIPE_SECRET_KEY)",
+    });
   }
 
   const { user, error: authErr } = await getUserFromBearer(req);
@@ -62,13 +73,14 @@ router.post("/stripe/create-checkout-session", async (req, res) => {
     return res.status(400).json({ error: "planKey inválido" });
   }
 
-  const priceId = priceIdForPlan(planKey);
+  // Requisito: preços gerenciados pelo app (billing_plans). Não usar env STRIPE_PRICE_*.
+  const priceId = await priceIdForPlanFromDb(planKey);
   if (!priceId) {
     return res.status(503).json({
       error:
         planKey === "pro"
-          ? "Defina STRIPE_PRICE_PRO_MONTHLY no servidor."
-          : "Defina STRIPE_PRICE_EMPRESAS_MONTHLY no servidor.",
+          ? "Plano Pro não configurado. Defina `billing_plans.stripe_price_id` via /admin → Pagamentos."
+          : "Plano Empresas não configurado. Defina `billing_plans.stripe_price_id` via /admin → Pagamentos.",
     });
   }
 

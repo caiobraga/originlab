@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 const router = express.Router();
 // Usar n8n por padrão, API local apenas se explicitamente habilitada
 const USE_LOCAL_API = process.env.USE_LOCAL_API === "true";
+const USE_OLLAMA = process.env.USE_OLLAMA === "true";
 const LOCAL_API_URL =
   process.env.LOCAL_API_URL || "http://localhost:3000/api/extract-edital-info";
 const WEBHOOK_URL =
@@ -11,7 +12,21 @@ const WEBHOOK_URL =
   "https://n8n.srv652789.hstgr.cloud/webhook/basic";
 const WEBHOOK_LIGHT_URL = process.env.N8N_WEBHOOK_LIGHT_URL || WEBHOOK_URL;
 /** Timeout para a chamada ao webhook (n8n/Ollama). Padrão 5 min. */
-const WEBHOOK_TIMEOUT_MS = Math.max(60000, parseInt(process.env.WEBHOOK_TIMEOUT_MS || "300000", 10) || 300000);
+const WEBHOOK_TIMEOUT_MS = Math.max(
+  60000,
+  parseInt(
+    // Prioridade:
+    // - WEBHOOK_TIMEOUT_MS (legado)
+    // - OLLAMA_TIMEOUT_MS (quando chamando Ollama direto)
+    // - N8N_WEBHOOK_TIMEOUT_MS (quando chamando n8n)
+    // - 300000 (5 min)
+    process.env.WEBHOOK_TIMEOUT_MS ||
+      process.env.OLLAMA_TIMEOUT_MS ||
+      process.env.N8N_WEBHOOK_TIMEOUT_MS ||
+      "300000",
+    10
+  ) || 300000
+);
 
 /** Tamanho do contexto no prompt (geração com IA local / n8n). Aumente para respostas mais ricas (cuidado com VRAM/tempo). */
 const GEN_FIELD_EXISTING_DOC_CHARS = Math.max(1000, parseInt(process.env.GEN_FIELD_EXISTING_DOC_CHARS || "7000", 10) || 7000);
@@ -32,7 +47,12 @@ function normalizeAiSecretaryUrl(raw: string): string {
   }
 }
 const AI_SECRETARY_URL = normalizeAiSecretaryUrl(process.env.AI_SECRETARY_URL || "");
-const AI_SECRETARY_MODEL = process.env.AI_SECRETARY_MODEL || "qwen2.5:7b";
+// Se o usuário pediu para usar Ollama direto, reaproveitar OLLAMA_BASE_URL como endpoint do "AI Secretary".
+// O Ollama expõe POST /api/generate, que é exatamente o que callAiSecretary usa.
+const AI_SECRETARY_URL_EFFECTIVE = normalizeAiSecretaryUrl(
+  AI_SECRETARY_URL || (USE_OLLAMA ? (process.env.OLLAMA_BASE_URL || "") : "")
+);
+const AI_SECRETARY_MODEL = process.env.AI_SECRETARY_MODEL || process.env.OLLAMA_MODEL || "qwen2.5:7b";
 const AI_SECRETARY_MAX_CONTEXT_CHARS = parseInt(process.env.AI_SECRETARY_MAX_CONTEXT_CHARS || "22000", 10);
 /** Se "true", desativa verificação TLS (útil quando o tunnel usa certificado de outro domínio, ex.: fkw.com). */
 const AI_SECRETARY_INSECURE = process.env.AI_SECRETARY_INSECURE === "true";
@@ -42,6 +62,18 @@ const supabaseServiceKey =
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_SERVICE_ROLE_KEY || "";
 const supabase =
   supabaseUrl && supabaseServiceKey ? createClient(supabaseUrl, supabaseServiceKey) : null;
+
+async function getUserIdFromBearer(req: express.Request): Promise<string | null> {
+  const auth = req.headers.authorization;
+  if (!auth?.startsWith("Bearer ")) return null;
+  const token = auth.slice(7).trim();
+  if (!token) return null;
+  if (!supabase) return null;
+  const {
+    data: { user },
+  } = await supabase.auth.getUser(token);
+  return user?.id || null;
+}
 
 async function fetchEditalInfo(editalId: string): Promise<any | null> {
   if (!supabase) return null;
@@ -326,9 +358,9 @@ async function fetchLattesSummary(lattesId: string): Promise<any | null> {
   }
 }
 
-/** Chama o tunnel Ollama (aisecretary.com) com prompt completo (já com contexto RAG embutido). */
+/** Chama o endpoint de geração (Ollama/tunnel) com prompt completo (já com contexto RAG embutido). */
 async function callAiSecretary(prompt: string): Promise<string> {
-  const baseUrl = AI_SECRETARY_URL.replace(/\/$/, "");
+  const baseUrl = AI_SECRETARY_URL_EFFECTIVE.replace(/\/$/, "");
   const url = baseUrl + "/api/generate";
   const controller = new AbortController();
   const t = setTimeout(() => controller.abort(), WEBHOOK_TIMEOUT_MS);
@@ -564,7 +596,7 @@ Regras:
 `;
 
     let generated: string;
-    if (AI_SECRETARY_URL) {
+    if (AI_SECRETARY_URL_EFFECTIVE) {
       const documentContext = await fetchDocumentContextByFileIds(fileIds);
       const promptWithContext = documentContext
         ? prompt + `
@@ -593,6 +625,30 @@ ${documentContext}`
         const cutAt = lastBreak >= Math.max(0, char_limit - 120) ? lastBreak : char_limit;
         generated = hard.slice(0, cutAt).trim();
       }
+    }
+
+    // Auditoria: registrar redação gerada (se houver auth + supabase service role configurado)
+    try {
+      const userId = await getUserIdFromBearer(req);
+      if (supabase && userId) {
+        const provider = AI_SECRETARY_URL_EFFECTIVE ? "ollama" : "n8n";
+        const model = AI_SECRETARY_URL_EFFECTIVE ? AI_SECRETARY_MODEL : null;
+        await supabase.from("redacoes_ai").insert({
+          user_id: userId,
+          proposta_id: proposta_id || null,
+          edital_id: edital_id || null,
+          field_id: field_id || null,
+          field_name,
+          field_description: field_description || null,
+          prompt,
+          generated_text: generated,
+          status: "gerada",
+          model,
+          provider,
+        } as any);
+      }
+    } catch {
+      // não bloquear o usuário por falha de auditoria
     }
 
     return res.json({ generated_text: generated });

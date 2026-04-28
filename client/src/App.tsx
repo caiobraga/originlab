@@ -26,6 +26,7 @@ import PoliticaPrivacidade from "./pages/PoliticaPrivacidade";
 import TermosDeUso from "./pages/TermosDeUso";
 import Cookies from "./pages/Cookies";
 import Planos from "./pages/Planos";
+import AdminDashboard from "./pages/AdminDashboard";
 import CookieBanner from "./components/CookieBanner";
 import { useEffect } from "react";
 import { captureAttributionFromUrl } from "@/lib/attribution";
@@ -60,6 +61,7 @@ function Router() {
       <Route path={"/termos-de-uso"} component={TermosDeUso} />
       <Route path={"/cookies"} component={Cookies} />
       <Route path={"/planos"} component={Planos} />
+      <Route path={"/admin"} component={AdminDashboard} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

@@ -32,9 +32,17 @@ export async function generateFieldText(
     throw new Error("É necessário edital_id ou proposta_id para gerar o texto.");
   }
 
+  // Envia bearer quando houver sessão: permite auditoria (redacoes_ai) e controles (admin).
+  const { supabase } = await import("./supabase");
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData.session?.access_token || null;
+
   const response = await fetch("/api/generate-field-text", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+    },
     body: JSON.stringify(body),
   });
 

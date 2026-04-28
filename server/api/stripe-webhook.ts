@@ -6,8 +6,14 @@ import {
   getServiceSupabase,
 } from "../lib/stripeSubscriptionSync.js";
 
-const stripeSecret = process.env.STRIPE_SECRET_KEY?.trim() || "";
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET?.trim() || "";
+const stripeSecret =
+  process.env.AISELFIE_STRIPE_SECRET_KEY?.trim() ||
+  process.env.STRIPE_SECRET_KEY?.trim() ||
+  "";
+const webhookSecret =
+  process.env.AISELFIE_STRIPE_WEBHOOK_SECRET?.trim() ||
+  process.env.STRIPE_WEBHOOK_SECRET?.trim() ||
+  "";
 
 function stripeCustomerId(
   customer: string | Stripe.Customer | Stripe.DeletedCustomer,
@@ -24,7 +30,9 @@ function stripeCustomerId(
  */
 export default async function stripeWebhookHandler(req: Request, res: Response) {
   if (!stripeSecret || !webhookSecret) {
-    console.error("Stripe webhook: STRIPE_SECRET_KEY or STRIPE_WEBHOOK_SECRET missing");
+    console.error(
+      "Stripe webhook: AISELFIE_STRIPE_SECRET_KEY/AISELFIE_STRIPE_WEBHOOK_SECRET (or STRIPE_*) missing",
+    );
     return res.status(503).send("Stripe not configured");
   }
 

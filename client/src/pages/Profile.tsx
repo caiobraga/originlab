@@ -26,7 +26,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
-import { createBillingPortalSession } from "@/lib/stripeBilling";
+import { createBillingPortalSession, createCheckoutSession } from "@/lib/stripeBilling";
 
 const AREA_LABELS: Record<string, string> = {
   tech: "Tecnologia",
@@ -61,6 +61,7 @@ export default function Profile() {
   const [loadingCPF, setLoadingCPF] = useState(false);
   const [importingPdf, setImportingPdf] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [checkoutLoadingPlan, setCheckoutLoadingPlan] = useState<"pro" | "empresas" | null>(null);
   const hasRefetched = useRef(false);
 
   const loading = authLoading || profileLoading;
@@ -296,18 +297,16 @@ export default function Profile() {
                               : profile.subscriptionStatus || "—"}
                     </Badge>
                   </div>
-                  {profile.subscriptionPlanKey ? (
-                    <p className="text-gray-700">
-                      Plano:{" "}
-                      <span className="font-medium">
-                        {profile.subscriptionPlanKey === "empresas"
-                          ? "Empresas"
-                          : profile.subscriptionPlanKey === "pro"
-                            ? "Pro"
-                            : profile.subscriptionPlanKey}
-                      </span>
-                    </p>
-                  ) : null}
+                  <p className="text-gray-700">
+                    Plano:{" "}
+                    <span className="font-medium">
+                      {profile.subscriptionPlanKey === "empresas"
+                        ? "Empresas"
+                        : profile.subscriptionPlanKey === "pro"
+                          ? "Pro"
+                          : profile.subscriptionPlanKey || "Gratuito"}
+                    </span>
+                  </p>
                   {profile.subscriptionCurrentPeriodEnd ? (
                     <p className="text-gray-600 text-sm">
                       Renovação / fim do período atual:{" "}
@@ -348,16 +347,119 @@ export default function Profile() {
                 ) : null}
               </>
             ) : (
-              <p className="text-gray-600 text-sm">
-                Você está no plano gratuito. Assine o Pro ou Empresas para desbloquear todos os recursos.
-              </p>
+              <div className="space-y-2 text-sm">
+                <p className="text-gray-700">
+                  Plano: <span className="font-medium">Gratuito</span>
+                </p>
+                <p className="text-gray-600">
+                  Você está no plano gratuito. Assine o Pro ou Empresas para desbloquear todos os recursos.
+                </p>
+              </div>
             )}
-            <div>
-              <Link href="/planos">
-                <Button variant="default" className="bg-gradient-to-r from-blue-600 to-violet-600">
-                  Ver planos
-                </Button>
-              </Link>
+            <div className="pt-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="border border-gray-200 rounded-lg p-4 bg-white">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="font-semibold text-gray-900">Pro</div>
+                      <div className="text-xs text-gray-600 mt-1">Para pesquisadores e startups.</div>
+                    </div>
+                    {profile?.subscriptionPlanKey === "pro" ? (
+                      <Badge variant="secondary">Atual</Badge>
+                    ) : null}
+                  </div>
+                  <div className="mt-3">
+                    <Button
+                      type="button"
+                      variant={profile?.subscriptionPlanKey === "pro" ? "outline" : "attention"}
+                      disabled={
+                        !user ||
+                        checkoutLoadingPlan !== null ||
+                        profile?.subscriptionPlanKey === "pro"
+                      }
+                      onClick={async () => {
+                        if (!user) {
+                          toast.info("Faça login para assinar.");
+                          setLocation(`/login?redirect=/perfil`);
+                          return;
+                        }
+                        setCheckoutLoadingPlan("pro");
+                        try {
+                          const url = await createCheckoutSession("pro");
+                          window.location.href = url;
+                        } catch (e) {
+                          toast.error(e instanceof Error ? e.message : "Erro ao abrir checkout.");
+                        } finally {
+                          setCheckoutLoadingPlan(null);
+                        }
+                      }}
+                      className="w-full"
+                    >
+                      {checkoutLoadingPlan === "pro" ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Redirecionando…
+                        </>
+                      ) : profile?.subscriptionPlanKey === "pro" ? (
+                        "Plano atual"
+                      ) : (
+                        "Fazer upgrade para Pro"
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="border border-gray-200 rounded-lg p-4 bg-white">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="font-semibold text-gray-900">Empresas</div>
+                      <div className="text-xs text-gray-600 mt-1">Para times e operação multiusuário.</div>
+                    </div>
+                    {profile?.subscriptionPlanKey === "empresas" ? (
+                      <Badge variant="secondary">Atual</Badge>
+                    ) : null}
+                  </div>
+                  <div className="mt-3">
+                    <Button
+                      type="button"
+                      variant={profile?.subscriptionPlanKey === "empresas" ? "outline" : "attention"}
+                      disabled={
+                        !user ||
+                        checkoutLoadingPlan !== null ||
+                        profile?.subscriptionPlanKey === "empresas"
+                      }
+                      onClick={async () => {
+                        if (!user) {
+                          toast.info("Faça login para assinar.");
+                          setLocation(`/login?redirect=/perfil`);
+                          return;
+                        }
+                        setCheckoutLoadingPlan("empresas");
+                        try {
+                          const url = await createCheckoutSession("empresas");
+                          window.location.href = url;
+                        } catch (e) {
+                          toast.error(e instanceof Error ? e.message : "Erro ao abrir checkout.");
+                        } finally {
+                          setCheckoutLoadingPlan(null);
+                        }
+                      }}
+                      className="w-full"
+                    >
+                      {checkoutLoadingPlan === "empresas" ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Redirecionando…
+                        </>
+                      ) : profile?.subscriptionPlanKey === "empresas" ? (
+                        "Plano atual"
+                      ) : (
+                        "Fazer upgrade para Empresas"
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>

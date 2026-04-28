@@ -67,6 +67,10 @@ export interface UserProfile {
   subscriptionPriceId?: string;
   subscriptionCurrentPeriodEnd?: string;
   subscriptionPlanKey?: string;
+  /** Permissão administrativa (coluna em `profiles`). */
+  isAdmin?: boolean;
+  /** Bloqueio administrativo (coluna em `profiles`). */
+  isBlocked?: boolean;
 }
 
 /**
@@ -384,6 +388,8 @@ export async function getUserProfile(user: User | null): Promise<UserProfile | n
         lattesId: profile.lattes_id || undefined,
         userType: resolvedUserType as "pesquisador" | "pessoa-empresa" | "ambos",
         hasCnpj: profile.has_cnpj || false,
+        isAdmin: profile.is_admin ?? undefined,
+        isBlocked: profile.is_blocked ?? undefined,
         sexo: (profile.sexo as any) ?? (metadataProfile?.sexo as any) ?? undefined,
         curriculumData: (curriculumFromDb ? (profile.curriculum_data as CurriculumData) : metadataProfile?.curriculumData) ?? undefined,
         onboardingCompleted: profile.onboarding_completed ?? Boolean(metadataProfile?.onboarding_completed),

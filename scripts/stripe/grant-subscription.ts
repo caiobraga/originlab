@@ -33,9 +33,14 @@ function parseArgs(argv: string[]) {
 }
 
 function priceIdFromPlan(plan: "pro" | "empresas"): string | null {
-  if (plan === "pro") return process.env.STRIPE_PRICE_PRO_MONTHLY?.trim() || null;
+  if (plan === "pro")
+    return process.env.AISELFIE_STRIPE_PRICE_PRO_MONTHLY?.trim() || process.env.STRIPE_PRICE_PRO_MONTHLY?.trim() || null;
   if (plan === "empresas")
-    return process.env.STRIPE_PRICE_EMPRESAS_MONTHLY?.trim() || null;
+    return (
+      process.env.AISELFIE_STRIPE_PRICE_EMPRESAS_MONTHLY?.trim() ||
+      process.env.STRIPE_PRICE_EMPRESAS_MONTHLY?.trim() ||
+      null
+    );
   return null;
 }
 
@@ -63,9 +68,9 @@ async function main() {
     process.exit(1);
   }
 
-  const stripeKey = process.env.STRIPE_SECRET_KEY?.trim();
+  const stripeKey = process.env.AISELFIE_STRIPE_SECRET_KEY?.trim() || process.env.STRIPE_SECRET_KEY?.trim();
   if (!stripeKey) {
-    console.error("Defina STRIPE_SECRET_KEY");
+    console.error("Defina AISELFIE_STRIPE_SECRET_KEY (ou STRIPE_SECRET_KEY)");
     process.exit(1);
   }
 
@@ -80,10 +85,11 @@ async function main() {
   const priceId =
     priceArg ||
     (plan ? priceIdFromPlan(plan) : null) ||
+    process.env.AISELFIE_STRIPE_PRICE_PRO_MONTHLY?.trim() ||
     process.env.STRIPE_PRICE_PRO_MONTHLY?.trim() ||
     null;
   if (!priceId) {
-    console.error("Defina --price ou --plan com STRIPE_PRICE_* no .env");
+    console.error("Defina --price ou --plan com AISELFIE_STRIPE_PRICE_* (ou STRIPE_PRICE_*) no .env");
     process.exit(1);
   }
 

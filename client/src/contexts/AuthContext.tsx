@@ -3,6 +3,7 @@ import { User, Session, AuthError } from "@supabase/supabase-js";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { toast } from "sonner";
 import { translateSupabaseAuthError } from "@/lib/authErrorTranslations";
+import { getUserProfile } from "@/lib/userProfile";
 
 interface AuthContextType {
   user: User | null;
@@ -29,28 +30,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     let subscription: { unsubscribe: () => void } | null = null;
 
+    let cancelled = false;
+
+    const enforceBlockedUser = async (u: User | null) => {
+      if (!u) return;
+      try {
+        const profile = await getUserProfile(u);
+        if (profile?.isBlocked) {
+          // Garantir que um usuário bloqueado não consiga permanecer logado.
+          await supabase.auth.signOut();
+          if (!cancelled) {
+            setSession(null);
+            setUser(null);
+          }
+          toast.error("Sua conta está bloqueada. Entre em contato com o suporte.");
+        }
+      } catch {
+        // Se não conseguir checar o perfil (RLS/rede), não bloquear login aqui.
+      }
+    };
+
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    }).catch(() => {
-      // Handle errors gracefully
-      setLoading(false);
-    });
+    supabase.auth
+      .getSession()
+      .then(({ data: { session } }) => {
+        if (cancelled) return;
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoading(false);
+        void enforceBlockedUser(session?.user ?? null);
+      })
+      .catch(() => {
+        // Handle errors gracefully
+        if (!cancelled) setLoading(false);
+      });
 
     // Listen for auth changes
     const {
       data: { subscription: authSubscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (cancelled) return;
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      void enforceBlockedUser(session?.user ?? null);
     });
 
     subscription = authSubscription;
 
     return () => {
+      cancelled = true;
       if (subscription) {
         subscription.unsubscribe();
       }

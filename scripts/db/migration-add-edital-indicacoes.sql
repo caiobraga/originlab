@@ -138,6 +138,10 @@ BEGIN
       e.criterios_elegibilidade,
       e.status,
       e.data_encerramento,
+      e.prazo_inscricao,
+      e.timeline_estimada,
+      e.valor_projeto,
+      e.valor,
       e.is_researcher,
       e.is_company,
       -- Texto de elegibilidade: prioriza criterios_elegibilidade, com fallback para sobre_programa + descricao
@@ -153,7 +157,38 @@ BEGIN
         COALESCE(e.sobre_programa, '') || ' ' ||
         COALESCE(e.criterios_elegibilidade, '')
       ) AS edital_text
-    FROM public.editais e
+    FROM public.editais_corretos e
+    -- Regras de exclusão (hard filters):
+    -- 1) NÃO indicar edital sem timeline estimada útil (se vazio/nulo, sai fora).
+    -- 2) NÃO indicar edital sem valor de projeto (usa valor_projeto como primário; fallback para valor).
+    -- 3) NÃO indicar edital sem prazo inferível (mantém o filtro anterior).
+    WHERE
+      -- (1) timeline estimada precisa existir e conter pelo menos 1 data ISO (YYYY-MM-DD)
+      e.timeline_estimada IS NOT NULL
+      AND e.timeline_estimada::text ~ '\d{4}-\d{2}-\d{2}'
+      -- (2) valor precisa existir em pelo menos um dos campos
+      AND (
+        (e.valor_projeto IS NOT NULL AND NULLIF(TRIM(e.valor_projeto), '') IS NOT NULL AND e.valor_projeto <> 'Não informado')
+        OR (e.valor IS NOT NULL AND NULLIF(TRIM(e.valor), '') IS NOT NULL AND e.valor <> 'Não informado')
+      )
+      -- (3) prazo inferível (deadline) precisa existir em alguma fonte
+      AND (
+        e.data_encerramento IS NOT NULL
+        OR (
+          e.prazo_inscricao IS NOT NULL
+          AND NULLIF(TRIM(e.prazo_inscricao), '') IS NOT NULL
+          AND e.prazo_inscricao <> 'Não informado'
+          AND (
+            e.prazo_inscricao ~ '\d{4}-\d{2}-\d{2}'
+            OR e.prazo_inscricao ~ '\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{4}'
+            OR e.prazo_inscricao ~ '\d{1,2}\s+de\s+[[:alpha:]]+\s+de\s+\d{4}'
+          )
+        )
+        OR (
+          e.timeline_estimada IS NOT NULL
+          AND e.timeline_estimada::text ~ '\d{4}-\d{2}-\d{2}'
+        )
+      )
   ),
   area_terms AS (
     SELECT
@@ -209,7 +244,27 @@ BEGIN
           +
           -- status aberto
           (CASE
-            WHEN b.status IS NOT NULL AND LOWER(b.status) LIKE '%abert%' THEN 5
+            WHEN b.status IS NOT NULL
+             AND LOWER(b.status) LIKE '%abert%'
+             AND (
+               -- Evidência real de "aberto": há um deadline conhecido (ou inferível) ainda no futuro.
+               (b.data_encerramento IS NOT NULL AND b.data_encerramento >= CURRENT_DATE)
+               OR (
+                 b.prazo_inscricao IS NOT NULL
+                 AND NULLIF(TRIM(b.prazo_inscricao), '') IS NOT NULL
+                 AND b.prazo_inscricao <> 'Não informado'
+                 AND (
+                   b.prazo_inscricao ~ '\d{4}-\d{2}-\d{2}'
+                   OR b.prazo_inscricao ~ '\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{4}'
+                   OR b.prazo_inscricao ~ '\d{1,2}\s+de\s+[[:alpha:]]+\s+de\s+\d{4}'
+                 )
+               )
+               OR (
+                 b.timeline_estimada IS NOT NULL
+                 AND b.timeline_estimada::text ~ '\d{4}-\d{2}-\d{2}'
+               )
+             )
+              THEN 5
             ELSE 0
           END)
           +
@@ -312,7 +367,26 @@ BEGIN
             ELSE NULL
           END,
           CASE
-            WHEN b.status IS NOT NULL AND LOWER(b.status) LIKE '%abert%' THEN 'Inscrições abertas'
+            WHEN b.status IS NOT NULL
+             AND LOWER(b.status) LIKE '%abert%'
+             AND (
+               (b.data_encerramento IS NOT NULL AND b.data_encerramento >= CURRENT_DATE)
+               OR (
+                 b.prazo_inscricao IS NOT NULL
+                 AND NULLIF(TRIM(b.prazo_inscricao), '') IS NOT NULL
+                 AND b.prazo_inscricao <> 'Não informado'
+                 AND (
+                   b.prazo_inscricao ~ '\d{4}-\d{2}-\d{2}'
+                   OR b.prazo_inscricao ~ '\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{4}'
+                   OR b.prazo_inscricao ~ '\d{1,2}\s+de\s+[[:alpha:]]+\s+de\s+\d{4}'
+                 )
+               )
+               OR (
+                 b.timeline_estimada IS NOT NULL
+                 AND b.timeline_estimada::text ~ '\d{4}-\d{2}-\d{2}'
+               )
+             )
+              THEN 'Inscrições abertas'
             ELSE NULL
           END,
           CASE

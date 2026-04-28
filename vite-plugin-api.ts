@@ -36,6 +36,7 @@ export function apiPlugin(): Plugin {
         const { default: analyzeFieldRouter } = await import('./server/api/analyze-field.js');
         const { default: fetchLattesRouter } = await import('./server/api/fetch-lattes.js');
         const { default: translateRouter } = await import('./server/api/translate.js');
+        const { default: adminRouter } = await import('./server/api/admin.js');
         
         app.use('/api', stripeBillingRouter);
         app.use('/api', extractEditalInfoRouter);
@@ -46,6 +47,7 @@ export function apiPlugin(): Plugin {
         app.use('/api', generateFieldTextRouter);
         app.use('/api', analyzeFieldRouter);
         app.use('/api', translateRouter);
+        app.use('/api', adminRouter);
         
         // Usar o middleware do Express no servidor Vite
         server.middlewares.use(app);
@@ -58,6 +60,7 @@ export function apiPlugin(): Plugin {
         console.log('   - /api/generate-field-text');
         console.log('   - /api/analyze-field');
         console.log('   - /api/translate');
+        console.log('   - /api/admin/users, /api/admin/redacoes');
         console.log('   - /api/lattes/:id, /api/fetch-cnpj');
         console.log('   - /api/stripe/webhook, /api/stripe/create-checkout-session');
       } catch (error) {
