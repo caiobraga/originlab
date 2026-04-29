@@ -53,8 +53,7 @@ const REPO_ROOT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)),
 
 const supabaseUrl =
   process.env.VITE_SUPABASE_URL ||
-  process.env.SUPABASE_URL ||
-  process.env.NEXT_PUBLIC_SUPABASE_URL;
+  process.env.SUPABASE_URL;
 const supabaseKey =
   process.env.VITE_SUPABASE_SERVICE_ROLE_KEY ||
   process.env.SUPABASE_SERVICE_ROLE_KEY ||
@@ -2547,8 +2546,7 @@ export async function extractInfoViaOllama(
         key.startsWith("PROCESS_") ||
         key.startsWith("UPDATE_EDITAL_") ||
         key === "VITE_SUPABASE_URL" ||
-        key === "SUPABASE_URL" ||
-        key === "NEXT_PUBLIC_SUPABASE_URL"
+        key === "SUPABASE_URL"
       ) {
         out[key] = maskEnvValue(key, String(v));
       }

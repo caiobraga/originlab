@@ -10,14 +10,14 @@ fi
 echo "📋 Lendo configurações do unifap..."
 
 # Extrair valores do .env.local do unifap
-SUPABASE_URL=$(grep "^NEXT_PUBLIC_SUPABASE_URL=" ../unifap/.env.local | cut -d "=" -f2- | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | sed "s/^['\"]//;s/['\"]$//")
-SUPABASE_KEY=$(grep "^NEXT_PUBLIC_SUPABASE_ANON_KEY=" ../unifap/.env.local | cut -d "=" -f2- | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | sed "s/^['\"]//;s/['\"]$//")
+SUPABASE_URL=$(grep "^VITE_SUPABASE_URL=" ../unifap/.env.local | cut -d "=" -f2- | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | sed "s/^['\"]//;s/['\"]$//")
+SUPABASE_KEY=$(grep "^VITE_SUPABASE_ANON_KEY=" ../unifap/.env.local | cut -d "=" -f2- | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | sed "s/^['\"]//;s/['\"]$//")
 
 if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_KEY" ]; then
     echo "❌ Não foi possível encontrar as configurações do Supabase no unifap"
     echo "   Verifique se o arquivo ../unifap/.env.local contém:"
-    echo "   NEXT_PUBLIC_SUPABASE_URL=..."
-    echo "   NEXT_PUBLIC_SUPABASE_ANON_KEY=..."
+    echo "   VITE_SUPABASE_URL=..."
+    echo "   VITE_SUPABASE_ANON_KEY=..."
     exit 1
 fi
 

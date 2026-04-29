@@ -21,8 +21,7 @@ import * as readline from "readline";
 
 const supabaseUrl =
   process.env.VITE_SUPABASE_URL ||
-  process.env.SUPABASE_URL ||
-  process.env.NEXT_PUBLIC_SUPABASE_URL;
+  process.env.SUPABASE_URL;
 
 const supabaseKey =
   process.env.VITE_SUPABASE_SERVICE_ROLE_KEY ||

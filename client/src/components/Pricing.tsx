@@ -39,7 +39,7 @@ const plans: Array<{
   },
   {
     name: "Pro",
-    price: "R$ 49",
+    price: "R$ 1,99",
     period: "/mês",
     description: "Ideal para pesquisadores e startups",
     features: [
