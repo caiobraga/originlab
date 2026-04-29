@@ -104,6 +104,11 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState<AdminUserRow[]>([]);
   const [userQuery, setUserQuery] = useState("");
 
+  // Billing (Pagamentos)
+  type BillingPlanEditable = BillingPlanRow & { __id: string; __isNew?: boolean };
+  const [billingPlans, setBillingPlans] = useState<BillingPlanEditable[]>([]);
+  const [billingSavingKey, setBillingSavingKey] = useState<string | null>(null);
+
   // Propostas
   const [propostas, setPropostas] = useState<PropostaAdminRow[]>([]);
   const [propostasStatusFiltro, setPropostasStatusFiltro] = useState<string>("");
@@ -161,7 +166,13 @@ export default function AdminDashboard() {
     setBusy(true);
     try {
       const data = await adminListBillingPlans();
-      setBillingPlans(data.rows);
+      setBillingPlans(
+        (data.rows || []).map((r) => ({
+          ...(r as BillingPlanRow),
+          __id: String(r.plan_key),
+          __isNew: false,
+        })),
+      );
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao carregar planos");
     } finally {
@@ -869,9 +880,36 @@ export default function AdminDashboard() {
                   Ao salvar, o servidor cria um novo Price mensal no Stripe e passa a usá-lo no checkout.
                 </div>
               </div>
-              <Button variant="outline" onClick={() => void loadBillingPlans()} disabled={busy}>
-                Atualizar
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  disabled={busy}
+                  onClick={() => {
+                    const id = `new-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+                    setBillingPlans((prev) => [
+                      {
+                        __id: id,
+                        __isNew: true,
+                        plan_key: "",
+                        title: "",
+                        currency: "brl",
+                        interval: "month",
+                        unit_amount_cents: 199,
+                        stripe_product_id: null,
+                        stripe_price_id: null,
+                        active: true,
+                        updated_at: new Date().toISOString(),
+                      },
+                      ...prev,
+                    ]);
+                  }}
+                >
+                  Adicionar plano
+                </Button>
+                <Button variant="outline" onClick={() => void loadBillingPlans()} disabled={busy}>
+                  Atualizar
+                </Button>
+              </div>
             </div>
 
             <div className="overflow-auto">
@@ -888,14 +926,29 @@ export default function AdminDashboard() {
                 </thead>
                 <tbody>
                   {billingPlans.map((p) => (
-                    <tr key={p.plan_key} className="border-b align-top">
-                      <td className="py-2 pr-3 font-mono text-xs text-gray-700">{p.plan_key}</td>
+                    <tr key={p.__id} className="border-b align-top">
+                      <td className="py-2 pr-3">
+                        {p.__isNew ? (
+                          <Input
+                            value={p.plan_key}
+                            placeholder="ex.: pro, empresas"
+                            onChange={(e) =>
+                              setBillingPlans((prev) =>
+                                prev.map((x) => (x.__id === p.__id ? { ...x, plan_key: e.target.value } : x)),
+                              )
+                            }
+                            className="w-[160px] font-mono text-xs"
+                          />
+                        ) : (
+                          <span className="font-mono text-xs text-gray-700">{p.plan_key}</span>
+                        )}
+                      </td>
                       <td className="py-2 pr-3">
                         <Input
                           value={p.title}
                           onChange={(e) =>
                             setBillingPlans((prev) =>
-                              prev.map((x) => (x.plan_key === p.plan_key ? { ...x, title: e.target.value } : x)),
+                              prev.map((x) => (x.__id === p.__id ? { ...x, title: e.target.value } : x)),
                             )
                           }
                           className="w-[260px]"
@@ -908,7 +961,7 @@ export default function AdminDashboard() {
                             const n = Number(e.target.value);
                             setBillingPlans((prev) =>
                               prev.map((x) =>
-                                x.plan_key === p.plan_key
+                                x.__id === p.__id
                                   ? { ...x, unit_amount_cents: Number.isFinite(n) ? n : x.unit_amount_cents }
                                   : x,
                               ),
@@ -923,7 +976,7 @@ export default function AdminDashboard() {
                           value={p.active ? "1" : "0"}
                           onChange={(e) =>
                             setBillingPlans((prev) =>
-                              prev.map((x) => (x.plan_key === p.plan_key ? { ...x, active: e.target.value === "1" } : x)),
+                              prev.map((x) => (x.__id === p.__id ? { ...x, active: e.target.value === "1" } : x)),
                             )
                           }
                         >
@@ -933,31 +986,60 @@ export default function AdminDashboard() {
                       </td>
                       <td className="py-2 pr-3 font-mono text-xs text-gray-700">{p.stripe_price_id || "-"}</td>
                       <td className="py-2 pr-3">
-                        <Button
-                          size="sm"
-                          variant="attention"
-                          disabled={busy || billingSavingKey === p.plan_key}
-                          onClick={async () => {
-                            setBillingSavingKey(p.plan_key);
-                            try {
-                              const r = await adminUpsertBillingPlan(p.plan_key, {
-                                title: p.title,
-                                currency: p.currency || "brl",
-                                interval: p.interval || "month",
-                                unit_amount_cents: Number(p.unit_amount_cents),
-                                active: p.active,
-                              });
-                              setBillingPlans((prev) => prev.map((x) => (x.plan_key === p.plan_key ? r.row : x)));
-                              toast.success("Plano atualizado");
-                            } catch (e) {
-                              toast.error(e instanceof Error ? e.message : "Falha ao salvar");
-                            } finally {
-                              setBillingSavingKey(null);
-                            }
-                          }}
-                        >
-                          Salvar
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="attention"
+                            disabled={busy || billingSavingKey === p.__id}
+                            onClick={async () => {
+                              const planKey = String(p.plan_key || "").trim().toLowerCase();
+                              if (!planKey) {
+                                toast.error("Informe o identificador do plano (plan_key).");
+                                return;
+                              }
+                              setBillingSavingKey(p.__id);
+                              try {
+                                const r = await adminUpsertBillingPlan(planKey, {
+                                  title: p.title,
+                                  currency: p.currency || "brl",
+                                  interval: p.interval || "month",
+                                  unit_amount_cents: Number(p.unit_amount_cents),
+                                  active: p.active,
+                                });
+                                setBillingPlans((prev) =>
+                                  prev.map((x) =>
+                                    x.__id === p.__id
+                                      ? { ...(r.row as BillingPlanRow), __id: planKey, __isNew: false }
+                                      : x,
+                                  ),
+                                );
+                                toast.success("Plano atualizado");
+                              } catch (e) {
+                                toast.error(e instanceof Error ? e.message : "Falha ao salvar");
+                              } finally {
+                                setBillingSavingKey(null);
+                              }
+                            }}
+                          >
+                            Salvar
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={busy || billingSavingKey === p.__id}
+                            onClick={() => {
+                              if (p.__isNew) {
+                                setBillingPlans((prev) => prev.filter((x) => x.__id !== p.__id));
+                              } else {
+                                setBillingPlans((prev) =>
+                                  prev.map((x) => (x.__id === p.__id ? { ...x, active: false } : x)),
+                                );
+                              }
+                            }}
+                          >
+                            Remover
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
