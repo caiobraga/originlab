@@ -16,6 +16,12 @@ export interface ImproveTextResponse {
   improved_text: string;
 }
 
+const API_BASE = String((import.meta as any).env?.VITE_API_BASE_URL || "").replace(/\/$/, "");
+function apiUrl(path: string) {
+  if (!API_BASE) return path;
+  return `${API_BASE}${path.startsWith("/") ? path : `/${path}`}`;
+}
+
 /**
  * Melhora um texto de campo usando IA com contexto do edital
  */
@@ -33,7 +39,7 @@ export async function improveText(params: ImproveTextParams): Promise<string> {
     if (!body.edital_id && !body.proposta_id) {
       throw new Error("É necessário edital_id ou proposta_id para melhorar o texto.");
     }
-    const response = await fetch("/api/improve-text", {
+    const response = await fetch(apiUrl("/api/improve-text"), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

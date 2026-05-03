@@ -15,6 +15,12 @@ export interface AnalyzeFieldResponse {
   analysis_markdown: string;
 }
 
+const API_BASE = String((import.meta as any).env?.VITE_API_BASE_URL || "").replace(/\/$/, "");
+function apiUrl(path: string) {
+  if (!API_BASE) return path;
+  return `${API_BASE}${path.startsWith("/") ? path : `/${path}`}`;
+}
+
 export async function analyzeField(params: AnalyzeFieldParams): Promise<string> {
   const body: Record<string, unknown> = {
     field_id: params.field_id ?? null,
@@ -32,7 +38,7 @@ export async function analyzeField(params: AnalyzeFieldParams): Promise<string> 
     throw new Error("É necessário edital_id ou proposta_id para analisar o campo.");
   }
 
-  const response = await fetch("/api/analyze-field", {
+  const response = await fetch(apiUrl("/api/analyze-field"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),

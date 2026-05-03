@@ -14,6 +14,12 @@ export interface GenerateFieldTextResponse {
   generated_text: string;
 }
 
+const API_BASE = String((import.meta as any).env?.VITE_API_BASE_URL || "").replace(/\/$/, "");
+function apiUrl(path: string) {
+  if (!API_BASE) return path;
+  return `${API_BASE}${path.startsWith("/") ? path : `/${path}`}`;
+}
+
 export async function generateFieldText(
   params: GenerateFieldTextParams
 ): Promise<string> {
@@ -37,7 +43,7 @@ export async function generateFieldText(
   const { data: sessionData } = await supabase.auth.getSession();
   const accessToken = sessionData.session?.access_token || null;
 
-  const response = await fetch("/api/generate-field-text", {
+  const response = await fetch(apiUrl("/api/generate-field-text"), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

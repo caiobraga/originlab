@@ -7,7 +7,11 @@ export async function translateText(params: {
   const input = String(text || "").trim();
   if (!input) return "";
 
-  const r = await fetch("/api/translate", {
+  const API_BASE = String((import.meta as any).env?.VITE_API_BASE_URL || "").replace(/\/$/, "");
+  const apiUrl = (path: string) =>
+    API_BASE ? `${API_BASE}${path.startsWith("/") ? path : `/${path}`}` : path;
+
+  const r = await fetch(apiUrl("/api/translate"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text: input, source, target }),

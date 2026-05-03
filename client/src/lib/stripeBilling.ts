@@ -1,5 +1,11 @@
 import { supabase } from "@/lib/supabase";
 
+const API_BASE = String((import.meta as any).env?.VITE_API_BASE_URL || "").replace(/\/$/, "");
+function apiUrl(path: string) {
+  if (!API_BASE) return path;
+  return `${API_BASE}${path.startsWith("/") ? path : `/${path}`}`;
+}
+
 export async function createCheckoutSession(
   planKey: "pro" | "empresas",
 ): Promise<string> {
@@ -10,7 +16,7 @@ export async function createCheckoutSession(
     throw new Error("Faça login para assinar um plano.");
   }
 
-  const res = await fetch("/api/stripe/create-checkout-session", {
+  const res = await fetch(apiUrl("/api/stripe/create-checkout-session"), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -37,7 +43,7 @@ export async function createBillingPortalSession(): Promise<string> {
     throw new Error("Faça login para gerenciar a assinatura.");
   }
 
-  const res = await fetch("/api/stripe/create-portal-session", {
+  const res = await fetch(apiUrl("/api/stripe/create-portal-session"), {
     method: "POST",
     headers: {
       Authorization: `Bearer ${session.access_token}`,

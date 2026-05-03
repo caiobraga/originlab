@@ -1,5 +1,11 @@
 import { supabase } from "@/lib/supabase";
 
+const API_BASE = String((import.meta as any).env?.VITE_API_BASE_URL || "").replace(/\/$/, "");
+function apiUrl(path: string) {
+  if (!API_BASE) return path;
+  return `${API_BASE}${path.startsWith("/") ? path : `/${path}`}`;
+}
+
 async function getBearer(): Promise<string | null> {
   const { data } = await supabase.auth.getSession();
   return data.session?.access_token || null;
@@ -29,7 +35,7 @@ export async function adminListUsers(params?: { page?: number; perPage?: number 
   const qs = new URLSearchParams();
   if (params?.page) qs.set("page", String(params.page));
   if (params?.perPage) qs.set("perPage", String(params.perPage));
-  const r = await fetch(`/api/admin/users?${qs.toString()}`, {
+  const r = await fetch(apiUrl(`/api/admin/users?${qs.toString()}`), {
     headers: { Authorization: `Bearer ${token}` },
     // Evita cache HTTP do browser/proxy (o toggle is_blocked precisa refletir imediatamente).
     cache: "no-store",
@@ -41,7 +47,7 @@ export async function adminListUsers(params?: { page?: number; perPage?: number 
 export async function adminPatchUser(userId: string, patch: { is_admin?: boolean; is_blocked?: boolean }) {
   const token = await getBearer();
   if (!token) throw new Error("Faça login para acessar o admin.");
-  const r = await fetch(`/api/admin/users/${encodeURIComponent(userId)}`, {
+  const r = await fetch(apiUrl(`/api/admin/users/${encodeURIComponent(userId)}`), {
     method: "PATCH",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify(patch),
@@ -66,7 +72,7 @@ export type BillingPlanRow = {
 export async function adminListBillingPlans() {
   const token = await getBearer();
   if (!token) throw new Error("Faça login para acessar o admin.");
-  const r = await fetch(`/api/admin/billing/plans`, {
+  const r = await fetch(apiUrl(`/api/admin/billing/plans`), {
     headers: { Authorization: `Bearer ${token}` },
     cache: "no-store",
   });
@@ -80,7 +86,7 @@ export async function adminUpsertBillingPlan(
 ) {
   const token = await getBearer();
   if (!token) throw new Error("Faça login para acessar o admin.");
-  const r = await fetch(`/api/admin/billing/plans/${encodeURIComponent(planKey)}`, {
+  const r = await fetch(apiUrl(`/api/admin/billing/plans/${encodeURIComponent(planKey)}`), {
     method: "PUT",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify(patch),
@@ -113,7 +119,7 @@ export async function adminListRedacoes(params?: { limit?: number; offset?: numb
   if (params?.status) qs.set("status", params.status);
   if (params?.userId) qs.set("userId", params.userId);
   if (params?.propostaId) qs.set("propostaId", params.propostaId);
-  const r = await fetch(`/api/admin/redacoes?${qs.toString()}`, {
+  const r = await fetch(apiUrl(`/api/admin/redacoes?${qs.toString()}`), {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || "Erro ao buscar redações");
